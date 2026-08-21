@@ -1,0 +1,29 @@
+schema_version = 1
+experiment = "e1_controlled_pendulum_factorial_pilot_grid"
+status = "planned_cross_domain_pilot"
+base_config = "configs/e1_world_models/torch_pendulum_pilot.toml"
+
+[axes]
+model_families = ["ae", "beta_vae"]
+# The matched h1/h4 comparison probes information recovered from angular motion history.
+history_modes = ["stack_h1", "stack_h4", "gru_h4"]
+latent_dimensions = [4, 8]
+safety_arms = ["none", "h_prediction", "boundary_contrastive", "safe_action_profile"]
+seeds = [0, 1, 2]
+
+[execution]
+output_root = "runs/e1_world_models/pendulum_pilot_grid"
+device = "cuda"
+expected_tasks = 144
+
+[analysis]
+relative_radii = [0.0, 0.01, 0.02, 0.05, 0.10]
+primary_relative_radius = 0.05
+max_validation_static_defect = 0.10
+bootstrap_resamples = 10000
+bootstrap_seed = 20260822
+selection_split = "validation"
+
+[gate]
+purpose = "exploratory synthetic cross-domain pilot; not confirmatory paper evidence"
+advance_only_if = "history and safety-arm effects replicate across paired seeds at matched utility"

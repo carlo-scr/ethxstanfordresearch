@@ -1,0 +1,31 @@
+schema_version = 1
+experiment = "e1_controlled_cart_factorial_pilot_grid"
+status = "planned_after_e0"
+base_config = "configs/e1_world_models/torch_pilot.toml"
+
+[axes]
+model_families = ["ae", "beta_vae"]
+# Each history mode jointly fixes the encoder architecture and input length. In particular,
+# stack_h1 is the true single-frame/memoryless control; stack_h4 and gru_h4 receive the same
+# four-frame information and isolate the effect of recurrence from history availability.
+history_modes = ["stack_h1", "stack_h4", "gru_h4"]
+latent_dimensions = [4, 8]
+safety_arms = ["none", "h_prediction", "boundary_contrastive", "safe_action_profile"]
+seeds = [0, 1, 2]
+
+[execution]
+output_root = "runs/e1_world_models/pilot_grid"
+device = "cuda"
+expected_tasks = 144
+
+[analysis]
+relative_radii = [0.0, 0.01, 0.02, 0.05, 0.10]
+primary_relative_radius = 0.05
+max_validation_static_defect = 0.10
+bootstrap_resamples = 10000
+bootstrap_seed = 20260821
+selection_split = "validation"
+
+[gate]
+purpose = "exploratory paired-seed pilot; not confirmatory paper evidence"
+advance_only_if = "E0 controls pass and at least one safety arm shifts matched-utility frontier"

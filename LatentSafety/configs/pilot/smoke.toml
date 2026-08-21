@@ -1,0 +1,15 @@
+schema_version = 1
+experiment = "e0_known_aliasing_smoke"
+
+[run]
+seed = 7
+
+[fixture]
+n_pairs = 64
+max_margin = 0.75
+
+[metric]
+# These radii are part of a deterministic synthetic control, not a real benchmark calibration.
+deltas = [0.0, 0.01, 0.05, 0.25]
+quantile = 0.99
+

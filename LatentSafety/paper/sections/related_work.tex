@@ -1,0 +1,33 @@
+\section{Related work and novelty boundary}
+
+\paragraph{Latent control certificates.}
+Latent CBF and world-model methods learn certificates or safety policies from observations
+\citep{kumar2024latentcbf,anand2025safety}.  Lutkus et al.\ give approximate-conjugacy conditions
+for transferring latent Lyapunov and barrier guarantees and explicitly identify shared safe/unsafe
+codes as a source of conservative under-approximation \citep{lutkus2025latent}.  Set-valued and
+uncertainty-aware variants propagate zonotopes or augment the latent state with epistemic
+uncertainty \citep{wu2026points,seo2025uncertainty}.  We do not claim the first latent safe set,
+collision observation, or transfer theorem.
+
+\paragraph{Safety-aware representations.}
+Decision-sufficient and safe-RL representation learning already preserve action, reward, cost, or
+feasibility information \citep{huang2022action,cen2024feasibility,yang2025qsupervised}.  Our target
+distinction is not merely a new auxiliary safety loss: it is an auditable necessary lower bound
+based on representation fibers and common safe-action feasibility, paired with explicit
+observation-level and finite-sample semantics.
+
+\paragraph{Control abstractions and partial observation.}
+Feedback refinement relations formalize controller refinement through static quantizers and
+state-dependent admissible inputs \citep{reissig2017feedback}; state--action abstractions likewise
+study which decisions remain representable after compression \citep{abel2020value}.  Under partial
+observation, belief-support shields already restrict actions to enforce almost-sure reach--avoid
+specifications \citep{sheng2024safe}.  Common-action necessity is therefore a foundation, not our
+standalone novelty.  The submission-level target is approximate safety sufficiency for learned
+history representations, with calibrated audits and matched-utility intervention results.
+
+\paragraph{Calibration and robust planning.}
+Conformalized latent constraints and robust MPC address model and constraint prediction errors
+\citep{nath2026pixels}; uncertainty-aware reachability targets OOD failures
+\citep{seo2025uncertainty}.  These errors are complementary to in-distribution information that is
+absent from an encoder fiber.  A complete system must eventually compose them rather than relabel
+one source as another.

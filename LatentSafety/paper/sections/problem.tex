@@ -1,0 +1,40 @@
+\section{Safety-sufficient representation problem}
+
+Let $x\in\K$ denote a physical state, history, or belief; $O(x)$ its observation; and
+$R(x)=E(O(x))\in\Z$ the representation used for decisions.  Let the safe set be
+$\mathcal C=\{x:h(x)\geq 0\}$.  Cross-task statements use signed distance under a declared state
+metric; otherwise every defect is explicitly relative to the numerical margin $h$.
+
+\begin{definition}[Static fiber defect]
+The exact $h$-relative separation defect is
+\[
+  \epssep(R)=\sup\!\left(\{h(x):h(x)\geq0,\ \exists x'\in\K,\ h(x')<0,
+  \ R(x')=R(x)\}\cup\{0\}\right).
+\]
+The operational defect replaces equality by membership in a pre-specified latent uncertainty set.
+\end{definition}
+
+For arbitrary latent subsets, the exact defect is intended to characterize the \emph{infimum}
+completeness margin of a sound certificate.  In general, impossibility is strict below the
+supremum and achievability is strict above it; endpoint and regularity conditions matter.
+
+Static separation is insufficient for control.  Let $\Usafe(x)$ contain actions satisfying a
+declared one-step, barrier, robust-MPC, or viability condition.
+
+\begin{definition}[Fiber-wise robust action set]
+For the fiber $F_z=\{x:R(x)=z\}$, define
+\[
+  \Usafe^R(z)=\bigcap_{x\in F_z}\Usafe(x).
+\]
+A fiber is action-conflicted when each $\Usafe(x)$ is nonempty but $\Usafe^R(z)$ is empty.
+\end{definition}
+
+An action-conflicted fiber is an immediate witness that no deterministic memoryless policy
+$\pi(z)$ satisfies the audited safety condition for every state in that fiber.  Positive results
+will require nonempty intersections, dynamics/transition sufficiency, and measurable-selection or
+regularity assumptions.
+
+Finally, if $R_2=T\circ R_1$, then every $R_1$ fiber is contained in an $R_2$ fiber.  This proposed
+data-processing lemma makes the observation map a lower floor: deterministic encoding cannot
+recover safety information that $O$ has already aliased.
+

@@ -1,0 +1,18 @@
+\begin{abstract}
+Learned world models compress high-dimensional observations into latent states on which planners,
+safety filters, and certificates act.  Existing guarantees are typically conditional on the latent
+state preserving the distinctions needed by the safety specification and controlled dynamics.  We
+study when this information is lost.  Our framework separates two representation-level
+obstructions: safe states that share a code with unsafe states, and individually viable states that
+share a code but admit no common safe action.  We give an endpoint-correct characterization of the
+best completeness threshold attainable by any sound latent safe set and show that deterministic
+post-processing cannot beat observation-level ambiguity.  For safe actions, we characterize when
+deterministic and randomized memoryless decisions are impossible, give a common-action
+least-intervention construction, bound pointwise expected-loss randomization for finite actions,
+show that randomization gives no benefit under strong fiber-wise loss, and construct smooth
+encoders whose average reconstruction and prediction losses vanish while worst-case safety
+ambiguity persists.  We pair these results with finite-data audits, controlled
+partial-observability fixtures, and a prospectively frozen world-model study at matched utility.
+Large-scale empirical claims are
+intentionally withheld until that study is complete.
+\end{abstract}

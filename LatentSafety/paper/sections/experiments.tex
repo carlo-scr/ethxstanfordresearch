@@ -1,0 +1,28 @@
+\section{Experimental protocol}
+
+Experiments are gated.  E0 validates the estimator on injective, known-collision, rescaling,
+observation-aliasing, and action-conflict controls.  The executable E1 pilot audits frozen
+autoencoders and $\beta$-VAEs with memoryless, stacked-history, and recurrent encoders on controlled
+pixel cart and inverted-pendulum domains; a navigation/driving stress test remains planned.  E2 compares safety-aware objectives at matched
+held-out reconstruction and multistep prediction.  E3 tests specification transfer; E4 studies the
+dimension/verification frontier; E5 freezes selected encoders and holds the downstream certificate
+or controller construction fixed.
+
+The first decision gate contains 96 training jobs: two domains, two model families, matched
+single-frame and four-frame stack encoders, one latent dimension, four supervision arms, and three
+paired exploratory seeds.  Recurrent encoders and a second latent dimension form a conditional
+288-job expansion, not an automatic first run.  The primary finite-action endpoint is a
+trajectory-balanced 95th-percentile required common-action violation at a frozen calibrated radius;
+it is explicitly a constant-action-profile diagnostic rather than a Bellman-regret estimate.
+
+The planned confirmatory study will use trajectory-level train, validation, radius-calibration, and
+test splits with at least eight paired training seeds for primary results.  Primary endpoints will
+be frozen and registered per task before training.  We will report
+seed-level points, paired confidence intervals, blocked trajectory bootstrap for per-frame metrics,
+and multiplicity correction for confirmatory comparisons.  Ground-truth-state, visible-observation,
+injective, known-collision, and append-$h$ controls are mandatory.
+
+The numerical pilot in the accompanying proposal is not included: its code, data, logs, and
+checkpoints are absent, and its nearest-neighbor statistic does not have the exact-defect semantics
+originally claimed.  It will enter only as an independently reproduced study with a corrected
+radius-based analysis.

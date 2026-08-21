@@ -1,0 +1,37 @@
+schema_version = 1
+experiment = "e1_world_model_representation_audit"
+status = "protocol_only"
+
+[run]
+seeds = [0, 1, 2, 3, 4, 5, 6, 7]
+split_unit = "trajectory"
+
+[benchmarks]
+names = ["pendulum_pixels", "cartpole_pixels", "car_racing_pixels"]
+
+[representations]
+families = [
+  "deterministic_autoencoder",
+  "beta_vae",
+  "recurrent_state_space_model",
+  "joint_embedding_predictive_model",
+]
+latent_dimensions = [4, 8, 16, 32]
+
+[primary_metrics]
+names = [
+  "fixed_delta_robust_defect_curve",
+  "sound_certificate_coverage",
+  "action_fiber_conflict",
+  "observation_to_encoder_excess_ambiguity",
+]
+
+[negative_controls]
+names = [
+  "ground_truth_state",
+  "raw_observation_safety_oracle",
+  "injective_random_projection_when_dimension_allows",
+  "known_collision_encoder",
+  "latent_rescaling",
+  "sample_size_convergence",
+]

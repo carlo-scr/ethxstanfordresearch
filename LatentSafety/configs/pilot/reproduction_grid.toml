@@ -1,0 +1,26 @@
+schema_version = 1
+experiment = "m0_proposal_pilot_reproduction"
+status = "blocked_missing_original_artifacts"
+
+[task]
+name = "two_blob_collision_images"
+image_size = [16, 16]
+state_dimension = 4
+safe_radius = 0.18
+split_unit = "trajectory"
+
+[grid]
+latent_dimensions = [2, 4, 8, 16]
+betas = [0.0, 0.0001, 0.001, 0.01]
+hazard_saliency = ["low", "high"]
+seeds = [0, 1, 2]
+
+[required_before_run]
+items = [
+  "recover exact renderer and observation normalization",
+  "recover dataset sizes and trajectory split IDs",
+  "recover encoder, decoder, and transition architectures",
+  "recover optimization schedules and stopping rule",
+  "pre-register a fixed operational delta calibration",
+]
+

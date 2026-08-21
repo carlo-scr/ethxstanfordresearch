@@ -1,0 +1,75 @@
+schema_version = 1
+experiment = "e1_controlled_pendulum_beta_vae_safe_action_pilot"
+status = "pilot"
+
+[run]
+seed = 0
+output_dir = "runs/e1_world_models/torch_pendulum_pilot/seed_0"
+device = "auto"
+deterministic = true
+deterministic_warn_only = false
+epochs = 30
+batch_size = 128
+num_workers = 4
+learning_rate = 0.0003
+weight_decay = 0.00001
+gradient_clip_norm = 5.0
+amp = true
+log_every = 1
+
+[data]
+# A local known-dynamics synthetic inverted pendulum, not Gym/Gymnasium Pendulum.
+task = "controlled_pendulum_video"
+trajectories = 320
+horizon = 48
+image_size = 32
+channels = 3
+history_length = 4
+actions = [-1.0, 0.0, 1.0]
+action_profile_horizon = 6
+# For this task, position_limit is the safe upright angular envelope in radians.
+position_limit = 0.70
+# The common schema's render_extent is an angular initialization extent here.
+render_extent = 3.141592653589793
+dt = 0.08
+damping = 0.985
+# The common schema's acceleration is the signed control-torque gain here.
+acceleration = 1.60
+process_noise = 0.01
+nuisance_strength = 0.65
+corrective_policy_probability = 0.72
+challenge_fraction = 0.30
+challenge_corrective_probability = 0.40
+
+[data.splits]
+train = 0.65
+validation = 0.15
+calibration = 0.10
+test = 0.10
+
+[model]
+family = "beta_vae"
+history_encoder = "gru"
+latent_dim = 8
+hidden_dim = 128
+transition_hidden_dim = 192
+posterior_logvar_min = -8.0
+posterior_logvar_max = 4.0
+
+[objective]
+safety_arm = "safe_action_profile"
+reconstruction_weight = 1.0
+transition_weight = 1.0
+kl_weight = 0.0005
+safety_weight = 0.5
+margin_scale = 0.25
+boundary_band = 0.18
+positive_margin_band = 0.05
+contrastive_margin = 1.0
+max_contrastive_pairs = 4096
+
+[evaluation]
+rollout_horizons = [1, 4, 8]
+max_rollout_cases = 96
+emit_audit_records = true
+max_audit_records_per_split = 5000

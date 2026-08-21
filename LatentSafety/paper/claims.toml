@@ -1,0 +1,93 @@
+schema_version = 1
+
+[[claims]]
+id = "T1-static-frontier"
+statement = "The infimum completeness margin of an arbitrary sound latent safe-set certificate equals the h-relative safe/unsafe fiber defect."
+status = "theorem_needs_proof"
+evidence = "Complete internal proof draft in docs/theory_v1.md and paper/sections/theory_v1.tex; exhaustive finite regression checks in notebooks/02_theory_counterexamples.ipynb; independent proof review pending."
+
+[[claims]]
+id = "T2-data-processing"
+statement = "Deterministic post-processing of a representation cannot reduce the exact fiber defect."
+status = "theorem_needs_proof"
+evidence = "Complete internal fiber-inclusion proof in docs/theory_v1.md and paper/sections/theory_v1.tex; 648 finite coarsening checks in notebooks/02_theory_counterexamples.ipynb; independent proof review pending."
+
+[[claims]]
+id = "T3-action-conflict"
+statement = "If individually viable states in one representation fiber have no common safe action, no deterministic memoryless latent policy is uniformly safe on that fiber."
+status = "theorem_needs_proof"
+evidence = "Complete internal deterministic and qualified randomized proofs in docs/theory_v1.md; finite-action audit, controlled hidden-velocity fixture, and unit tests; independent proof review pending."
+
+[[claims]]
+id = "T6-finite-action-slack"
+statement = "For k finite actions and nonnegative violation loss, pointwise expected-loss minimax slack lies between one-over-k times and one times deterministic slack, while strong fiber-wise randomized slack equals deterministic slack."
+status = "theorem_needs_proof"
+evidence = "Complete internal proof and finite-fiber LP dual in docs/theory_v1.md and paper/sections/theory_v1.tex; independent proof review pending."
+
+[[claims]]
+id = "T4-average-loss-separation"
+statement = "Vanishing expected reconstruction or prediction loss need not control a worst-case static or action fiber defect."
+status = "theorem_needs_proof"
+evidence = "Explicit smooth compact-support construction, identity dynamics, and analytic O(delta) MSE bound in docs/theory_v1.md and paper/sections/theory_v1.tex; executable regression tests in tests/test_average_loss_counterexample.py; independent proof review pending."
+
+[[claims]]
+id = "T5-cover-bound"
+statement = "A uniform pair condition verified on an r-cover bounds robust static defect by 2 L_h r + kappa(delta + 2 L_E r), plus verification slack."
+status = "theorem_needs_proof"
+evidence = "Corrected triangle-inequality calculation and reference implementation; covering assumptions pending."
+
+[[claims]]
+id = "T7-dynamic-policy-loss"
+statement = "In an enumerated finite-horizon robust history game, the margin loss of any deterministic time-indexed code policy is bounded by its path-dependent selected-action regret buffer and by the corresponding sum of stagewise worst regrets."
+status = "theorem_needs_proof"
+evidence = "Internal Bellman-induction draft in docs/theory_v2_dynamic.md and paper/sections/theory_v2_dynamic.tex, with exhaustive finite regression tests in tests/test_dynamic_theory.py; independent proof review pending and the result is not claimed as novel relative to approximate-information-state theory."
+
+[[claims]]
+id = "T8-dynamic-sign-preservation"
+statement = "On a fully enumerated finite robust history game, zero first-action obstruction on every controlled code fiber is equivalent to the existence of one time-indexed code policy that preserves every full-history-viable history on every layer."
+status = "theorem_needs_proof"
+evidence = "Internal finite induction draft, common-safe/minimax-unsafe counterexample, and exhaustive representation-policy audit in docs/theory_v2_dynamic.md and tests/test_dynamic_theory.py; independent proof and novelty review against symbolic safety synthesis and belief-support shielding remain pending."
+
+[[claims]]
+id = "P1-proposal-pilot"
+statement = "The proposal reports 48 trained encoders and an expanded 96-model grid on a synthetic image task."
+status = "pilot_unreproduced"
+evidence = "ETH_Proposal-2.pdf only; no code, data, logs, or checkpoints are present."
+
+[[claims]]
+id = "P2-matched-reconstruction"
+statement = "The proposal reports matched validation reconstruction R2 near 0.977 across hazard-saliency arms and a 7.8x nearest-neighbor statistic difference."
+status = "pilot_unreproduced"
+evidence = "ETH_Proposal-2.pdf only; estimator is not an exact-defect lower bound as claimed."
+
+[[claims]]
+id = "H1-estimator-validity"
+statement = "On deterministic enumerated controls, a fixed-radius audit recovers the planted near-collision threshold while the exact-code audit remains zero on an injective representation."
+status = "verified_internal"
+evidence = "Executed notebooks/00_e0_estimator_validation.ipynb plus deterministic unit tests; this is a synthetic semantic check, not a population guarantee or trained-model result."
+command = "python scripts/build_notebooks.py 00_e0_estimator_validation.ipynb && python scripts/execute_notebooks.py notebooks/00_e0_estimator_validation.ipynb && python3 scripts/validate_notebooks.py --require-executed"
+
+[[claims]]
+id = "H1b-dynamic-oracle-control"
+statement = "On each registered two-root, three-step nominal finite tree, an exact memoryless rendered-frame code has positive first-action obstruction and admits no globally viability-preserving code policy, whereas an exact causal two-frame rendered history has zero obstruction and retains both viable roots."
+status = "verified_internal"
+evidence = "Executed notebooks/05_dynamic_regret_oracle.ipynb, docs/dynamic_oracle_bridge.md, and exhaustive regression tests; scope is only the constructed roots, finite action grid, noise-free nominal floating-point tree, and recorded tolerance—not a learned-model or population result."
+command = "python scripts/build_notebooks.py 05_dynamic_regret_oracle.ipynb && python scripts/execute_notebooks.py notebooks/05_dynamic_regret_oracle.ipynb && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_dynamic_controlled_oracle.py' -v"
+
+[[claims]]
+id = "H2-prevalence"
+statement = "At matched world-model utility, ordinary encoders exhibit materially different static and action ambiguity on multiple pixel-control tasks."
+status = "hypothesis"
+evidence = "Main E1 study not run."
+
+[[claims]]
+id = "H3-frontier"
+statement = "Boundary and safe-action-aware training expands the safety/utility frontier beyond predicting or appending the scalar safety margin."
+status = "hypothesis"
+evidence = "Main E2 study not run."
+
+[[claims]]
+id = "H4-downstream"
+statement = "Static and action defects predict certificate coverage and control feasibility beyond reconstruction, rollout, and probe metrics."
+status = "hypothesis"
+evidence = "Main E5 study not run."

@@ -1,0 +1,289 @@
+% CANDIDATE ONLY: intentionally not included by main.tex.
+% Requires independent proof review and novelty audit before integration.
+\section{Candidate: dynamic margin regret and representation-policy viability}
+\label{sec:theory-v2-candidate}
+
+\paragraph{Candidate status.}
+This section is proof-drafted but is not yet a submission claim.  Approximate state abstractions,
+state--action abstractions, and approximate information states already give policy-loss bounds;
+feedback refinement and belief-support shielding already establish robust controller-refinement
+and partial-observation safety structure
+\citep{abel2016approximate,abel2020value,subramanian2022ais,dave2024ais,
+dave2023worstcase,reissig2017feedback,sheng2024safe,girard2012safety}.
+This package is an analytical instrument, not a theory-contribution claim.  It separates robust
+optimal-margin regret, sign-specific first-action feasibility, and exact recursively evaluated
+representation-policy viability.
+In particular, \citet{dave2024ais} already analyze finite-horizon maximum instantaneous cost under
+partial observation using current-cost and Hausdorff successor errors and obtain a factor-two
+approximate-policy bound.  After changing sign from cost to margin, the model-local condition and
+factor two below are specializations rather than standalone novelty.
+
+\subsection{Finite support-robust history game}
+
+Let $\mathsf A$ be a finite nonempty action set and let $\mathsf H_s$ be the finite nonempty set of
+histories with $s\in\{0,\ldots,T\}$ controls remaining.  A history may be a
+full observation/action history, belief, or belief support.  If $I(\eta)$ is its nonempty set of
+compatible physical states, define the support-robust current margin
+\[
+  G_s(\eta)=\inf_{x\in I(\eta)}h(x).
+\]
+Thus $G_s(\eta)\geq0$ means that every compatible state is safe.  For $s\geq1$, let
+$N_s(\eta,a)\subseteq\mathsf H_{s-1}$ be the finite nonempty set of all admissible successor
+histories, including all declared disturbances and observations.  Define
+\begin{align}
+ V_0(\eta)&=G_0(\eta),\nonumber\\
+ Q_s(\eta,a)
+ &=\min\left\{G_s(\eta),\min_{\eta'\in N_s(\eta,a)}V_{s-1}(\eta')\right\},
+ \label{eq:robust-history-q}\\
+ V_s(\eta)&=\max_{a\in\mathsf A}Q_s(\eta,a).\nonumber
+\end{align}
+The action maxima and finite-successor minima are attained; the physical-state infimum already
+absorbed into $G_s$ need not be.  Induction shows that $V_s(\eta)\geq0$ if and only if a deterministic
+history-feedback policy keeps the physical margin nonnegative on every compatible branch for the
+remaining horizon.  This is support-wise safety, not an expected cost or chance constraint.
+The maps $R_s$ below are history encoders; no recursive latent update or standalone latent world
+model is assumed.
+
+Let $R_s:\mathsf H_s\to\mathcal Z_s$, with fiber
+$F_{s,z}=\{\eta:R_s(\eta)=z\}$.  Define
+\begin{align}
+ r_s(z,a)&=\max_{\eta\in F_{s,z}}\bigl[V_s(\eta)-Q_s(\eta,a)\bigr],\nonumber\\
+ \rho_s(z;R_s)&=\min_{a\in\mathsf A}r_s(z,a),\qquad
+ \rho_s(R_s)=\max_{z\in R_s(\mathsf H_s)}\rho_s(z;R_s).
+ \label{eq:dynamic-optimal-margin-regret}
+\end{align}
+We call $\rho_s$ the \emph{robust optimal-margin regret}.  It is exactly the smallest
+worst-history value loss when the first action depends on the code but full-history optimal control
+resumes afterward; it is not an exact safety defect.  Moreover,
+\begin{equation}
+ \rho_s(z;R_s)=0
+ \quad\Longleftrightarrow\quad
+ \bigcap_{\eta\in F_{s,z}}\arg\max_{a\in\mathsf A}Q_s(\eta,a)\neq\varnothing.
+ \label{eq:zero-regret-characterization}
+\end{equation}
+This value-preserving condition is stronger than sign-only safety.  Let
+$F_{s,z}^+=\{\eta\in F_{s,z}:V_s(\eta)\geq0\}$ and define the first-action obstruction
+\begin{equation}
+ \kappa_s(z;R_s)=\min_{a\in\mathsf A}\max_{\eta\in F_{s,z}^+}[-Q_s(\eta,a)]_+,
+ \label{eq:first-action-obstruction}
+\end{equation}
+with maximum zero on an empty viable set.  Then $\kappa_s(z;R_s)=0$ exactly when one action has
+$Q_s(\eta,a)\geq0$ for every viable fiber member.  This does not make the $\rho$ selector safe:
+for the Q table
+$\bigl[\begin{smallmatrix}0&2\\0&-1\end{smallmatrix}\bigr]$, the first action is common safe and
+$\kappa_s=0$, whereas the unique minimax-regret action is the second action, with $\rho_s=1$, and
+is unsafe in the second history.
+
+\begin{proposition}[Optimal-margin-regret data processing]
+\label{prop:dynamic-data-processing}
+If $R_s^c=T_s\circ R_s^f$ is a deterministic coarsening on the same controlled history layer, then
+$\rho_s(R_s^f)\leq\rho_s(R_s^c)$.
+\end{proposition}
+
+\begin{proof}
+Every fine fiber is contained in one coarse fiber.  For each action, the maximum regret over the
+fine fiber is no larger than that over the coarse fiber.  Minimization over actions and then the
+maximum over fibers preserve the inequality.
+\end{proof}
+No postprocessing premise is needed at terminal layer $s=0$, where no regret is defined.
+
+\subsection{Arbitrary-code-policy composition and exact viability}
+
+Let $\mu_s:\mathcal Z_s\to\mathsf A$ be any deterministic time-indexed code policy and set
+\[
+ \pi_s^\mu(\eta)=\mu_s(R_s(\eta)).
+\]
+Its recursively evaluated robust value is
+\begin{align*}
+ J_0^\mu(\eta)&=G_0(\eta),\\
+ J_s^\mu(\eta)&=\min\left\{G_s(\eta),
+ \min_{\eta'\in N_s(\eta,\pi_s^\mu(\eta))}J_{s-1}^\mu(\eta')\right\}.
+\end{align*}
+Define $\epsilon_s^\mu(z)=r_s(z,\mu_s(z))$,
+$\epsilon_s^\mu=\max_z\epsilon_s^\mu(z)$, and the path-dependent buffer
+\begin{align}
+ B_0^\mu(\eta)&=0,\nonumber\\
+ B_s^\mu(\eta)&=\epsilon_s^\mu(R_s(\eta))
+ +\max_{\eta'\in N_s(\eta,\pi_s^\mu(\eta))}B_{s-1}^\mu(\eta').
+ \label{eq:path-buffer}
+\end{align}
+
+\begin{theorem}[Arbitrary-code-policy margin loss]
+\label{thm:dynamic-representation-loss}
+For every $s$ and $\eta\in\mathsf H_s$,
+\begin{equation}
+ 0\leq V_s(\eta)-J_s^\mu(\eta)
+ \leq B_s^\mu(\eta)
+ \leq\sum_{j=1}^s\epsilon_j^\mu.
+ \label{eq:dynamic-loss-bound}
+\end{equation}
+Consequently, the closed endpoint implication
+\[
+ V_s(\eta)\geq B_s^\mu(\eta)\quad\Longrightarrow\quad J_s^\mu(\eta)\geq0
+\]
+holds.  The looser condition $V_s(\eta)\geq\sum_{j=1}^s\epsilon_j^\mu$ also guarantees
+support-robust safety.
+\end{theorem}
+
+\begin{proof}
+Optimality gives $J_s^\mu\leq V_s$.  The remaining claim is exact for $s=0$.  Assume it holds at
+$s-1$, set $a=\pi_s^\mu(\eta)$, and let
+$M=\max_{\eta'\in N_s(\eta,a)}B_{s-1}^\mu(\eta')$.  The induction hypothesis gives
+\[
+ \min_{\eta'}J_{s-1}^\mu(\eta')
+ \geq\min_{\eta'}V_{s-1}(\eta')-M.
+\]
+Since $\min\{g,b-M\}\geq\min\{g,b\}-M$ for $M\geq0$,
+$J_s^\mu(\eta)\geq Q_s(\eta,a)-M$.  By definition,
+$Q_s(\eta,a)\geq V_s(\eta)-\epsilon_s^\mu(R_s(\eta))$.  Combining the inequalities gives the
+local bound in \eqref{eq:dynamic-loss-bound}; the sum follows because each local term is at most
+$\epsilon_j^\mu$.  Rearrangement proves the endpoint statement.
+\end{proof}
+
+For the tie-broken minimax margin selector
+$a_s^\rho(z)\in\arg\min_a r_s(z,a)$, one has
+$\epsilon_s^\mu=\rho_s(R_s)$.  The resulting buffer controls margin loss but does not maximize
+retained viable volume, as the counterexample above shows.
+
+Let
+$\kappa_{1:T}^{\max}(R)=\max_{1\leq j\leq T}\max_{z\in R_j(\mathsf H_j)}
+\kappa_j(z;R_j)$.
+\begin{proposition}[Exact global sign preservation]
+\label{prop:global-sign-preservation}
+$\kappa_{1:T}^{\max}(R)=0$ if and only if one time-indexed representation policy $\mu$ satisfies
+$V_j(\eta)\geq0\Rightarrow J_j^\mu(\eta)\geq0$ for every layer $j$ and history $\eta$.
+\end{proposition}
+\begin{proof}
+If all obstructions vanish, select a common-safe action in each fiber.  Inductively, its
+nonnegative Q value makes the current margin safe and sends every successor to a history with
+$V_{j-1}\geq0$, where the selected lower-layer policy is safe.  Conversely, if $\mu$ preserves
+every viable history, then replacing its continuation by the full-history optimum gives
+$Q_j(\eta,\mu_j(R_j(\eta)))\geq J_j^\mu(\eta)\geq0$ at every viable history, so every fiber has a
+common-safe action and every obstruction vanishes.
+\end{proof}
+This equivalence is global over all controlled layers.  For a particular initial fiber, a positive
+obstruction in an unreachable fiber is irrelevant; the following exhaustive object is local.
+
+Let $\Pi_{1:s}^R=\prod_{j=1}^s\mathsf A^{R_j(\mathsf H_j)}$ be the finite class of all such code
+policies and define
+\begin{equation}
+ \Lambda_s^R(z)=\max_{\mu\in\Pi_{1:s}^R}
+ \min_{\eta\in F_{s,z}}J_s^\mu(\eta).
+ \label{eq:exact-latent-viability}
+\end{equation}
+\begin{proposition}[Exact finite representation-policy viability]
+\label{prop:exact-representation-viability}
+$\Lambda_s^R(z)\geq0$ if and only if one deterministic time-indexed representation policy keeps
+the margin nonnegative on every branch from every history in $F_{s,z}$.
+\end{proposition}
+\begin{proof}
+For fixed $\mu$, induction on the recursion for $J_s^\mu$ gives branchwise safety exactly when
+$J_s^\mu(\eta)\geq0$.  The fiber minimum imposes this simultaneously on all histories; the finite
+policy maximum gives the existence equivalence and attainment.
+\end{proof}
+The one-step obstruction $\kappa_s$ does not compose.  If a two-step singleton root leads to two
+same-code one-step histories with Q rows $(1,-1)$ and $(-1,1)$, then $\kappa_2=0$ under
+full-history continuation but $\Lambda_2^R=-1$.  The finite oracle therefore enumerates code
+policies and also reports the maximum fraction of full-history viable histories retained by one
+policy.
+
+This is a theorem about representation-measurable history policies: $R_s$ may be recomputed from
+the full history.  It does not establish a recursive code update, a Markov latent transition, or
+planning wholly in latent space; those require additional approximate-information-state premises.
+
+\subsection{Connection to latent robust-Q approximation}
+
+Define the best uniform latent approximation error
+\begin{equation}
+ \delta_s^*(R_s)=\min_{q:\mathcal Z_s\times\mathsf A\to\mathbb R}
+ \max_{\eta,a}|Q_s(\eta,a)-q(R_s(\eta),a)|.
+ \label{eq:latent-q-error}
+\end{equation}
+Midpoint approximation on each finite fiber-action pair gives
+\[
+ \delta_s^*(R_s)=\frac12\max_{z,a}
+ \left(\max_{\eta\in F_{s,z}}Q_s(\eta,a)
+       -\min_{\eta\in F_{s,z}}Q_s(\eta,a)\right).
+\]
+
+\begin{theorem}[Uniform Q approximation]\label{thm:uniform-q-sufficiency}
+For every stage, $\rho_s(R_s)\leq2\delta_s^*(R_s)$.  If a particular $q_s$ has uniform error
+$\delta_s$ and the code policy is greedy with respect to $q_s$, then its finite-horizon robust
+safety-value loss is at most $2\sum_{j=1}^s\delta_j$.
+\end{theorem}
+
+\begin{proof}
+Fix a fiber and let $a_q\in\arg\max_a q_s(z,a)$.  Uniform error gives, for every fiber member,
+\[
+ V_s(\eta)=\max_a Q_s(\eta,a)
+ \leq q_s(z,a_q)+\delta_s
+ \leq Q_s(\eta,a_q)+2\delta_s.
+\]
+Thus the selected-action optimal-margin regret of $a_q$ is at most $2\delta_s$.  Minimizing over
+actions gives the first claim.  For the particular q-greedy policy, the arbitrary-policy
+Theorem~\ref{thm:dynamic-representation-loss} applies with
+$\epsilon_s^\mu\leq2\delta_s$ at every stage.
+\end{proof}
+
+The factor two is attained by two histories sharing a code and the Q table
+$\bigl[\begin{smallmatrix}1&-1\\-1&1\end{smallmatrix}\bigr]$: here
+$\rho_1=2$ and $\delta_1^*=1$.  Static current safety is identical for both histories.  The horizon
+sum is also tight: an enumerated two-stage tree in the accompanying test suite has
+$\rho_1=\rho_2=1$, full-history value two, and minimax margin-policy value zero initially.
+Conversely, uniform Q preservation is not necessary: if the same action is optimal throughout a
+fiber, $\rho_s$ can vanish while suboptimal action values vary.
+
+\paragraph{Model-local sufficient condition.}
+If $V_{s-1}$ is $L_{s-1}$-Lipschitz under a declared history metric, same-code current margins
+differ by at most $\alpha_s$, and same-code successor sets have symmetric Hausdorff distance at
+most $\beta_s$ for each action, then
+\[
+ |Q_s(\eta,a)-Q_s(\widetilde\eta,a)|
+ \leq\max\{\alpha_s,L_{s-1}\beta_s\},
+ \qquad
+ \rho_s(R_s)\leq\max\{\alpha_s,L_{s-1}\beta_s\}.
+\]
+The first inequality follows from the Lipschitz bound on infima over Hausdorff-close sets and the
+one-Lipschitzness of the scalar minimum; the second follows from midpoint approximation and
+Theorem~\ref{thm:uniform-q-sufficiency}.  A raw neural latent radius is not such a bound:
+the metric scale, Lipschitz constant, and population successor coverage must be justified.
+
+\paragraph{Conditional Euclidean cover-bound calculation.}
+Suppose an audited history set $S=\{\eta_i\}$ is an $r_{\rm cov}$-net under a declared history
+metric, the latent metric is explicitly $d_{\mathcal Z}(z,z')=\lVert z-z'\rVert_2$, $R_s$ is
+$L_R$-Lipschitz into that norm, every $Q_s(\cdot,a)$ is $L_Q$-Lipschitz, and sampled estimates
+have uniform error at most $e_Q$.  Define
+\[
+ \widehat\Omega_s(r)=
+ \max_{\substack{i,j,a:\ d_{\mathcal Z}(R_s(\eta_i),R_s(\eta_j))\leq r}}
+ |\widehat Q_s(\eta_i,a)-\widehat Q_s(\eta_j,a)|.
+\]
+For every population pair with latent distance at most $\delta$, choosing its nearest cover points
+and applying the triangle inequality gives
+\begin{equation}
+ |Q_s(\eta,a)-Q_s(\widetilde\eta,a)|
+ \leq\widehat\Omega_s(\delta+2L_Rr_{\rm cov})
+ +2L_Qr_{\rm cov}+2e_Q.
+ \label{eq:cover-q-certificate}
+\end{equation}
+At $\delta=0$, the right-hand side upper-bounds $\rho_s(R_s)$ and can be substituted into the
+minimax specialization of Theorem~\ref{thm:dynamic-representation-loss}.  The public implementation
+is named a conditional Euclidean bound calculator.  It records metric, premise provenance, status,
+and an explicit radius-comparison tolerance $\tau_{\rm rad}$; the finite search radius is
+$\delta+2L_Rr_{\rm cov}+\tau_{\rm rad}$ and defaults to $\tau_{\rm rad}=0$.  The routine checks
+arithmetic, not the cover, Lipschitz, or uniform-error premises, and is not a verified finite-data
+certificate or an i.i.d. generalization result.
+
+\paragraph{Limits and novelty boundary.}
+The finite assumptions supply attained, measurable selectors and make the zero endpoint valid.
+For action space $(0,1)$ and $Q(a)=a$, the infimum regret is zero but no exact selector attains it;
+general spaces require compactness/semicontinuity and measurable selection, or explicit
+$\epsilon$-selector slack.  Strong/pathwise randomization does not improve the max--min value;
+expected-loss safety is a different theorem.  Sampled histories give lower witnesses, not
+population upper bounds, unless coverage assumptions are proved.  Approximate-bisimulation safety
+synthesis and belief-support shielding already cover sign-specific abstraction structure
+\citep{girard2012safety,sheng2024safe}.  Finally, partial-observation
+barrier-value and conformal safety results already use a minimum-over-time margin payoff and
+continue to narrow the novelty window \citep{jahanshahi2026cbvf}.  This package should remain an
+audit formalism unless paired with a genuinely verified population bound, a sign-specific theorem
+not subsumed by symbolic control, or a learned method with a strong matched safety--utility result.

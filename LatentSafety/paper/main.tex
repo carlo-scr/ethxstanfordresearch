@@ -1,0 +1,45 @@
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{xcolor}
+
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\newcommand{\X}{\mathcal{X}}
+\newcommand{\Z}{\mathcal{Z}}
+\newcommand{\K}{\mathcal{K}}
+\newcommand{\Usafe}{\mathcal{U}_{\mathrm{safe}}}
+\newcommand{\epssep}{\varepsilon_{\mathrm{sep}}}
+
+\title{Does Safety Survive Encoding?\\
+Safety-Sufficient Representations for Certification and Control}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\input{sections/abstract}
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/problem}
+\input{sections/theory_v1}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/limitations}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}

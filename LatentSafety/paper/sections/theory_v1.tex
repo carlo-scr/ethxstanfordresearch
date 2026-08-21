@@ -1,0 +1,305 @@
+\section{Exact representation frontiers}\label{sec:theory-v1}
+
+We give set-theoretic results first and state their limits explicitly.  The maximal sound set below
+is the complement-of-encoded-unsafe-set construction already used by
+\citet{lutkus2025latent}; safe/unsafe collision and qualitative conservatism are therefore not our
+novelty claim.  Our purpose is to fix the endpoint, separate observation from encoder ambiguity,
+and extend the analysis to common safe actions.  All suprema and infima are extended-real, with
+$\sup(\varnothing\cup\{0\})=0$ and $\inf\varnothing=+\infty$.
+
+\subsection{Static certificates and endpoint conventions}
+
+Let
+\[
+ \mathcal C=\{x\in\K:h(x)\geq0\},\qquad
+ \mathcal D=\{x\in\K:h(x)<0\},
+\]
+and let $R:\K\to\Z$ be deterministic.  A latent set $S\subseteq\Z$ is
+\emph{sound} if $R^{-1}(S)\subseteq\mathcal C$.  For $m\geq0$, it is closed
+$m$-complete if $\{x:h(x)\geq m\}\subseteq R^{-1}(S)$ and open $m$-complete if
+$\{x:h(x)>m\}\subseteq R^{-1}(S)$.  Define
+\begin{align*}
+ \Gamma_R
+ &=\{h(x):h(x)\geq0,\ \exists x'\in\mathcal D\text{ with }R(x')=R(x)\},\\
+ \epssep(R)&=\sup(\Gamma_R\cup\{0\}).
+\end{align*}
+
+\begin{theorem}[Exact existence equivalence]\label{thm:exact-existence}
+Let $S_{\max}=\Z\setminus R(\mathcal D)$.  Then $S$ is sound if and only if
+$S\subseteq S_{\max}$.  Moreover, a sound closed $m$-complete set exists if and only if
+\begin{equation}
+ \Gamma_R\cap[m,+\infty)=\varnothing,\label{eq:closed-completeness}
+\end{equation}
+whereas a sound open $m$-complete set exists if and only if
+\begin{equation}
+ \Gamma_R\cap(m,+\infty)=\varnothing.\label{eq:open-completeness}
+\end{equation}
+Whenever the relevant condition holds, $S_{\max}$ attains it.
+\end{theorem}
+
+\begin{proof}
+If a sound $S$ contained $z\in R(\mathcal D)$, an unsafe preimage of $z$ would belong to
+$R^{-1}(S)$, a contradiction.  Conversely, a preimage of a point outside $R(\mathcal D)$ cannot
+be unsafe, so every subset of $S_{\max}$ is sound.  Since every sound set is contained in
+$S_{\max}$, closed $m$-completeness is possible precisely when no $x$ with $h(x)\geq m$ has a
+code in $R(\mathcal D)$.  This is exactly \eqref{eq:closed-completeness}.  Replacing $\geq m$ by
+$>m$ proves \eqref{eq:open-completeness}.
+\end{proof}
+
+\begin{proposition}[Infimum completeness threshold]\label{prop:threshold}
+Define
+\begin{align*}
+ \tau_{\geq}(R)
+ &=\inf\{m\geq0:\exists\text{ sound closed $m$-complete }S\},\\
+ \tau_{>}(R)
+ &=\inf\{m\geq0:\exists\text{ sound open $m$-complete }S\}.
+\end{align*}
+Then
+\[
+ \tau_{\geq}(R)=\tau_{>}(R)=\epssep(R).
+\]
+For finite $\epssep$, open completeness is attainable at $m=\epssep$; closed completeness is
+attainable there if and only if $\epssep\notin\Gamma_R$.  If $\epssep=+\infty$, no finite
+margin is attainable.
+\end{proposition}
+
+\begin{proof}
+For every finite $m>\epssep$, \eqref{eq:closed-completeness} holds.  For
+$0\leq m<\epssep$, the definition of supremum gives an element of $\Gamma_R$ strictly larger than
+$m$, so neither completeness condition holds.  At a finite endpoint no element exceeds
+$\epssep$, proving open attainability, while \eqref{eq:closed-completeness} holds exactly when the
+supremum is not itself in $\Gamma_R$.  If the supremum is infinite, $\Gamma_R$ is unbounded.
+Taking infima proves the claim.
+\end{proof}
+
+\begin{remark}[Boundary and endpoint]
+If a safe boundary state with $h=0$ shares a code with an unsafe state, then $\epssep=0$, yet
+closed zero-completeness is impossible.  Thus Proposition~\ref{prop:threshold} is an infimum
+statement, not an endpoint-achievement statement.  Likewise, when conflicting margins approach
+one from below but no margin-one state is conflicted, closed one-completeness is attainable even
+though $\epssep=1$.
+\end{remark}
+
+\subsection{Deterministic data processing}
+
+\begin{theorem}[Observation floor]\label{thm:data-processing}
+If $R_2=T\circ R_1$ for deterministic maps $R_1$ and $T$, then
+\[
+ \Gamma_{R_1}\subseteq\Gamma_{R_2},\qquad
+ \epssep(R_1)\leq\epssep(R_2),\qquad
+ \tau_{\geq}(R_1)\leq\tau_{\geq}(R_2).
+\]
+In particular, for deterministic observation $O$ and encoder $E$,
+\[
+ \epssep(O)\leq\epssep(E\circ O).
+\]
+\end{theorem}
+
+\begin{proof}
+Equality under $R_1$ implies equality after applying $T$, so every conflicting pair for $R_1$ is
+also conflicting for $R_2$.  Set inclusion, the supremum inequality, and
+Proposition~\ref{prop:threshold} give the three conclusions.
+\end{proof}
+
+This theorem concerns exact fibers.  A fixed raw latent radius has no such invariant law: an
+injective rescaling preserves exact fibers while moving pairs into or out of the radius.  A history
+encoder can beat a memoryless observation floor only by receiving a richer input history or
+belief, rather than by post-processing the same observation.
+
+\subsection{Safe-action fibers}
+
+Let $F_z^R=\{x:R(x)=z\}$ and let $\Usafe(x)$ denote the actions satisfying a declared audited
+condition.  Define the common-action set
+\[
+ \mathcal A_R(z)=\bigcap_{x\in F_z^R}\Usafe(x).
+\]
+A fiber is action-conflicted if every $\Usafe(x)$ is nonempty but $\mathcal A_R(z)=\varnothing$.
+
+\begin{theorem}[Deterministic action conflict]\label{thm:det-action}
+A deterministic memoryless decision $\pi(z)$ is safe for every $x\in F_z^R$ if and only if
+$\pi(z)\in\mathcal A_R(z)$.  Consequently, such a uniformly safe decision exists at $z$ if and
+only if $\mathcal A_R(z)\neq\varnothing$.  Hence an action-conflicted fiber rules out every
+uniformly safe deterministic memoryless latent policy.
+\end{theorem}
+
+\begin{proof}
+The decision is safe for every compatible state exactly when the single action $\pi(z)$ belongs
+to their safe-action intersection.
+\end{proof}
+
+Let $(\mathcal U,\Sigma_{\mathcal U})$ be a measurable action space.  For a randomized decision $\mu_z$,
+assume that every $\Usafe(x)$ and $\mathcal A_R(z)$ belongs to $\Sigma_{\mathcal U}$.  Distinguish strong safety
+$\mu_z(\mathcal A_R(z))=1$ from pointwise almost-sure safety
+$\mu_z(\Usafe(x))=1$ for every fixed $x\in F_z^R$.
+
+\begin{theorem}[Randomized action conflict]\label{thm:rand-action}
+A strongly safe randomized decision exists if and only if $\mathcal A_R(z)$ is nonempty.  The same
+equivalence holds under pointwise almost-sure safety if either (i) the fiber is countable, or
+(ii) the action space is compact metric, $\mu_z$ is a Borel probability measure, and every
+$\Usafe(x)$ is closed.
+\end{theorem}
+
+\begin{proof}
+A probability measure cannot give mass one to the empty common set, while a common action induces
+a safe Dirac measure.  For a countable fiber, the intersection of the probability-one safe-action
+events still has probability one.  In case (ii), every finite intersection has probability one
+and is nonempty.  The closed safe-action sets therefore have the finite-intersection property, and
+compactness makes their full intersection nonempty.  The converse in both cases is again a Dirac
+measure.
+\end{proof}
+
+Some qualification in Theorem~\ref{thm:rand-action} is necessary.  With action space $[0,1]$, an
+uncountable fiber indexed by $x\in[0,1]$, and $\Usafe(x)=[0,1]\setminus\{x\}$, the common set is
+empty but the uniform distribution is pointwise almost surely safe for each fixed state.  It is
+not strongly safe.
+
+If $R_2=T\circ R_1$, then
+$F_{z_1}^{R_1}\subseteq F_{T(z_1)}^{R_2}$ and consequently
+\[
+ \mathcal A_{R_2}(T(z_1))\subseteq\mathcal A_{R_1}(z_1).
+\]
+Thus deterministic coarsening can only shrink the common-action set.
+
+\subsection{Least intervention on a common convex action set}
+
+\begin{theorem}[Common-action projection]\label{thm:projection}
+Suppose actions lie in $\mathbb R^p$ and every $\Usafe(x)$ in a fixed fiber is closed and convex.
+If $\mathcal A_R(z)$ is nonempty, then for every nominal action $u_{\rm nom}(z)$ the problem
+\begin{equation}
+ \min_{u\in\mathcal A_R(z)}
+ \frac12\|u-u_{\rm nom}(z)\|_2^2\label{eq:least-intervention}
+\end{equation}
+has a unique minimizer, denoted $\pi_{\rm LI}(z)$.  It is uniformly safe on the fiber and minimizes
+intervention among all such actions.  Moreover,
+\[
+ \langle u_{\rm nom}(z)-\pi_{\rm LI}(z),u-\pi_{\rm LI}(z)\rangle\leq0
+ \quad\forall u\in\mathcal A_R(z).
+\]
+\end{theorem}
+
+\begin{proof}
+The common set is a closed convex intersection.  A minimizing sequence for
+\eqref{eq:least-intervention} has bounded objective and is therefore bounded.  In finite dimensions
+it has a convergent subsequence; closedness makes the limit feasible and continuity makes it a
+minimizer.  If two distinct minimizers $u,v$ existed, their feasible midpoint would satisfy
+\[
+ \left\|\frac{u+v}{2}-u_{\rm nom}\right\|^2
+ =\frac12\|u-u_{\rm nom}\|^2+\frac12\|v-u_{\rm nom}\|^2
+  -\frac14\|u-v\|^2,
+\]
+a strict improvement.  The variational inequality follows by taking the right derivative along
+the feasible segment from the minimizer to any $u$ in the common set.
+\end{proof}
+
+The theorem is pointwise.  It does not ensure that $z\mapsto\pi_{\rm LI}(z)$ is measurable or
+continuous, nor that infinitely many fiber constraints admit a finite certified reduction.  For
+control-affine relative-degree-one barrier constraints the individual action sets are often
+convex, but the barrier hypotheses needed for forward safety remain separate.
+
+\subsection{Finite-action slack and randomization semantics}
+
+Let the action set be $\{1,\ldots,k\}$ and let
+$\ell(x,a)\in[0,+\infty)$ be a finite violation loss.  For one fiber $F=F_z^R$, define the
+deterministic and pointwise expected-loss slacks, which may take extended-real values,
+\[
+ \beta_{\rm det}(z)=\min_a\sup_{x\in F}\ell(x,a),\qquad
+ \beta_{\rm exp}(z)=\inf_{p\in\Delta_k}\sup_{x\in F}\sum_{a=1}^kp_a\ell(x,a).
+\]
+Here the state is worst-case after $p$ is fixed, but loss is averaged over the realized action.
+This is weaker than strong/pathwise fiber safety.  The corresponding strong robust loss satisfies
+\[
+ \beta_{\rm strong}(z)
+ =\inf_{p\in\Delta_k}\sum_{a=1}^kp_a\sup_{x\in F}\ell(x,a)
+ =\beta_{\rm det}(z),
+\]
+because a linear objective on the simplex is minimized at a deterministic action.  Randomization
+therefore gives no benefit under the strong semantics.
+
+\begin{theorem}[Finite-action pointwise expected-loss slack]\label{thm:finite-action}
+For every nonnegative loss,
+\begin{equation}
+ \frac1k\beta_{\rm det}(z)\leq\beta_{\rm exp}(z)\leq\beta_{\rm det}(z).
+ \label{eq:finite-action-sandwich}
+\end{equation}
+If $\ell(x,a)=0$ exactly when $a\in\Usafe(x)$ and the fiber is action-conflicted, both slacks are
+strictly positive.  For hard failure loss
+$\ell(x,a)=\mathbf 1\{a\notin\Usafe(x)\}$,
+\[
+ \beta_{\rm det}(z)=\beta_{\rm strong}(z)=1,\qquad \beta_{\rm exp}(z)\geq 1/k.
+\]
+\end{theorem}
+
+\begin{proof}
+A Dirac mass on a deterministic minimizer gives the upper bound.  For any $p\in\Delta_k$, choose
+$a_p$ with $p_{a_p}\geq1/k$.  Nonnegativity yields
+\[
+ \sup_x\sum_a p_a\ell(x,a)
+ \geq p_{a_p}\sup_x\ell(x,a_p)
+ \geq\frac1k\min_a\sup_x\ell(x,a).
+\]
+Taking the infimum over $p$ proves \eqref{eq:finite-action-sandwich}.  If the common set is empty,
+every action is unsafe at some
+compatible state.  Exact zero calibration makes each of the finitely many action-wise suprema
+positive, and hard loss makes each equal to one.
+\end{proof}
+
+When $F=\{x_1,\ldots,x_n\}$ is finite and $L_{ia}=\ell(x_i,a)$, finite linear-program duality gives
+the audit witness
+\begin{equation}
+ \beta_{\rm exp}(z)=\max_{q\in\Delta_n}\min_a\sum_{i=1}^n q_iL_{ia}.
+ \label{eq:finite-fiber-dual}
+\end{equation}
+The primal minimizes $t\in\mathbb R$ subject to $Lp\leq t\mathbf1$ and $p\in\Delta_k$; its dual
+maximizes $r\in\mathbb R$ subject to $L^Tq\geq r\mathbf1$ and $q\in\Delta_n$.
+
+\subsection{Expected world-model loss does not control a worst fiber}
+
+\begin{proposition}[Smooth localized collision]\label{prop:average-separation}
+Fix $a\in(0,1)$, let $X$ be uniform on $[-1,1]$, set $h(x)=x$, and use identity dynamics.
+For every $0<\delta<\min\{a,1-a\}$ there are smooth scalar encoder, decoder, and latent predictor
+with
+\[
+ \epssep(R_\delta)\geq a,\qquad
+ \mathbb E|X-D(R_\delta(X))|^2\leq2a^2\delta,
+ \qquad P(R_\delta(x))=R_\delta(x).
+\]
+The same collided fiber is action-conflicted for actions $\{-1,+1\}$ and safe-action condition
+$ux\geq0$.
+\end{proposition}
+
+\begin{proof}
+Let
+$\psi(t)=\exp(1-(1-t^2)^{-1})$ for $|t|<1$ and zero otherwise, and define
+\[
+ R_\delta(x)=x-a\psi((x-a)/\delta)+a\psi((x+a)/\delta).
+\]
+The two bump supports are disjoint and interior to $[-1,1]$, while
+$R_\delta(a)=R_\delta(-a)=0$.  Thus a safe point of margin $a$ collides with an unsafe point.
+With $D=P$ equal to the identity, reconstruction error is supported on intervals of total length
+$4\delta$ and has magnitude at most $a$; the uniform density gives the stated bound.  Identity
+dynamics makes latent prediction exact.  Finally, $a$ admits only action $+1$ and $-a$ only action
+$-1$, so the common-action intersection is empty.
+\end{proof}
+
+Thus even smooth encoders with vanishing average reconstruction and prediction losses can retain
+a fixed worst-case static and action obstruction.  Any positive implication needs tail coverage,
+uniform regularity, or verification assumptions; a small empirical mean alone is insufficient.
+
+\subsection{Limits of the theorem package}
+
+First, $\epssep$ is $h$-relative: replacing $h$ by $ch$, $c>0$, preserves the safe set but scales
+the defect by $c$.  Second, $R=h$ has zero static defect for one known scalar specification, yet
+can merge equally safe states with disjoint safe-action sets; static separation alone gives
+neither a nontrivial dimension lower bound nor safe-control sufficiency.  Third, Theorem
+\ref{thm:exact-existence} optimizes over arbitrary latent subsets.  Its maximal set need not lie in
+a continuous, smooth, neural, polynomial, or verifiable certificate class.
+
+Positive continuous-action slack needs additional analytic control.  The disjoint closed sets
+$A_1=\{(t,0):t\geq0\}$ and $A_2=\{(t,1/t):t>0\}$ in $\mathbb R^2$ have distance zero, so distance
+loss has infimum robust slack zero despite an empty intersection.  Compactness or coercivity alone
+is not a universal replacement for lower semicontinuity and uniform loss calibration.  Nonconvex
+common sets can have nonunique projections, and nonclosed sets need not attain one.  Finally, every action result is
+relative to the declared audited condition; common one-step feasibility does not establish latent
+Markovianity, recursive feasibility, or long-horizon safety.  Stochastic encoders likewise require
+a law-overlap notion not proved here, because Theorem~\ref{thm:data-processing} is an exact-fiber
+result for deterministic maps.

@@ -1,0 +1,14 @@
+\section{Limitations and broader impact}
+
+Worst-case fiber verification can be as hard as neural verification; a dimension-free
+order-statistic wrapper does not remove the need to compute its violation oracle.  Static
+separation does not establish Markov dynamics, controller feasibility, or long-horizon invariance.
+Results relative to a learned safety specification must compose its estimation error, and results
+relative to one known specification need not transfer to another.  Operational radii and state
+metrics encode deployment choices that must be reported.
+
+Better representation audits could reduce unjustified safety claims and reveal silent
+conservatism.  Conversely, a finite-data audit can itself be mistaken for a formal guarantee.  We
+will release witness semantics, failed controls, and uncertainty assumptions prominently and avoid
+describing probabilistic or empirical results as absolute safety certification.
+

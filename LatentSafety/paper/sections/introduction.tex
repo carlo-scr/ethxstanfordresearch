@@ -1,0 +1,27 @@
+\section{Introduction}
+
+Latent dynamics make planning from pixels tractable, but compression is not neutral: a learned code
+may discard a factor that is cheap for reconstruction yet decisive for safety.  Recent work designs
+barrier functions, reachability values, or robust controllers directly in learned latent spaces
+\citep{lutkus2025latent,anand2025safety,seo2025uncertainty,nath2026pixels}.  The strongest transfer
+results correctly define a latent safe set containing only codes with no unsafe preimage
+\citep{lutkus2025latent}.  This exposes an upstream question: how much useful safe region and
+control authority did the representation already make unavailable?
+
+A static safe/unsafe collision is only the first obstruction.  Encoding the known scalar safety
+margin itself separates the labels, yet states with the same margin can have different dynamics and
+disjoint safe actions.  Under partial observability, a single image may not even identify velocity
+or an occluded hazard.  We therefore treat the representation as an abstraction of state histories
+or beliefs and ask whether it is sufficient for persistent safe decisions.
+
+Our current contributions are: (i) an exact static soundness--completeness equivalence with open,
+closed, attained, and non-attained endpoint cases; (ii) a deterministic data-processing theorem
+that separates observation ambiguity from encoder-induced ambiguity; (iii) common-safe-action
+impossibility results for deterministic and carefully qualified randomized decisions, together
+with distinct strong and pointwise expected-loss finite-action slacks; (iv) a smooth separation
+showing that vanishing average reconstruction and prediction losses need not control worst-case
+safety ambiguity; and (v) an executable audit
+and study protocol for testing safety-sufficient objectives against strong safety-aware baselines
+at matched utility.  The first
+four are foundations and separation results rather than end-to-end control guarantees.  All proof and
+empirical states remain governed by the repository claim registry and independent-review rule.

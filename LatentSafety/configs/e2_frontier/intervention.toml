@@ -1,0 +1,28 @@
+schema_version = 1
+experiment = "e2_safety_utility_frontier"
+status = "protocol_only"
+
+[run]
+seeds = [0, 1, 2, 3, 4, 5, 6, 7]
+
+[interventions]
+names = [
+  "none",
+  "fcsrl_feasibility_consistent",
+  "safety_bisimulation_cvrl_bm",
+  "srpl_steps_to_cost",
+  "sdqc_reward_cost_decoupling",
+  "safety_value_prediction_head",
+  "pairwise_safety_faithfulness",
+  "boundary_contrastive",
+  "safe_action_set_preservation",
+  "append_known_safety_value_oracle",
+]
+
+[regularization]
+weights = [0.0, 0.001, 0.01, 0.1, 1.0, 10.0]
+
+[selection]
+rule = "validation_pareto_frontier_only"
+primary_utility = "held_out_multistep_prediction"
+primary_safety = "pre_registered_operational_defect_auc"

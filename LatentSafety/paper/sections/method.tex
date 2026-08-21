@@ -1,0 +1,23 @@
+\section{Auditing and learning}
+
+\paragraph{Finite-sample witnesses.}
+At a fixed radius $\delta$, an observed safe/unsafe pair within the radius witnesses a lower bound
+on the population robust supremum.  An unthresholded nearest unsafe neighbor does not witness an
+exact collision; it depends on sample density and class balance.  We report radius-indexed curves,
+witness pairs, observation-level controls, and sample-size convergence.  Distributional quantiles
+require a separate tolerance argument, and that argument is conditional on computing the true
+per-state violation score rather than a finite-reference surrogate.
+
+\paragraph{Operational calibration.}
+Raw latent radii change under code rescaling.  The radius must arise from a deployment uncertainty
+set, verified set propagation, or a calibration split fixed without test safety labels.  We retain
+translation, rotation, rescaling, and irrelevant-coordinate controls.  Exact-code synthetic tests
+serve as unit tests, not evidence that continuous neural encoders collide in practice.
+
+\paragraph{Training intervention.}
+The baseline pairwise hinge penalizes
+$[|h(x)-h(x')|-\kappa\|R(x)-R(x')\|]_+^2$, with explicit scale control.  Because random pairs can
+miss the boundary and a small mean is not verification, we compare boundary hard-negative mining,
+prediction or appending of $h$, and preservation of safe-action constraint values.  A proposed
+method must expand the validation-selected safety/utility frontier beyond the simple $h$ controls.
+

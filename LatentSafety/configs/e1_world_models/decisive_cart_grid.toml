@@ -1,0 +1,34 @@
+schema_version = 1
+experiment = "e1_controlled_cart_decisive_pilot_grid"
+status = "planned_exploratory_decision_pilot"
+base_config = "configs/e1_world_models/torch_pilot.toml"
+
+[axes]
+model_families = ["ae", "beta_vae"]
+# Capacity-matched single-frame and four-frame stack encoders isolate added information.
+# GRU architecture and latent-dimension sensitivity are deferred until this gate passes.
+history_modes = ["stack_h1", "stack_h4"]
+latent_dimensions = [8]
+safety_arms = ["none", "h_prediction", "boundary_contrastive", "safe_action_profile"]
+seeds = [0, 1, 2]
+
+[execution]
+output_root = "runs/e1_world_models/decisive_cart_grid"
+device = "cuda"
+expected_tasks = 48
+
+[analysis]
+relative_radii = [0.0, 0.01, 0.02, 0.05, 0.10]
+primary_relative_radius = 0.05
+max_validation_static_defect = 0.10
+bootstrap_resamples = 10000
+bootstrap_seed = 20260821
+selection_split = "validation"
+
+[gate]
+purpose = "96-train two-domain exploratory decision pilot; this file supplies the 48 cart tasks"
+advance_only_if = "history resolves planted aliases and action-aware supervision improves the matched-utility validation frontier"
+minimum_absolute_margin_reduction = 0.10
+minimum_relative_conflict_reduction = 0.20
+maximum_relative_utility_degradation = 0.05
+

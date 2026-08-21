@@ -1,0 +1,35 @@
+name: latent-safety-ci
+
+on:
+  push:
+    paths:
+      - "LatentSafety/**"
+      - ".github/workflows/latent-safety-ci.yml"
+  pull_request:
+    paths:
+      - "LatentSafety/**"
+      - ".github/workflows/latent-safety-ci.yml"
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: LatentSafety
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate registries and configs
+        run: |
+          python scripts/validate_claims.py
+          python scripts/validate_configs.py
+          python scripts/validate_notebooks.py --require-executed
+      - name: Deterministic smoke experiment
+        run: >-
+          PYTHONPATH=src python -m latent_safety.cli pilot-smoke
+          --config configs/pilot/smoke.toml
+          --output /tmp/latent-safety-smoke.json
