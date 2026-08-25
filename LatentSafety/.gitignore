@@ -16,6 +16,7 @@ runs/
 results/
 checkpoints/
 artifacts/
+tmp/
 wandb/
 mlruns/
 *.ckpt
@@ -45,4 +46,3 @@ paper/*.synctex.gz
 .env
 .env.*
 !.env.example
-

@@ -1,0 +1,270 @@
+\section{Proofs for the exact audit primitives}
+\label{sec:static-proofs}
+
+\subsection{Static frontier and post-processing}
+
+\begin{proof}[Proof of Theorem~\ref{thm:exact-existence}]
+If a sound $S$ contained $z\in R(\mathcal D)$, an unsafe preimage of $z$ would belong to
+$R^{-1}(S)$, a contradiction.  Conversely, a preimage of a point outside $R(\mathcal D)$ cannot be
+unsafe, so every subset of $S_{\max}$ is sound.  Since every sound set is contained in
+$S_{\max}$, closed $m$-completeness is possible precisely when no $x$ with $h(x)\geq m$ has a code
+in $R(\mathcal D)$, which is Eq.~\eqref{eq:closed-completeness}.  Replacing $\geq m$ by $>m$
+gives Eq.~\eqref{eq:open-completeness}.
+\end{proof}
+
+\begin{proof}[Proof of Proposition~\ref{prop:threshold}]
+For every finite $m>\epssep$, Eq.~\eqref{eq:closed-completeness} holds.  For
+$0\leq m<\epssep$, the definition of supremum gives an element of $\Gamma_R$ strictly larger than
+$m$, so neither completeness condition holds.  At a finite endpoint no element exceeds
+$\epssep$, proving open attainability, while closed attainability holds exactly when the supremum
+is not itself in $\Gamma_R$.  If the supremum is infinite, $\Gamma_R$ is unbounded.  Taking
+infima proves the result.
+\end{proof}
+
+The endpoint can fail in both directions one might otherwise conflate.  If a safe boundary state
+with $h=0$ aliases an unsafe state, then $\epssep=0$ but closed zero-completeness is impossible.  If
+conflicting margins approach one from below without attaining one, closed one-completeness is
+attainable even though $\epssep=1$.
+
+\begin{proof}[Proof of Theorem~\ref{thm:data-processing}]
+Equality under $R_1$ implies equality after applying $T$, so every conflicting pair for $R_1$ is
+also conflicting for $R_2$.  Hence $\Gamma_{R_1}\subseteq\Gamma_{R_2}$; the supremum inequality
+and Proposition~\ref{prop:threshold} give the remaining conclusions.
+\end{proof}
+
+\subsection{Stochastic separation and post-processing}
+
+\begin{proof}[Proof of Theorem~\ref{thm:stochastic-separation}]
+Fix either the closed or open convention and let $H_m$ be its required safe-state set.  Necessity
+is pairwise: if $P_x(S)=1$ for $x\in H_m$ and $P_{x'}(S)=0$ for $x'\in\mathcal D$, then
+$P_x\perp P_{x'}$.  Conversely, assume every such pair is singular.  For each pair choose
+$S_{x,x'}\in\Sigma$ with $P_x(S_{x,x'})=1$ and $P_{x'}(S_{x,x'})=0$.  Countability permits
+\[
+ S_x=\bigcap_{x'\in\mathcal D}S_{x,x'},\qquad
+ S=\bigcup_{x\in H_m}S_x.
+\]
+Empty intersections are $\Z$ and empty unions are empty.  Countable intersection preserves
+$P_x(S_x)=1$, while for every unsafe $x'$, countable subadditivity gives $P_{x'}(S)=0$.
+Thus $S$ is the common separator.  The condition is exactly avoidance of the appropriate upper
+ray by $\Gamma_P^{\rm st}$, so the supremum and endpoint argument in
+Proposition~\ref{prop:threshold} applies verbatim.
+
+If $\Sigma$ separates realized points, then for Dirac laws $\delta_z\perp\delta_{z'}$ exactly when
+$z\neq z'$, giving $\Gamma_P^{\rm st}=\Gamma_R$.  Without that qualification two distinct but
+measurably indistinguishable codes induce the same law.  Finally, total variation contracts through
+every Markov kernel.  Indeed, for a target event $B$, set $f(z)=K(z,B)\in[0,1]$ and use the
+layer-cake identity to obtain
+\[
+ \left|\int f\,dP_x-\int f\,dP_{x'}\right|
+ \leq\int_0^1|P_x(f>t)-P_{x'}(f>t)|\,dt
+ \leq\|P_x-P_{x'}\|_{\rm TV}.
+\]
+Taking the supremum over $B$ gives
+\[
+ \|P_xK-P_{x'}K\|_{\rm TV}\leq\|P_x-P_{x'}\|_{\rm TV}.
+\]
+Probability laws are mutually singular exactly when their total variation is one.  Hence a
+non-singular input pair cannot become singular after post-processing, proving
+$\Gamma_P^{\rm st}\subseteq\Gamma_Q^{\rm st}$ and the defect inequality.
+\end{proof}
+
+Countability cannot simply be deleted.  On $\Z=[0,1]$, take one required safe state with law
+$\delta_t$ for every $t\in[0,1]$ and one unsafe state with the uniform law.  Every safe law is
+pairwise singular to the unsafe law, but a separator accepted almost surely by every $\delta_t$
+must equal all of $[0,1]$ and therefore has unsafe probability one.
+
+\begin{proof}[Proof of Proposition~\ref{prop:stochastic-tv}]
+For any measurable $S$,
+\[
+ P_x(S^c)+P_{x'}(S)=1-\{P_x(S)-P_{x'}(S)\}.
+\]
+The Hahn decomposition of the finite signed measure $P_x-P_{x'}$ supplies a measurable set
+attaining the bracketed one-sided supremum, which equals total variation for probability laws.
+This proves the first identity and its attainability.
+
+For the action statement, let $M_x=P_x\pi$ and $M_y=P_y\pi$ be the induced action laws.  Since
+$A_x\cap A_y=\varnothing$,
+\[
+ M_x(A_x)-M_y(A_x)\geq(1-v_x)-v_y=1-v_x-v_y.
+\]
+Total-variation contraction through the policy kernel gives
+$1-v_x-v_y\leq\|M_x-M_y\|_{\rm TV}\leq\|P_x-P_y\|_{\rm TV}$.
+For either relevant pair of code laws $(P,Q)$ and a common prior $\Pi$, the triangle inequality
+and Pinsker's inequality give
+\[
+ \|P-Q\|_{\rm TV}
+ \leq\|P-\Pi\|_{\rm TV}+\|Q-\Pi\|_{\rm TV}
+ \leq\sqrt{D_{\rm KL}(P\|\Pi)/2}+\sqrt{D_{\rm KL}(Q\|\Pi)/2}.
+\]
+Substitution into the exact separator identity or the action inequality, followed by clipping a
+possibly negative lower bound at zero, proves the two KL statements.
+\end{proof}
+
+Every Gaussian law on $\mathbb R^d$ with positive-definite covariance has a strictly positive
+Lebesgue density.  Any two such laws are therefore mutually absolutely continuous, and in
+particular are not singular.  Degenerate Gaussians can instead be singular on distinct affine
+supports, so nondegeneracy is essential.
+
+\subsection{Common-action and randomization details}\label{sec:action-proofs}
+
+\begin{proof}[Proof of Theorem~\ref{thm:det-action}]
+The single action $\pi(z)$ satisfies every compatible state's condition exactly when it belongs to
+their safe-action intersection.
+\end{proof}
+
+\begin{proof}[Proof of Proposition~\ref{prop:action-data-processing}]
+For every $z_1\in R_1(\K)$, its fiber $F_{z_1}^{R_1}$ is contained in the
+$R_2$ fiber $F_{T(z_1)}^{R_2}$, and intersecting both with the representation-independent set
+$\mathcal V_q$ preserves this inclusion.  Hence, for every action $a$ and every nonempty viable
+$R_1$ subfiber,
+\[
+ \inf_{x\in F_{T(z_1)}^{R_2}\cap\mathcal V_q}q(x,a)
+ \leq
+ \inf_{x\in F_{z_1}^{R_1}\cap\mathcal V_q}q(x,a).
+\]
+Taking the maximum over actions, negating, applying the positive part, and finally taking the
+supremum over $z_1$ gives
+$\beta_{\rm CA}^{\mathcal V_q}(R_1)\leq\beta_{\rm CA}^{\mathcal V_q}(R_2)$.
+\end{proof}
+
+Let $(\mathcal U,\Sigma_{\mathcal U})$ be a measurable action space and assume every
+$\Usafe(x)$ and $\mathcal A_R(z)$ is measurable.  A randomized decision $\mu_z$ is
+\emph{strongly safe} when $\mu_z(\mathcal A_R(z))=1$ and pointwise almost surely safe when
+$\mu_z(\Usafe(x))=1$ for every fixed $x$ in the fiber.
+
+\begin{theorem}[Qualified randomized action conflict]\label{thm:rand-action}
+A strongly safe randomized decision exists if and only if $\mathcal A_R(z)$ is nonempty.  The same
+equivalence holds under pointwise almost-sure safety if either the fiber is countable, or the action
+space is compact metric, $\mu_z$ is Borel, and every $\Usafe(x)$ is closed.
+\end{theorem}
+
+\begin{proof}
+A probability measure cannot put mass one on an empty common set, while a common action induces a
+safe Dirac measure.  For a countable fiber, the intersection of the probability-one safe-action
+events still has probability one.  In the compact-closed case every finite intersection has
+probability one and is nonempty.  The closed sets therefore have the finite-intersection property,
+so compactness makes their full intersection nonempty.  The converse is again a Dirac measure.
+\end{proof}
+
+The qualification is necessary.  Let the action space and an uncountable fiber both be indexed by
+$[0,1]$, and set $\Usafe(x)=[0,1]\setminus\{x\}$.  The common set is empty, but the uniform action
+distribution is pointwise almost surely safe for every fixed state; it is not strongly safe.
+
+\begin{theorem}[Common-action projection]\label{thm:projection}
+Suppose actions lie in $\mathbb R^p$ and every $\Usafe(x)$ in a fixed fiber is closed and convex.
+If $\mathcal A_R(z)$ is nonempty, then for every nominal action $u_{\rm nom}(z)$,
+\[
+ \pi_{\rm LI}(z)=\arg\min_{u\in\mathcal A_R(z)}
+ \frac12\|u-u_{\rm nom}(z)\|_2^2
+\]
+exists uniquely, is uniformly feasible on the fiber, and satisfies
+\[
+ \langle u_{\rm nom}(z)-\pi_{\rm LI}(z),u-\pi_{\rm LI}(z)\rangle\leq0
+ \quad\forall u\in\mathcal A_R(z).
+\]
+\end{theorem}
+
+\begin{proof}
+The common set is a closed convex intersection.  A minimizing sequence has bounded objective and is
+therefore bounded; in finite dimensions it has a convergent subsequence whose limit is feasible and
+minimizing.  If two distinct minimizers $u,v$ existed, their feasible midpoint would satisfy
+\[
+ \left\|\frac{u+v}{2}-u_{\rm nom}\right\|^2
+ =\frac12\|u-u_{\rm nom}\|^2+
+   \frac12\|v-u_{\rm nom}\|^2-\frac14\|u-v\|^2,
+\]
+a strict improvement.  The variational inequality follows from the right derivative along the
+feasible segment from the minimizer to any $u$ in the common set.
+\end{proof}
+
+This result does not ensure that $z\mapsto\pi_{\rm LI}(z)$ is measurable or continuous, nor that an
+infinite constraint intersection has a finite verified reduction.  Barrier hypotheses needed for
+forward invariance remain separate.
+
+\begin{proof}[Proof of Theorem~\ref{thm:helly-action}]
+For $r\geq0$ and $x\in F_z^R$, define the relative expansion
+\[
+ B_x(r)=\{u\in\mathcal U:d_2(u,\Usafe(x))\leq r\}.
+\]
+It is compact and convex, and for every nonempty $G$,
+\[
+ \beta_{\rm geo}(G)=\min\{r\geq0:\bigcap_{x\in G}B_x(r)\neq\varnothing\}.
+\]
+The minimum exists because the supremum of the continuous distance functions is lower
+semicontinuous on compact $\mathcal U$.
+
+Let $b$ be the supremum of $\beta_{\rm geo}(G)$ over subfibers of size at most $p+1$.
+Monotonicity under set inclusion gives $b\leq\beta_{\rm geo}(F_z^R)$.  If $r>b$, every at-most-
+$(p+1)$ subfamily of $\{B_x(r)\}_{x\in F_z^R}$ intersects.  Helly's theorem makes every finite
+subfamily intersect; since every member is compact, the finite-intersection property makes the
+whole family intersect.  Thus $\beta_{\rm geo}(F_z^R)\leq r$.  Letting $r\downarrow b$ proves the
+displayed equality.  At $r=0$, the same argument says that the full common-action set is nonempty
+exactly when every at-most-$(p+1)$ intersection is nonempty.  Attainment and closedness make
+$\beta_{\rm geo}=0$ equivalent to a nonempty intersection.  A finite fiber has only finitely many
+eligible subfibers, so its supremum is a maximum.
+
+Sharpness follows with $B=\{u:\|u\|_2\leq\sqrt p\}$,
+\[
+ A_i=B\cap\{u:u_i\geq1\}\quad(1\leq i\leq p),\qquad
+ A_{p+1}=B\cap\{u:\textstyle\sum_i u_i\leq p-1\}.
+\]
+The full intersection is empty.  Omitting $A_{p+1}$ leaves $(1,\ldots,1)$ feasible; omitting
+$A_j$ leaves the vector with coordinate $j$ zero and every other coordinate one.  Hence every
+$p$-subfamily intersects and $p+1$ cannot be improved.
+\end{proof}
+
+When $\mathcal U$ has affine dimension $q<p$, an affine isometry identifies its affine hull with
+$\mathbb R^q$; the same proof then replaces $p+1$ by $q+1$.
+
+The assumptions delimit the result.  In one dimension the three closed nonconvex sets
+$\{0,1\},\{1,2\},\{0,2\}$ intersect pairwise but not jointly.  Without compactness, an empty
+intersection need not have positive geometric slack: the ray $\{(t,0):t\geq0\}$ and the closed
+convex epigraph $\{(t,s):t>0,\ s\geq1/t\}$ are disjoint at distance zero.  For an infinite
+noncompact family, $[n,+\infty)$, $n\geq1$, has every finite intersection nonempty but empty total
+intersection.  These examples rule out the corresponding stronger variants.
+
+\subsection{Finite-action slack and dual witness}
+
+\begin{proof}[Proof of Theorem~\ref{thm:finite-action}]
+A Dirac mass on a deterministic minimizer gives
+$\beta_{\rm exp}\leq\beta_{\rm det}$.  For any $p\in\Delta_k$, choose $a_p$ with
+$p_{a_p}\geq1/k$.  Nonnegativity gives
+\[
+ \sup_x\sum_a p_a\ell(x,a)
+ \geq p_{a_p}\sup_x\ell(x,a_p)
+ \geq\frac1k\min_a\sup_x\ell(x,a).
+\]
+Taking the infimum over $p$ proves the sandwich.  The action-wise robust objective is linear in
+$p$, so its minimum is attained at an action minimizing the robust loss.  For any nonempty support,
+the maximum supported robust loss is at least the minimum across all actions, and a Dirac mass on a
+minimizer attains equality; hence $\beta_{\rm ar}=\beta_{\rm ws}=\beta_{\rm det}$.
+
+If the common safe-action set is empty and loss vanishes exactly on safe actions, every action has
+strictly positive loss at some compatible state.  Finiteness of the action set makes
+$\beta_{\rm det}>0$, and the sandwich propagates positivity.  Hard failure loss makes every
+action-wise supremum one.
+\end{proof}
+
+When $F=\{x_1,\ldots,x_n\}$ and $L_{ia}=\ell(x_i,a)$, finite linear-program duality gives
+\[
+ \beta_{\rm exp}(z)=\max_{q\in\Delta_n}\min_a\sum_{i=1}^n q_iL_{ia}.
+\]
+The primal minimizes $t$ subject to $Lp\leq t\mathbf1$ and $p\in\Delta_k$; its dual maximizes $r$
+subject to $L^Tq\geq r\mathbf1$ and $q\in\Delta_n$.  The maximizing $q$ is a finite adversarial
+mixture over compatible states, not a population certificate.
+
+\subsection{Smooth localized collision}
+
+\begin{proof}[Proof of Proposition~\ref{prop:average-separation}]
+Let $\psi(t)=\exp(1-(1-t^2)^{-1})$ for $|t|<1$ and zero otherwise, and define
+\[
+ R_\delta(x)=x-a\psi((x-a)/\delta)+a\psi((x+a)/\delta).
+\]
+The two bump supports are disjoint and interior to $[-1,1]$, while
+$R_\delta(a)=R_\delta(-a)=0$.  Thus a safe point of margin $a$ collides with an unsafe point.
+With decoder and latent predictor equal to the identity, reconstruction error is supported on
+intervals of total length $4\delta$ and has magnitude at most $a$; the uniform density gives the
+bound $2a^2\delta$.  Identity dynamics makes latent prediction exact, and decoded one-step
+prediction has the same error as reconstruction.  Finally, $a$ admits only action $+1$ and $-a$
+only action $-1$ under the condition $ux\geq0$.
+\end{proof}

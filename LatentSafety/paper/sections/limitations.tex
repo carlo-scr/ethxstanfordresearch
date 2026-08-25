@@ -1,14 +1,33 @@
 \section{Limitations and broader impact}
 
-Worst-case fiber verification can be as hard as neural verification; a dimension-free
-order-statistic wrapper does not remove the need to compute its violation oracle.  Static
-separation does not establish Markov dynamics, controller feasibility, or long-horizon invariance.
-Results relative to a learned safety specification must compose its estimation error, and results
-relative to one known specification need not transfer to another.  Operational radii and state
-metrics encode deployment choices that must be reported.
+Fiber verification can be as hard as neural verification; an order-statistic wrapper still needs
+the violation oracle.  Static separation gives neither Markov dynamics nor long-horizon invariance.
+Learned specifications require error composition; transfer and operational radii remain deployment
+choices.  The stochastic separator theorem uses countably many physical states and an almost-sure
+criterion; pairwise singularity need not combine into one separator for an uncountable family.
+Its Gaussian consequence concerns sampled full-support posterior laws, whereas our experiments use
+posterior means.  The continuous-action compression requires exact nonempty closed-convex safe sets
+inside a compact convex actuator set; its action-space distance is not a calibrated violation cost,
+and numerical or sampled feasibility checks are not population certificates.
 
-Better representation audits could reduce unjustified safety claims and reveal silent
-conservatism.  Conversely, a finite-data audit can itself be mistaken for a formal guarantee.  We
-will release witness semantics, failed controls, and uncertainty assumptions prominently and avoid
-describing probabilistic or empirical results as absolute safety certification.
+Safe-action sufficiency is relative to the registered safety margin, horizon, continuation rule,
+and finite action or skill library.  A sampled library cannot support a claim for a continuous
+action space without verified inner optimization.  Simulator branching supplies privileged
+counterfactual labels unavailable in many real systems; predicted teachers add model error, and a
+percentile validation gate is not a uniform certificate.  Empirical neighborhoods approximate
+fibers only under a declared geometry and coverage regime and can be gamed by representation
+rescaling, dispersion, or pooling.  Matched-neighborhood-mass, physical groups, retention metrics,
+and fresh-head tests diagnose but do not eliminate these limitations.
 
+Cosmos, V-JEPA, and DINO differ in architecture, parameter count, data, input interface, and native
+objective.  Their cross-checkpoint comparison is descriptive, while repair conclusions are paired
+within family; causal claims about pretraining objectives require the proposed matched-backbone and
+matched-data ablation.  Native reconstruction, prediction, and dense-feature metrics are also not
+directly commensurate.  The primary domains are simulated manipulation and navigation, so even a
+positive result would not establish real-robot, driving, or specification-universal safety.
+
+We report no completed pretrained-encoder audit, internal repair, confirmatory comparison,
+foundation-scale downstream result, or population certificate.  The existing CPU profile, FCSRL,
+world-model, and Dubins paths establish precursor plumbing only.  Dynamic controls use hand-selected
+roots and known-dynamics profiles.  Audits are not guarantees; releases will record witnesses,
+failed controls, coverage, and uncertainty assumptions.

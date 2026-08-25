@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from latent_safety.learning.fcsrl_protocol import FCSRL_RETURN_LENGTH
+
 
 class ConfigError(ValueError):
     """Raised when an experiment configuration violates the declared protocol."""
@@ -98,6 +100,7 @@ class ObjectiveConfig:
     positive_margin_band: float
     contrastive_margin: float
     max_contrastive_pairs: int
+    fcsrl_head_hidden_dim: int
 
 
 @dataclass(frozen=True)
@@ -133,8 +136,14 @@ _SAFETY_ARMS = {
     "h_prediction",
     "boundary_contrastive",
     "safe_action_profile",
+    "nonprivileged_predicted_action_profile",
+    "fcsrl_feasibility_loss_adaptation",
 }
-_TASKS = {"controlled_cart_video", "controlled_pendulum_video"}
+_TASKS = {
+    "controlled_cart_video",
+    "controlled_pendulum_video",
+    "controlled_dubins_navigation_pixels",
+}
 
 
 def _table(parent: dict[str, Any], key: str, *, context: str) -> dict[str, Any]:
@@ -347,6 +356,9 @@ def parse_config(payload: dict[str, Any]) -> LearningConfig:
         max_contrastive_pairs=int(
             _value(objective_raw, "max_contrastive_pairs", int, context="objective")
         ),
+        fcsrl_head_hidden_dim=int(
+            _value(objective_raw, "fcsrl_head_hidden_dim", int, context="objective")
+        ),
     )
     evaluation = EvaluationConfig(
         rollout_horizons=_int_tuple(
@@ -448,6 +460,17 @@ def validate_config(config: LearningConfig) -> None:
                 "controlled_pendulum_video actions must include both negative and "
                 "positive torques"
             )
+    if config.data.task == "controlled_dubins_navigation_pixels":
+        if min(config.data.actions) >= 0.0 or max(config.data.actions) <= 0.0:
+            raise ConfigError(
+                "controlled_dubins_navigation_pixels actions must include both "
+                "negative and positive steering rates"
+            )
+        if config.data.damping <= 0.0:
+            raise ConfigError(
+                "controlled_dubins_navigation_pixels requires positive forward speed "
+                "in data.damping"
+            )
     if not 0.0 <= config.data.damping <= 1.0:
         raise ConfigError("data.damping must lie in [0, 1]")
     _positive(config.data.process_noise, "data.process_noise", allow_zero=True)
@@ -509,6 +532,15 @@ def validate_config(config: LearningConfig) -> None:
             "objective.contrastive_margin cannot exceed two for unit-normalized codes"
         )
     _positive(config.objective.max_contrastive_pairs, "objective.max_contrastive_pairs")
+    _positive(config.objective.fcsrl_head_hidden_dim, "objective.fcsrl_head_hidden_dim")
+    if (
+        config.objective.safety_arm == "fcsrl_feasibility_loss_adaptation"
+        and config.data.horizon < FCSRL_RETURN_LENGTH
+    ):
+        raise ConfigError(
+            "the FCSRL feasibility-loss adaptation requires data.horizon >= "
+            f"{FCSRL_RETURN_LENGTH}"
+        )
 
     horizons = config.evaluation.rollout_horizons
     if tuple(sorted(set(horizons))) != horizons or horizons[0] < 1:
@@ -574,6 +606,14 @@ def dry_run_plan(config: LearningConfig) -> dict[str, Any]:
         "rollout_horizons": list(config.evaluation.rollout_horizons),
         "requested_device": config.run.device,
         "deterministic": config.run.deterministic,
+        "fcsrl": (
+            {
+                "head_hidden_dim": config.objective.fcsrl_head_hidden_dim,
+                "return_length": FCSRL_RETURN_LENGTH,
+            }
+            if config.objective.safety_arm == "fcsrl_feasibility_loss_adaptation"
+            else None
+        ),
     }
 
 
@@ -584,11 +624,14 @@ def cpu_smoke_config(config: LearningConfig) -> LearningConfig:
     trajectory-level four-way splitting, checkpoint selection, and the configured safety loss.
     """
 
-    smoke_output = (
-        "runs/e1_world_models/torch_pendulum_cpu_smoke"
-        if config.data.task == "controlled_pendulum_video"
-        else "runs/e1_world_models/torch_cpu_smoke"
-    )
+    smoke_outputs = {
+        "controlled_cart_video": "runs/e1_world_models/torch_cpu_smoke",
+        "controlled_pendulum_video": "runs/e1_world_models/torch_pendulum_cpu_smoke",
+        "controlled_dubins_navigation_pixels": (
+            "runs/e1_world_models/torch_dubins_cpu_smoke"
+        ),
+    }
+    smoke_output = smoke_outputs[config.data.task]
     smoke = dataclasses.replace(
         config,
         status="smoke_test_only",

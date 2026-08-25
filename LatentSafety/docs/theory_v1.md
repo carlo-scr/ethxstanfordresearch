@@ -373,7 +373,9 @@ underlying barrier condition a forward-safety guarantee remain separate obligati
 ## 6. Finite-action quantitative slack under distinct randomization semantics
 
 Let `U={1,...,k}` with `1<=k<infinity`. Let
-`ell : K x U -> [0,infinity)` be a finite nonnegative violation loss, where the intended calibrated
+`ell : K x U -> [0,infinity)` be a finite-valued nonnegative violation loss.  For the fixed nonempty
+fiber considered below, assume every action-wise robust loss `sup_{x in F} ell(x,a)` is finite; this
+avoids undefined `0 * infinity` terms in randomized action-wise objectives.  The intended calibrated
 case satisfies
 
 \[
@@ -381,7 +383,7 @@ case satisfies
 \]
 
 For a fixed nonempty fiber `F=F_z^R`, define deterministic and **pointwise expected-loss** minimax
-slacks, with values in the extended interval `[0,+infinity]`,
+slacks,
 
 \[
 \begin{aligned}
@@ -394,18 +396,27 @@ slacks, with values in the extended interval `[0,+infinity]`,
 \]
 
 Here the compatible state is worst-case after the distribution `p` is fixed, but the loss is
-averaged over the realized action. This is not strong/pathwise fiber safety. The corresponding
-strong expected robust loss is
+averaged over the realized action. This is weaker than strong or worst-supported-action fiber
+safety. The corresponding action-wise robust expected loss is
 
 \[
-\beta_{\rm strong}(z)
+\beta_{\rm ar}(z)
 :=\inf_{p\in\Delta_k}\sum_{a=1}^k p_a\sup_{x\in F}\ell(x,a)
 =\beta_{\rm det}(z),
 \]
 
 because a linear objective over the simplex is minimized at an action attaining the smallest
 action-wise supremum. Thus randomization gives no benefit when every realized action is evaluated
-against all compatible states.
+against all compatible states. A genuinely worst-supported-action loss also obeys
+
+\[
+\beta_{\rm ws}(z)
+:=\inf_{p\in\Delta_k}\max_{a:p_a>0}\sup_{x\in F}\ell(x,a)
+=\beta_{\rm det}(z),
+\]
+
+because a Dirac mass on a deterministic minimizer attains the lower bound and every nonempty
+support contains an action whose robust loss is at least that deterministic minimum.
 
 ### Theorem 6 (finite-action pointwise-expectation sandwich)
 
@@ -425,12 +436,12 @@ If the fiber is action-conflicted and `ell(x,a)=0` exactly on safe actions, then
 \beta_{\rm det}(z)=1,
 \qquad
 \frac1k\le\beta_{\rm exp}(z)\le1,
-\qquad \beta_{\rm strong}(z)=1.
+\qquad \beta_{\rm ar}(z)=\beta_{\rm ws}(z)=1.
 \]
 
 Thus randomization can spread pointwise expected failure across actions and states, but with `k`
 actions it cannot drive the worst-compatible-state failure probability below `1/k` on a
-conflicted fiber. It does not improve the strong/pathwise slack.
+conflicted fiber. It does not improve the action-wise robust or worst-supported-action slack.
 
 #### Proof
 

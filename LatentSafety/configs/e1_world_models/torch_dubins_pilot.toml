@@ -1,0 +1,77 @@
+schema_version = 1
+experiment = "e1_controlled_dubins_beta_vae_safe_action_pilot"
+status = "implemented_smoke_pending_preconfirmation"
+
+[run]
+seed = 0
+output_dir = "runs/e1_world_models/torch_dubins_pilot/seed_0"
+device = "auto"
+deterministic = true
+deterministic_warn_only = false
+epochs = 30
+batch_size = 128
+num_workers = 4
+learning_rate = 0.0003
+weight_decay = 0.00001
+gradient_clip_norm = 5.0
+amp = true
+log_every = 1
+
+[data]
+# Constant-speed planar steering with a moving circular obstacle in a bounded square arena.
+task = "controlled_dubins_navigation_pixels"
+trajectories = 320
+horizon = 48
+image_size = 32
+channels = 3
+history_length = 4
+actions = [-1.0, 0.0, 1.0]
+action_profile_horizon = 6
+# Safe arena half-width; collision clearance to the moving disc is checked simultaneously.
+position_limit = 1.20
+render_extent = 1.60
+dt = 0.10
+# For this domain only, damping is the constant forward speed in world units per second.
+damping = 0.55
+# For this domain only, acceleration is the signed steering-rate gain in radians per second.
+acceleration = 1.40
+process_noise = 0.015
+nuisance_strength = 0.65
+corrective_policy_probability = 0.74
+challenge_fraction = 0.34
+challenge_corrective_probability = 0.45
+
+[data.splits]
+train = 0.65
+validation = 0.15
+calibration = 0.10
+test = 0.10
+
+[model]
+family = "beta_vae"
+history_encoder = "stack"
+latent_dim = 8
+hidden_dim = 128
+transition_hidden_dim = 192
+posterior_logvar_min = -8.0
+posterior_logvar_max = 4.0
+
+[objective]
+safety_arm = "safe_action_profile"
+reconstruction_weight = 1.0
+transition_weight = 1.0
+kl_weight = 0.0005
+safety_weight = 0.5
+margin_scale = 0.25
+boundary_band = 0.18
+positive_margin_band = 0.05
+contrastive_margin = 1.0
+max_contrastive_pairs = 4096
+# Frozen categorical-head width for the same-backbone FCSRL adaptation.
+fcsrl_head_hidden_dim = 64
+
+[evaluation]
+rollout_horizons = [1, 4, 8]
+max_rollout_cases = 96
+emit_audit_records = true
+max_audit_records_per_split = 5000

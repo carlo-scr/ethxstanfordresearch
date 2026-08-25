@@ -11,8 +11,9 @@ the material findings and prevents the corrected overstatements from reappearing
    nonemptiness.
 2. **Randomization semantics.** The finite-action minimax quantity averages loss over the sampled
    action before taking the worst compatible state. It is now called pointwise expected-loss slack.
-   Under strong/pathwise semantics, expectation is taken over the action-wise worst fiber loss and
-   the optimum equals deterministic slack, so randomization gives no benefit.
+   Both action-wise robust expected loss (averaging action-wise worst-fiber losses) and genuine
+   worst-supported-action loss equal deterministic slack, so randomization gives no benefit under
+   either stronger ordering.
 3. **Measurability.** The randomized theorem now declares a measurable action space and Borel
    probability in the compact-metric case.
 4. **Continuous-action caveat.** Compactness or coercivity alone is no longer presented as enough
@@ -28,7 +29,8 @@ the material findings and prevents the corrected overstatements from reappearing
 - deterministic action-conflict impossibility after the quantifier repair;
 - randomized fixed-fiber impossibility under strong, countable, or compact-closed conditions;
 - closed-convex pointwise projection;
-- finite-action pointwise expected-loss sandwich, strong-slack equality, and finite-fiber LP dual.
+- finite-action pointwise expected-loss sandwich, action-wise robust and worst-supported-action
+  equalities, and finite-fiber LP dual.
 
 ## Novelty warning
 

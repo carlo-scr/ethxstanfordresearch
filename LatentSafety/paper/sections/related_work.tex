@@ -1,33 +1,81 @@
 \section{Related work and novelty boundary}
 
+\paragraph{Pretrained visual representations.}
+Cosmos provides causal image/video tokenizers trained for reconstructive and perceptual fidelity at
+several spatial, temporal, continuous, and discrete compression settings
+\citep{nvidia2025cosmos,nvidia2025cosmostokenizer}.  V-JEPA~2 and V-JEPA~2.1 learn dense predictive
+video features; V-JEPA~2-AC adds an action-conditioned predictor for planning while retaining the
+pretrained visual encoder \citep{assran2025vjepa2,murlabadia2026vjepa21}.  DINOv3 instead learns
+semantic and dense spatial features from images \citep{simeoni2025dinov3}.  We use these families to
+span reconstructive, predictive, and semantic objectives.  Their native metrics are not
+commensurate, and checkpoint comparisons do not identify a causal effect of objective without a
+matched-backbone/data ablation.
+
+\paragraph{Task-aware physical tokenization.}
+Recent work already argues that reconstruction-only driving tokens can omit planning-relevant
+information and augments tokenizer learning with representation and geometry supervision
+\citep{yao2026unified}.  We therefore do not claim the first task-aware, planning-aware, or
+safety-augmented tokenizer.  Our narrower target is a specification-relative common-safe-action
+obstruction, a traceable set-wise audit before policy learning, and internal encoder repair whose
+effect survives removal of the training head in more than one physical domain.
+
 \paragraph{Latent control certificates.}
 Latent CBF and world-model methods learn certificates or safety policies from observations
-\citep{kumar2024latentcbf,anand2025safety}.  Lutkus et al.\ give approximate-conjugacy conditions
+\citep{anand2025safety,nakamura2025latent,nakamura2026latentcbf}.  Lutkus et al.\ give approximate-conjugacy conditions
 for transferring latent Lyapunov and barrier guarantees and explicitly identify shared safe/unsafe
 codes as a source of conservative under-approximation \citep{lutkus2025latent}.  Set-valued and
 uncertainty-aware variants propagate zonotopes or augment the latent state with epistemic
 uncertainty \citep{wu2026points,seo2025uncertainty}.  We do not claim the first latent safe set,
-collision observation, or transfer theorem.
+collision observation, latent reachability filter, latent CBF, or transfer theorem.  Our audits
+precede the downstream filter and ask which feasible decisions its input representation can still
+distinguish.
 
 \paragraph{Safety-aware representations.}
-Decision-sufficient and safe-RL representation learning already preserve action, reward, cost, or
-feasibility information \citep{huang2022action,cen2024feasibility,yang2025qsupervised}.  Our target
-distinction is not merely a new auxiliary safety loss: it is an auditable necessary lower bound
-based on representation fibers and common safe-action feasibility, paired with explicit
-observation-level and finite-sample semantics.
+Decision-sufficient and safe-RL representation learning already preserve action, reward, cost,
+feasibility, or safety features \citep{huang2022action,cen2024feasibility,wang2025cvrlbm,
+yang2025qsupervised,mani2025safety}.  PIGDreamer additionally uses privileged representation
+alignment to improve safe partially observed world models \citep{huang2025pigdreamer}.  Our target
+distinction is therefore not merely another auxiliary safety loss or privileged alignment method.
+The phrase \emph{safe-action sufficiency} here denotes preservation of a nonempty common feasible
+action over every represented history, rather than the structural action-sufficient variables of
+\citet{huang2022action}.  The intervention directly optimizes a set-wise conflict object; profile
+prediction is an ablation, not by itself the novelty.  We test it with observation-level controls,
+within-family utility retention, head removal, and a held-fixed downstream controller.
+
+\paragraph{Stochastic encoders and testing.}
+Variational autoencoders represent an input by a conditional law and regularize it toward a common
+prior; $\beta$-VAE changes the weight of that information bottleneck
+\citep{kingma2014autoencoding,higgins2017betavae}.  Mutual singularity, total variation, binary
+testing, Pinsker's inequality, and Markov-kernel data processing are classical.  We do not claim
+new versions of those results.  Our use of them is to state the exact almost-sure safety semantics
+of a sampled code, expose the full-support Gaussian obstruction, and connect encoder overlap to
+unavoidable common-action violations.  The experiments instead audit posterior means, so sampled-
+code and deterministic-mean conclusions remain separate.
 
 \paragraph{Control abstractions and partial observation.}
 Feedback refinement relations formalize controller refinement through static quantizers and
 state-dependent admissible inputs \citep{reissig2017feedback}; state--action abstractions likewise
-study which decisions remain representable after compression \citep{abel2020value}.  Under partial
+study which decisions remain representable after compression \citep{abel2020value}, while
+safety-preserving approximate bisimulation quantifies conservative abstraction error
+\citep{girard2012safety}.  Under partial
 observation, belief-support shields already restrict actions to enforce almost-sure reach--avoid
 specifications \citep{sheng2024safe}.  Common-action necessity is therefore a foundation, not our
 standalone novelty.  The submission-level target is approximate safety sufficiency for learned
 history representations, with calibrated audits and matched-utility intervention results.
 
+\paragraph{History compression and approximate information states.}
+Approximate information states provide learnable history compressions, latent dynamic programs,
+and policy-loss bounds \citep{subramanian2022ais}; worst-case variants treat uncertain partially
+observed systems and maximum-over-time costs \citep{dave2024ais}.  Approximate $Q$-profile
+abstractions likewise give near-optimal policies under uniform value similarity
+\citep{abel2016approximate}.  Consequently, our finite-tree Bellman calculations only define and
+validate audit quantities; we do not present generic history compression, Hausdorff successor error,
+or factor-two policy loss as standalone novelty.
+
 \paragraph{Calibration and robust planning.}
 Conformalized latent constraints and robust MPC address model and constraint prediction errors
 \citep{nath2026pixels}; uncertainty-aware reachability targets OOD failures
-\citep{seo2025uncertainty}.  These errors are complementary to in-distribution information that is
-absent from an encoder fiber.  A complete system must eventually compose them rather than relabel
-one source as another.
+\citep{seo2025uncertainty}, and partial-observation barrier-value methods combine estimator
+uncertainty with finite-horizon probabilistic safety \citep{jahanshahi2026cbvf}.  These guarantees
+have different semantics from support-robust information loss inside an encoder fiber.  The error
+sources are conceptually distinct but interacting; their end-to-end composition remains unresolved.

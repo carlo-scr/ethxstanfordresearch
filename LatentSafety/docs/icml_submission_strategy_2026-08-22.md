@@ -1,5 +1,16 @@
 # ICML submission strategy — 2026-08-22
 
+> **Direction update (2026-08-25).** The AE/$\beta$-VAE cart/pendulum/Dubins matrices below are now
+> precursor engineering and estimator gates, not the intended submission-scale evidence. The
+> primary empirical target is the cross-family pretrained-representation study in
+> `paper/sections/experiments.tex`: Cosmos Tokenizer, V-JEPA 2/2.1, and DINOv3 under identical causal
+> information and matched-rate audits; contact-rich manipulation plus embodied navigation;
+> pre-bottleneck Common-Action Geometry Repair; head removal; and a held-fixed downstream selector.
+> Driving is optional external validity. Exact job counts, simulator tasks, and compute ceilings for
+> that study must be frozen in a new dated protocol before launch. Until then, the older 96/192/288
+> counts remain useful descriptions of checked-in precursor plumbing but do not define the ICML
+> confirmatory design.
+
 ## Technical summary
 
 **Current evidence status.** The repository supports exact finite examples, internally drafted
@@ -100,13 +111,11 @@ Total: `2 × 2 × 2 × 1 × 4 × 3 = 96` trains. These cells are a subset of the
    `action_conflict_fraction` is a useful co-primary descriptive measure; the maximum
    `worst_required_violation` is a traceable lower witness but is too sample-size-sensitive to be
    the only inferential endpoint.
-2. **Primary utility endpoint:** normalized reconstruction plus rollout prediction, reported as
-   separate components. The current `world_model_utility` includes a family-dependent KL term, so
-   do not match AE and beta-VAE globally on that raw composite. Matching is within
-   domain/family/history, with the composite retained for checkpoint selection only. The
-   fail-closed aggregator now retains current-frame reconstruction and maximum-predeclared-horizon
-   rollout pixel MSE separately; domain-normalized utility and its non-inferiority margin must still
-   be frozen before confirmation.
+2. **Primary utility endpoint:** reconstruction and maximum-predeclared-horizon rollout pixel MSE,
+   reported separately and each divided by the paired `none` validation error within the same
+   domain/family/history stratum. A zero control denominator admits only zero learned-arm error and
+   defines that tied ratio as one. Both ratios must be at most 1.05; after the safety endpoint, their
+   maximum is the utility tie-break. The family-dependent KL composite remains checkpoint-only.
 3. **Radius semantics:** retain the calibration-only `0.05 × median pairwise distance` result as
    exploratory, but require the conclusion to survive the full frozen radius curve, a
    matched-neighborhood-mass analysis, and physically generated perturbation/alias pairs. A
@@ -136,7 +145,8 @@ Total: `2 × 2 × 2 × 1 × 4 × 3 = 96` trains. These cells are a subset of the
 
 ### Prospective pilot go/no-go thresholds
 
-These are recommended defaults to ratify **before opening validation results**, not observed facts.
+These are frozen prospective thresholds, not observed facts. Any revision requires a dated protocol
+version before training and before access to validation or final-test outcomes.
 
 - **Integrity:** every E0 control passes; all 96 task cells are accounted for; no final-test value is
   used; model size is matched; no effect disappears after trajectory-level aggregation.
@@ -147,13 +157,15 @@ These are recommended defaults to ratify **before opening validation results**, 
   in both domains and in at least three of four domain-by-family strata, with no stratum showing a
   practically important reversal. It should also outperform `boundary_contrastive` on action loss;
   the latter may win on static defect.
-- **Minimum effect:** use both an absolute reduction of at least `0.10` margin-scale units and a
-  relative reduction of at least 20% in conflict fraction, unless the team replaces these values
-  with domain-expert MCIDs before training.
+- **Minimum effect:** require both an absolute reduction of at least `0.10` margin-scale units and a
+  relative reduction of at least 20% in conflict fraction.
 - **Utility non-inferiority:** no more than 5% relative degradation in both reconstruction and
-  rollout error within domain/family/history. Replace 5% only before launch and document why.
+  rollout error within domain/family/history.
 - **Robustness:** the direction holds at three adjacent radii, under matched neighborhood mass, and
   on the boundary/challenge stratum; it is not driven by one seed or one witness.
+- **Nonprivileged transfer:** before confirmation, the trained cross-fitted predicted-profile arm
+  itself—not only the privileged pilot proxy—passes its profile-error, safety, utility, coverage, and
+  matched-mass gates in every confirmatory validation stratum.
 
 Passing the pilot authorizes a confirmatory design. It does not authorize a paper result.
 
@@ -163,17 +175,17 @@ Freeze the matrix after the pilot and before opening any new test split.
 
 | Workstream | Frozen comparison | Replication | Primary decision |
 |---|---|---:|---|
-| Core E2 | Three domains: cart, pendulum, and one harder occluded/moving-hazard navigation domain; two representation families; one pilot-selected history mode; ordinary, scalar-margin, proposed action-profile/viability, and one strongest task-compatible safety-aware baseline | 8 **fresh paired** seeds | Proposed method is safety-superior and utility-noninferior to the strongest baseline in every domain; equal-weight aggregate is primary. This is 192 trains before extra ablations. |
+| Core E2 | Controlled cart, controlled pendulum, and controlled Dubins-navigation pixels; AE and beta-VAE; `stack_h4`; none, scalar-margin, nonprivileged predicted profile, and frozen FCSRL-loss adaptation | 8 **fresh paired** seeds | Proposed method must pass the frozen safety/utility rule against none, scalar margin, FCSRL, and the append-true-`h` none view in every domain. This is exactly 192 trains before extra controls. |
 | History mechanism | h1 versus h4, plus GRU-h4 as an architecture-only contrast, on the two controlled domains for ordinary and proposed methods | 8 paired seeds | Added information, not parameter count or recurrence alone, explains the action-sufficiency change. |
 | Geometry sensitivity | frozen radius curve, matched neighbor mass, physical perturbation pairs, and exact aliases | same checkpoints | Headline direction survives all three operationalizations; certificate language is used only for a verified upper bound. |
 | Shift | appearance/nuisance shift and dynamics/challenge shift fixed per domain | same checkpoints | Effect is not confined to the training renderer or behavior-policy density. |
 | E5 downstream | one fixed certificate/filter/controller applied to frozen encoders; at least 200 episode rollouts per seed and condition | 8 paired seeds | Lower action regret yields fewer episode violations or more certificate coverage at matched return/control effort. |
 | Certificate track | enumerated or verified-cover controlled domains, with lower witness and upper bound | independent proof/code reviewer | Bound is non-vacuous, contains the exact oracle on held-out finite cases, and certifies a nontrivial subset of the full-state viable region. |
 
-The third domain must have a failure mechanism not reducible to one visible scalar. Prefer a
-controlled Dubins/navigation environment with occlusion and moving obstacles if CarRacing creates
-wrapper and reward confounds. Keep the benchmark version, safety specification, action set, and
-termination rules frozen.
+The third domain is controlled Dubins navigation with a moving obstacle whose direction is hidden in
+one frame, so its failure mechanism is not reducible to one visible scalar. Its current top-down
+renderer, safety specification, action set, and nominal dynamics are frozen and CPU-smoked;
+occlusion is not part of version 1. CarRacing remains a stretch stress test.
 
 ### Baselines and ablations that reviewers will ask for
 
@@ -182,7 +194,7 @@ termination rules frozen.
 | Is scalar safety enough? | `h_prediction`, true `h` appended, and a calibrated safety probe. |
 | Is the benefit merely boundary separation? | `boundary_contrastive` and an all-pair/random-pair loss. |
 | Is action supervision the real ingredient? | true action-profile append oracle, predicted-profile training, shuffled profiles, horizon/action-grid sensitivity, and full robust-Q oracle where enumerable. |
-| Is this already a safety-aware representation method? | At least one faithful FCSRL/CVRL-BM-style objective on the same backbone/data; add official end-to-end baselines if downstream RL is claimed. Explain any adaptation. |
+| Is this already a safety-aware representation method? | Run the frozen same-backbone FCSRL feasibility-loss adaptation; treat CVRL-BM as an architecture-changing sensitivity, and add matched official end-to-end agents if downstream RL is claimed. Never label an adaptation as a reproduction. |
 | Is privileged information doing all the work? | privileged true profiles versus learned/model-estimated profiles and PIGDreamer-style privileged alignment where applicable. |
 | Is this sensor ambiguity? | same-frame observation oracle, h4 observation/history oracle, and full-state oracle. |
 | Is it capacity or optimization? | matched parameter counts, training curves, gradient norms, safety-weight sweep, equal compute, and failed-run ledger. |
@@ -196,12 +208,13 @@ termination rules frozen.
 - **Primary contrast:** proposed method minus the strongest validation-selected baseline, paired on
   data seed, initialization, architecture, domain, and history. Domain/family strata receive equal
   weight; do not let the largest trajectory set dominate.
-- **Estimation:** report every seed, paired mean and median difference, 95% paired block-bootstrap
-  interval, and Cohen's `d_z`. Keep the current 10,000-resample deterministic implementation.
-- **Testing:** if method labels are exchangeable under the sharp null, use the exact paired
-  sign-flip/randomization distribution over all `2^8` seed signs. Otherwise treat the bootstrap as
-  interval estimation and do not manufacture a p-value. Apply Holm to the predeclared confirmatory
-  family.
+- **Confirmatory estimation:** within each seed and domain, average paired AE and beta-VAE
+  differences equally. Compute the frozen 36 one-sided nonstudentized percentile UCBs from exactly
+  100,000 paired-seed bootstrap resamples with seed 20260822 and probability `1 - 0.05/36`.
+  Bonferroni covers the complete safety/reconstruction/rollout family; every bound and run must pass.
+- **Secondary testing:** only when method labels are exchangeable under a predeclared sharp null,
+  report exact sign-flip tests for the 12 safety contrasts and apply Holm at 0.05. Otherwise omit
+  p-values. Descriptive pilot intervals and effects do not determine confirmatory success.
 - **Joint success:** require safety superiority **and** utility non-inferiority using a frozen
   utility margin. This is an intersection-union decision; passing only one component is failure.
 - **Tail metrics:** bootstrap trajectories inside seed when estimating a tail quantile, then use

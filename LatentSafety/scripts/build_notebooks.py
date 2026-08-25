@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the source-controlled research notebooks with nbformat.
+"""Build deterministic, source-controlled research notebooks with nbformat.
 
 The notebooks are generated from Python source so structural edits are reviewable.  Run
 ``scripts/execute_notebooks.py`` afterwards to refresh outputs in a clean kernel.
@@ -8,29 +8,95 @@ The notebooks are generated from Python source so structural edits are reviewabl
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
+import os
+import tempfile
 from pathlib import Path
-
-import nbformat as nbf
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_DIR = ROOT / "notebooks"
+HANDOFF_SCHEMA_VERSION = 1
+OUTPUT_LIMITS = {
+    "max_outputs_per_cell": 32,
+    "max_cell_output_bytes": 512_000,
+    "max_notebook_output_bytes": 2_000_000,
+}
+
+_NBF: Any | None = None
 
 
-def _markdown(source: str) -> nbf.NotebookNode:
-    return nbf.v4.new_markdown_cell(source.strip())
+def _nbformat() -> Any:
+    """Import the optional notebook writer with an actionable error."""
+
+    global _NBF
+    if _NBF is None:
+        try:
+            import nbformat
+        except ModuleNotFoundError as error:  # pragma: no cover - environment dependent
+            raise RuntimeError(
+                "building notebooks requires the research dependencies; "
+                "install with `python -m pip install -e '.[research]'`"
+            ) from error
+        _NBF = nbformat
+    return _NBF
 
 
-def _code(source: str) -> nbf.NotebookNode:
-    return nbf.v4.new_code_cell(source.strip())
+def _source_sha256(cells: list[Any]) -> str:
+    payload = [
+        {"cell_type": str(cell["cell_type"]), "source": str(cell["source"])}
+        for cell in cells
+    ]
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _stable_cell_id(index: int, cell: Any) -> str:
+    payload = f"{index}\0{cell['cell_type']}\0{cell['source']}".encode()
+    return hashlib.sha256(payload).hexdigest()[:16]
+
+
+def _write_atomic(notebook: Any, path: Path) -> None:
+    """Write beside the destination and replace it only after serialization succeeds."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+    )
+    os.close(descriptor)
+    temporary_path = Path(temporary_name)
+    try:
+        _nbformat().write(notebook, temporary_path)
+        os.replace(temporary_path, path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _markdown(source: str) -> Any:
+    return _nbformat().v4.new_markdown_cell(source.strip())
+
+
+def _code(source: str) -> Any:
+    return _nbformat().v4.new_code_cell(source.strip())
 
 
 def _notebook(
-    cells: list[nbf.NotebookNode],
+    cells: list[Any],
     *,
     experiment: str,
     status: str = "synthetic_control_not_paper_evidence",
-) -> nbf.NotebookNode:
-    return nbf.v4.new_notebook(
+) -> Any:
+    for index, cell in enumerate(cells):
+        cell["id"] = _stable_cell_id(index, cell)
+    source_sha256 = _source_sha256(cells)
+    return _nbformat().v4.new_notebook(
         cells=cells,
         metadata={
             "kernelspec": {
@@ -40,15 +106,32 @@ def _notebook(
             },
             "language_info": {"name": "python", "version": "3.11"},
             "latent_safety": {
+                "schema_version": HANDOFF_SCHEMA_VERSION,
                 "experiment": experiment,
                 "generated_by": "scripts/build_notebooks.py",
                 "status": status,
+                "source_sha256": source_sha256,
+                "cell_count": len(cells),
+                "code_cell_count": sum(
+                    cell["cell_type"] == "code" for cell in cells
+                ),
+                "handoff": {
+                    "dependency_extra": "research",
+                    "working_directory": "notebooks",
+                    "build_command": "python scripts/build_notebooks.py",
+                    "execute_command": "python scripts/execute_notebooks.py",
+                    "validate_command": (
+                        "python3 scripts/validate_notebooks.py --require-executed"
+                    ),
+                    "output_limits": dict(OUTPUT_LIMITS),
+                },
+                "execution": {"state": "not_executed"},
             },
         },
     )
 
 
-def _e0_notebook() -> nbf.NotebookNode:
+def _e0_notebook() -> Any:
     cells = [
         _markdown(
             r"""
@@ -122,7 +205,7 @@ print({
     "numpy": np.__version__,
     "matplotlib": matplotlib.__version__,
     "seed": SEED,
-    "repo_root": str(ROOT),
+    "working_directory": "notebooks",
 })
 """
         ),
@@ -408,7 +491,7 @@ evaluation.
     return _notebook(cells, experiment="E0 estimator validation")
 
 
-def _e1_notebook() -> nbf.NotebookNode:
+def _e1_notebook() -> Any:
     cells = [
         _markdown(
             r"""
@@ -554,6 +637,8 @@ interpret the one-batch loss as model quality.
 modules = require_torch()
 torch = modules.torch
 torch.manual_seed(smoke_config.run.seed)
+torch.set_num_threads(1)
+torch.use_deterministic_algorithms(True)
 bundle = build_datasets(
     smoke_config.data,
     seed=smoke_config.run.seed,
@@ -676,7 +761,16 @@ if run_e2e:
     subprocess.run(e2e_command, cwd=ROOT, check=True)
 else:
     print("Skipped write-producing E2E run. Command:")
-    print(shlex.join(e2e_command))
+    portable_e2e_command = [
+        "python",
+        "scripts/run_e1_torch.py",
+        "--config",
+        CONFIG_PATH.relative_to(ROOT).as_posix(),
+        "--smoke",
+        "--output",
+        e2e_output.as_posix(),
+    ]
+    print(shlex.join(portable_e2e_command))
 """
         ),
         _markdown(
@@ -714,7 +808,7 @@ for domain, family, history_mode, dimension, arm, seed in product(
 ):
     history_encoder, history_length = history_modes[history_mode]
     output = (
-        ROOT / "runs" / "e1_world_models" / f"decisive_{domain}_grid"
+        Path("runs") / "e1_world_models" / f"decisive_{domain}_grid"
         / f"{family}_{history_mode}_d{dimension}" / arm / f"seed_{seed}"
     )
     command = [
@@ -806,19 +900,20 @@ narrower dynamic-theory or control-venue contribution rather than scale the grid
     )
 
 
-def _analysis_notebook() -> nbf.NotebookNode:
+def _analysis_notebook() -> Any:
     cells = [
         _markdown(
             r"""
-# E1/E2 analysis template — paired seeds, validation frontier, and multiplicity
+# E1/E2 analysis template — paired seeds, frozen weight selection, and multiplicity
 
 **TL;DR.** This notebook encodes the analysis contract before GPU results exist. The authoritative
 `aggregate_e1_sweep.py` command verifies the complete plan, run/audit provenance, and paired seed
-cells before it builds a validation-only safety/utility frontier. This notebook consumes only those
-fail-closed aggregate artifacts; it never reconstructs a result from an opportunistic subset of run
-directories and keeps final-test labels out of selection. The persisted numerical example is
-explicitly synthetic and exists only to regression-test the statistics code. It is not evidence for
-the method.
+cells before it builds a validation-only safety/utility frontier. The exact E2 selector separately
+requires its complete 288-row validation factorial and freezes one positive weight in each of 18
+domain/family/learned-arm strata. This notebook consumes only fail-closed aggregate interfaces; it
+never reconstructs a result from an opportunistic subset of run directories and keeps final-test
+labels out of selection. Persisted numerical examples are explicitly synthetic code regressions,
+not method evidence.
 
 Once either 48-task domain component is complete, run the aggregator documented in the E1 handoff and
 then rerun this notebook. Incomplete aggregates remain visible as a ledger but cannot become a real
@@ -835,16 +930,20 @@ result panel.
   defect. Report reconstruction and maximum-predeclared-horizon rollout pixel MSE separately; the
   family-dependent composite is not a global AE-versus-beta-VAE matching scale.
 - Use the radius and safety budget frozen in `configs/e1_world_models/decisive_cart_grid.toml`.
-- Three seeds are exploratory. Confirmatory intervals require the selected eight-seed design (or a
-  preregistered precision argument) and are reported with all failures/timeouts.
-- Holm correction requires a predeclared hypothesis family and valid raw p-values; it cannot repair
-  selective analysis.
+- Three seeds are exploratory. The confirmatory contract uses exactly eight paired seeds, equal
+  AE/beta-VAE averaging within each seed/domain, and 100,000 fixed-seed paired bootstrap replicates.
+- The primary family is exactly 36 one-sided nonstudentized percentile UCBs at
+  `1 - 0.05 / 36`, with Bonferroni simultaneity and fail-closed completeness.
+- Holm correction is optional and secondary for the 12 safety contrasts only, and only when paired
+  method labels are exchangeable under a predeclared sharp null.
 """
         ),
         _code(
             r"""
-from dataclasses import asdict
+from dataclasses import asdict, replace
+from itertools import product
 from pathlib import Path
+import hashlib
 import json
 import sys
 import tomllib
@@ -864,15 +963,18 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from latent_safety.analysis import (
     BLOCK_INDEPENDENCE_CAVEAT,
+    FROZEN_CONFIRMATORY_SPEC,
     VALIDATION_SELECTION_CAVEAT,
+    ConfirmatoryObservation,
     HypothesisPValue,
     PairedBlock,
+    PreconfirmationObservation,
     ValidationScore,
     exact_paired_sign_flip_test,
     holm_adjust,
-    paired_block_bootstrap_ci,
+    run_confirmatory_inference,
+    run_preconfirmation_selection,
     select_under_safety_budget,
-    standardized_paired_effect,
     validation_pareto_frontier,
 )
 
@@ -880,10 +982,25 @@ GRID_PATH = ROOT / "configs" / "e1_world_models" / "decisive_cart_grid.toml"
 with GRID_PATH.open("rb") as stream:
     grid_config = tomllib.load(stream)
 analysis_config = grid_config["analysis"]
+CONFIRMATORY_PATH = ROOT / "configs" / "e2_frontier" / "confirmatory_core.toml"
+with CONFIRMATORY_PATH.open("rb") as stream:
+    confirmatory_config = tomllib.load(stream)["inference"]
+
+FROZEN_CONFIRMATORY_SPEC.validate()
+assert confirmatory_config["bootstrap_resamples"] == FROZEN_CONFIRMATORY_SPEC.bootstrap_resamples
+assert confirmatory_config["bootstrap_seed"] == FROZEN_CONFIRMATORY_SPEC.bootstrap_seed
+assert confirmatory_config["elementary_bound_count"] == 36
+assert np.isclose(
+    confirmatory_config["primary_ucb_quantile"],
+    FROZEN_CONFIRMATORY_SPEC.ucb_probability,
+    atol=1e-15,
+    rtol=0.0,
+)
 display({
     "block_caveat": BLOCK_INDEPENDENCE_CAVEAT,
     "selection_caveat": VALIDATION_SELECTION_CAVEAT,
-    "frozen_analysis_config": analysis_config,
+    "exploratory_pilot_analysis_config": analysis_config,
+    "frozen_confirmatory_spec": FROZEN_CONFIRMATORY_SPEC.to_dict(),
 })
 """
         ),
@@ -899,7 +1016,7 @@ aggregate_status = {}
 for domain, path in aggregate_paths.items():
     if not path.is_file():
         aggregate_status[domain] = {
-            "artifact": str(path),
+            "artifact": path.relative_to(ROOT).as_posix(),
             "status": "missing",
             "analysis_ready": False,
         }
@@ -911,7 +1028,7 @@ for domain, path in aggregate_paths.items():
         raise RuntimeError(f"Aggregate does not preserve validation-only selection: {path}")
     completeness = report.get("completeness", {})
     aggregate_status[domain] = {
-        "artifact": str(path),
+        "artifact": path.relative_to(ROOT).as_posix(),
         "status": report.get("status"),
         "analysis_ready": bool(report.get("analysis_ready")),
         "planned_tasks": completeness.get("planned_task_count"),
@@ -928,47 +1045,69 @@ display(aggregate_status)
         ),
         _markdown(
             r"""
-## 2. Synthetic regression fixture for paired inference
+## 2. Synthetic regression fixture for the frozen confirmatory inference
 
-The values below are fabricated and labelled as such. They verify difference direction, seed
-pairing, deterministic bootstrap output, and zero-variance handling. Smaller defect is better, so a
-negative `candidate - baseline` estimate favors the candidate.
+The complete 240-row fixture below is fabricated and labelled as such. It exercises the production
+confirmatory API over `3 domains x 2 families x 5 arms/views x 8 seeds`. The API must produce all
+36 primary bounds, use the frozen 100,000-resample one-sided Bonferroni UCB, and pass only because
+every synthetic contrast was deliberately constructed to clear its gate. This is a code regression,
+not empirical evidence.
 """
         ),
         _code(
             r"""
 synthetic_baseline = (0.42, 0.39, 0.46, 0.41, 0.44, 0.38, 0.45, 0.43)
-synthetic_candidate = (0.31, 0.35, 0.34, 0.36, 0.33, 0.32, 0.37, 0.34)
-synthetic_blocks = tuple(
-    PairedBlock(f"synthetic-seed-{seed}", baseline, candidate)
-    for seed, (baseline, candidate) in enumerate(
-        zip(synthetic_baseline, synthetic_candidate, strict=True)
-    )
-)
-synthetic_ci = paired_block_bootstrap_ci(
-    synthetic_blocks,
-    resamples=int(analysis_config["bootstrap_resamples"]),
-    seed=int(analysis_config["bootstrap_seed"]),
-)
-synthetic_effect = standardized_paired_effect(synthetic_blocks)
-synthetic_randomization = exact_paired_sign_flip_test(
-    synthetic_blocks,
-    alternative="candidate_less",
-    exchangeability_justification=(
-        "synthetic paired method labels are exchangeable under the constructed sharp null"
+synthetic_candidate = tuple(value - 0.12 for value in synthetic_baseline)
+synthetic_observations = []
+for domain, family, arm, seed in product(
+    FROZEN_CONFIRMATORY_SPEC.domains,
+    FROZEN_CONFIRMATORY_SPEC.model_families,
+    (
+        FROZEN_CONFIRMATORY_SPEC.proposed_arm,
+        *FROZEN_CONFIRMATORY_SPEC.comparators,
     ),
-)
+    FROZEN_CONFIRMATORY_SPEC.paired_seeds,
+):
+    seed_index = FROZEN_CONFIRMATORY_SPEC.paired_seeds.index(seed)
+    proposed = arm == FROZEN_CONFIRMATORY_SPEC.proposed_arm
+    family_offset = 0.001 if family == "beta_vae" else 0.0
+    synthetic_observations.append(
+        ConfirmatoryObservation(
+            domain=domain,
+            model_family=family,
+            arm=arm,
+            seed=seed,
+            safety=(
+                synthetic_candidate[seed_index]
+                if proposed
+                else synthetic_baseline[seed_index]
+            ),
+            reconstruction=(1.02 if proposed else 1.0) + family_offset,
+            rollout=(1.03 if proposed else 1.0) + family_offset,
+            run_complete=True,
+            coverage_complete=True,
+        )
+    )
+
+synthetic_confirmatory = run_confirmatory_inference(synthetic_observations)
 display({
-    "status": "SYNTHETIC CODE REGRESSION — NOT A RESULT",
-    "paired_ci": asdict(synthetic_ci),
-    "paired_effect": asdict(synthetic_effect),
-    "exact_sign_flip": asdict(synthetic_randomization),
+    "status": "SYNTHETIC CONFIRMATORY API REGRESSION — NOT A RESULT",
+    "input_observations": synthetic_confirmatory.input_observation_count,
+    "elementary_bounds": len(synthetic_confirmatory.bounds),
+    "safety_bounds": synthetic_confirmatory.safety_bound_count,
+    "utility_bounds": synthetic_confirmatory.utility_bound_count,
+    "ucb_probability": synthetic_confirmatory.spec.ucb_probability,
+    "bootstrap_resamples": synthetic_confirmatory.spec.bootstrap_resamples,
+    "bootstrap_seed": synthetic_confirmatory.spec.bootstrap_seed,
+    "all_synthetic_bounds_passed": synthetic_confirmatory.all_elementary_bounds_passed,
 })
-assert synthetic_ci.n_blocks == 8
-assert synthetic_ci.estimate < 0.0
-assert synthetic_effect.is_defined
-assert synthetic_randomization.permutation_count == 2 ** len(synthetic_blocks)
-assert synthetic_randomization.p_value == 1.0 / synthetic_randomization.permutation_count
+assert synthetic_confirmatory.input_observation_count == 240
+assert len(synthetic_confirmatory.bounds) == 36
+assert synthetic_confirmatory.safety_bound_count == 12
+assert synthetic_confirmatory.utility_bound_count == 24
+assert synthetic_confirmatory.spec.bootstrap_resamples == 100_000
+assert synthetic_confirmatory.spec.bootstrap_seed == 20_260_822
+assert synthetic_confirmatory.all_elementary_bounds_passed
 """
         ),
         _markdown("## 3. Validation-only Pareto selection regression"),
@@ -996,25 +1135,153 @@ assert "dominated_control" in synthetic_frontier.dominated_config_ids
 assert synthetic_selection.config_id == "boundary"
 """
         ),
-        _markdown("## 4. Multiplicity-control regression"),
+        _markdown("## 4. Exact 288-row validation-only weight-freeze regression"),
         _code(
             r"""
+preconfirmation_rows = []
+for domain, family, seed in product(
+    FROZEN_CONFIRMATORY_SPEC.domains,
+    FROZEN_CONFIRMATORY_SPEC.model_families,
+    (0, 1, 2),
+):
+    preconfirmation_rows.append(
+        PreconfirmationObservation(
+            domain=domain,
+            model_family=family,
+            arm="none",
+            seed=seed,
+            weight=None,
+            safety=0.50,
+            reconstruction=1.00,
+            rollout=2.00,
+            eligible_center_coverage=0.90,
+            neighborhood_mass=1.00,
+            empty_trajectory_count=0,
+            run_complete=True,
+            coverage_complete=True,
+        )
+    )
+
+learned_arms = (
+    "h_prediction",
+    "nonprivileged_predicted_action_profile",
+    "fcsrl_feasibility_loss_adaptation",
+)
+positive_weights = (0.001, 0.01, 0.1, 1.0, 10.0)
+safety_by_weight = {0.001: 0.45, 0.01: 0.40, 0.1: 0.30, 1.0: 0.32, 10.0: 0.38}
+for domain, family, arm, seed, weight in product(
+    FROZEN_CONFIRMATORY_SPEC.domains,
+    FROZEN_CONFIRMATORY_SPEC.model_families,
+    learned_arms,
+    (0, 1, 2),
+    positive_weights,
+):
+    is_profile = arm == "nonprivileged_predicted_action_profile"
+    preconfirmation_rows.append(
+        PreconfirmationObservation(
+            domain=domain,
+            model_family=family,
+            arm=arm,
+            seed=seed,
+            weight=weight,
+            safety=safety_by_weight[weight],
+            reconstruction=1.02,
+            rollout=2.04,
+            eligible_center_coverage=0.88,
+            neighborhood_mass=1.02,
+            empty_trajectory_count=0,
+            run_complete=True,
+            coverage_complete=True,
+            profile_normalized_p95_error=0.08 if is_profile else None,
+            profile_teacher_count=5 if is_profile else None,
+            profile_teacher_failure_count=0 if is_profile else None,
+            profile_label_manifest_sha256=(
+                hashlib.sha256(f"{domain}|{family}|{seed}".encode("utf-8")).hexdigest()
+                if is_profile
+                else None
+            ),
+        )
+    )
+
+synthetic_freeze = run_preconfirmation_selection(preconfirmation_rows)
+assert synthetic_freeze.input_observation_count == 288
+assert synthetic_freeze.required_selection_count == 18
+assert synthetic_freeze.passed_selection_count == 18
+assert synthetic_freeze.ready_for_confirmation
+assert all(selection.selected_weight == 0.1 for selection in synthetic_freeze.selections)
+
+failed_profile_rows = [
+    replace(row, profile_normalized_p95_error=0.100001)
+    if row.domain == FROZEN_CONFIRMATORY_SPEC.domains[0]
+    and row.model_family == "ae"
+    and row.arm == "nonprivileged_predicted_action_profile"
+    else row
+    for row in preconfirmation_rows
+]
+failed_freeze = run_preconfirmation_selection(failed_profile_rows)
+assert not failed_freeze.ready_for_confirmation
+assert failed_freeze.passed_selection_count == 17
+display({
+    "status": "SYNTHETIC PRECONFIRMATION FREEZE REGRESSION — NOT A RESULT",
+    "input_observations": synthetic_freeze.input_observation_count,
+    "required_strata": synthetic_freeze.required_selection_count,
+    "selected_weights": sorted({
+        selection.selected_weight for selection in synthetic_freeze.selections
+    }),
+    "all_constructed_strata_passed": synthetic_freeze.ready_for_confirmation,
+    "profile_error_above_0.10_fails_closed": not failed_freeze.ready_for_confirmation,
+    "passed_strata_after_planted_failure": failed_freeze.passed_selection_count,
+})
+"""
+        ),
+        _markdown("## 5. Optional secondary sign-flip/Holm regression for 12 safety contrasts"),
+        _code(
+            r"""
+synthetic_secondary_tests = []
+for bound in synthetic_confirmatory.bounds:
+    if bound.endpoint != "safety":
+        continue
+    paired_blocks = tuple(
+        PairedBlock(
+            f"{bound.hypothesis_id}/seed-{seed.seed}",
+            baseline=0.0,
+            candidate=float(seed.equal_family_mean),
+        )
+        for seed in bound.seed_differences
+    )
+    synthetic_secondary_tests.append(
+        exact_paired_sign_flip_test(
+            paired_blocks,
+            alternative="candidate_less",
+            exchangeability_justification=(
+                "synthetic paired method labels are exchangeable under the constructed sharp null"
+            ),
+        )
+    )
+
 synthetic_holm = holm_adjust(
-    (
-        HypothesisPValue("synthetic_H_static", 0.008),
-        HypothesisPValue("synthetic_H_action", 0.021),
-        HypothesisPValue("synthetic_H_downstream", 0.11),
+    tuple(
+        HypothesisPValue(bound.hypothesis_id, test.p_value)
+        for bound, test in zip(
+            (bound for bound in synthetic_confirmatory.bounds if bound.endpoint == "safety"),
+            synthetic_secondary_tests,
+            strict=True,
+        )
     ),
     alpha=0.05,
 )
 display({
-    "status": "SYNTHETIC CODE REGRESSION — NOT A RESULT",
-    "holm": [asdict(item) for item in synthetic_holm],
+    "status": "OPTIONAL SYNTHETIC SECONDARY REGRESSION — NOT A PRIMARY RESULT",
+    "scope": "12 safety contrasts only",
+    "exchangeability_required": True,
+    "raw_p_values": [test.p_value for test in synthetic_secondary_tests],
+    "holm_rejections": [item.rejected for item in synthetic_holm],
 })
-assert [item.rejected for item in synthetic_holm] == [True, True, False]
+assert len(synthetic_secondary_tests) == len(synthetic_holm) == 12
+assert all(item.rejected for item in synthetic_holm)
 """
         ),
-        _markdown("## 5. Visual regression checks"),
+        _markdown("## 6. Visual regression checks"),
         _code(
             r"""
 fig, axes = plt.subplots(1, 2, figsize=(10.5, 3.8))
@@ -1044,7 +1311,7 @@ plt.show()
         ),
         _markdown(
             r"""
-## 6. Real pilot aggregate display (only complete, provenance-checked artifacts)
+## 7. Real pilot aggregate display (only complete, provenance-checked artifacts)
 
 Frontier construction and paired inference happen in the fail-closed aggregator, which validates
 the declared plan hash, factorial coverage, checkpoint provenance, audit radii, and complete seed
@@ -1099,15 +1366,18 @@ else:
             r"""
 ## Takeaways and unblinding gate
 
-The inferential machinery is executable before results arrive: paired seed/block bootstrap,
-explicit standardized-effect edge cases, Holm step-down correction, and validation-only Pareto
-selection. The notebook refuses to invent a real aggregate when run/audit artifacts are missing.
+The inferential machinery is executable before results arrive: the frozen production API consumes
+all 240 required observation rows and returns exactly 36 fixed-seed, one-sided Bonferroni UCBs.
+Holm appears only as an optional secondary regression over the 12 safety contrasts. Generic pilot
+Pareto selection and the exact 288-row E2 weight freeze remain validation-only and separate from
+final-test inference; the notebook refuses to invent a real aggregate when run/audit artifacts are
+missing.
 
 Before any confirmatory test unblinding, freeze: included configuration IDs and failed runs; the
-primary radius; safety budget; effect direction; resampling unit; hypothesis family; and exact
-producing commit/environment. The current trainer's three-seed pilot evaluates test for engineering
-convenience, so it is exploratory. A final study should use a deferred-test execution path or an
-independent custodian to preserve a genuine blind.
+primary radius; safety budget; effect direction; paired-seed resampling unit; the complete 36-bound
+family; and exact producing commit/environment. The current trainer's three-seed pilot evaluates
+test for engineering convenience, so it is exploratory. A final study should use a deferred-test
+execution path or an independent custodian to preserve a genuine blind.
 """
         ),
     ]
@@ -1118,7 +1388,7 @@ independent custodian to preserve a genuine blind.
     )
 
 
-def _two_domain_oracle_notebook() -> nbf.NotebookNode:
+def _two_domain_oracle_notebook() -> Any:
     cells = [
         _markdown(
             r"""
@@ -1341,18 +1611,19 @@ not persistent closed-loop safety.
     )
 
 
-def _theory_notebook() -> nbf.NotebookNode:
+def _theory_notebook() -> Any:
     cells = [
         _markdown(
             r"""
 # Theory laboratory — exhaustive checks and counterexamples
 
-**TL;DR.** Exhaustive finite enumeration supports two exact statements: a sound certificate is
-`m`-complete exactly when no required code also contains an unsafe state, and deterministic
-post-processing cannot reduce the exact static defect. The experiments also expose three limits:
-the scalar defect alone does not resolve a zero-valued endpoint, randomization only evades an
-action-conflict result after weakening pointwise safety to an expectation, and vanishing average
-reconstruction error can coexist with fixed worst-case safety ambiguity.
+**TL;DR.** Exhaustive finite enumeration supports deterministic and stochastic versions of the
+soundness/completeness frontier. For a finite stochastic encoder, exact almost-sure conflict is
+positive support overlap—not a rounded `TV == 1` test—and Markov post-processing preserves exact
+conflicts while contracting pairwise total variation. Separate convex-action checks confirm the
+one-dimensional interval Helly reduction and show why pair-only checks fail for three halfspaces in
+two dimensions. The experiments also retain the endpoint, randomization, and average-loss
+counterexamples that block tempting overstatements.
 
 This notebook is a proof-debugging companion. Enumeration can falsify a theorem but cannot prove
 its infinite-space version; the manuscript proof must carry its own endpoint, regularity, and
@@ -1368,6 +1639,11 @@ measurability assumptions.
   accepted.
 - A certificate is an arbitrary subset of latent codes. Neural/continuous certificate classes may
   have additional approximation or regularity gaps.
+- A stochastic encoder is a fully enumerated finite row-stochastic kernel. Exact conflict uses
+  positive support with no probability threshold. Kernel admissibility, Markov composition, and TV
+  identities are checked first in exact rational arithmetic; guarded binary64 values are display
+  summaries. Pairwise singularity is sufficient for one separator here because both families are
+  finite, not for arbitrary uncountable families.
 - Randomized policies are separated into almost-sure pointwise safety and expected-margin safety;
   these are not interchangeable.
 """
@@ -1377,6 +1653,7 @@ measurability assumptions.
 from itertools import product
 from pathlib import Path
 import json
+import math
 import sys
 
 import matplotlib
@@ -1395,10 +1672,16 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from latent_safety.metrics.action import audit_exact_action_fibers
 from latent_safety.metrics.finite import (
+    audit_finite_stochastic_kernel,
     audit_finite_static_fibers,
     check_finite_data_processing,
+    check_finite_stochastic_action_tradeoff,
+    check_finite_stochastic_completeness,
+    check_finite_stochastic_data_processing,
     check_sound_completeness,
     enumerate_binary_certificates,
+    finite_stochastic_pair_frontier,
+    postprocess_finite_stochastic_kernel,
 )
 from latent_safety.synthetic import (
     localized_collision_encoder,
@@ -1410,7 +1693,7 @@ print({
     "python": sys.version.split()[0],
     "numpy": np.__version__,
     "matplotlib": matplotlib.__version__,
-    "repo_root": str(ROOT),
+    "working_directory": "notebooks",
 })
 """
         ),
@@ -1483,7 +1766,258 @@ print({
         ),
         _markdown(
             r"""
-## 3. Endpoint diagnostic: the number `epsilon = 0` is not enough
+## 3. Finite stochastic encoders: exact support and TV data processing
+
+For a finite output alphabet, an almost-sure certificate is still an output subset. A safe law and
+an unsafe law are exactly separable when their positive supports are disjoint. We compare the
+support oracle with exhaustive output-subset enumeration, reduce every deterministic three-code
+assignment to a one-hot kernel, and exhaust small Markov kernels. The pair frontier reports total
+variation and equal-prior Bayes error, but never infers mutual singularity from rounded TV.
+
+This finite/countable equivalence has an important boundary: pairwise singularity need not yield
+one common separator for uncountable state families. The checks below therefore do not prove a
+population stochastic-encoder theorem.
+"""
+        ),
+        _code(
+            r"""
+def brute_stochastic_certificate_exists(kernel, state_margins, threshold, *, strict=False):
+    output_count = len(kernel[0])
+    for mask in range(1 << output_count):
+        accepted = {output for output in range(output_count) if mask & (1 << output)}
+        sound = all(
+            probability == 0.0
+            for state, margin in enumerate(state_margins)
+            if margin < 0.0
+            for output, probability in enumerate(kernel[state])
+            if output in accepted
+        )
+        complete = all(
+            probability == 0.0 or output in accepted
+            for state, margin in enumerate(state_margins)
+            if (margin > threshold if strict else margin >= threshold)
+            for output, probability in enumerate(kernel[state])
+        )
+        if sound and complete:
+            return True
+    return False
+
+
+stochastic_rows = (
+    (1.0, 0.0, 0.0),
+    (0.0, 1.0, 0.0),
+    (0.5, 0.0, 0.5),
+)
+stochastic_margin_grid = tuple(threshold for threshold in margin_grid if threshold >= 0.0)
+stochastic_closed_certificate_cases = 0
+stochastic_open_certificate_cases = 0
+for row_assignment in product(stochastic_rows, repeat=len(margins)):
+    for threshold in stochastic_margin_grid:
+        closed_oracle = check_finite_stochastic_completeness(
+            row_assignment,
+            margins,
+            completeness_margin=threshold,
+        ).exists
+        closed_brute = brute_stochastic_certificate_exists(
+            row_assignment, margins, threshold
+        )
+        open_oracle = check_finite_stochastic_completeness(
+            row_assignment,
+            margins,
+            completeness_margin=threshold,
+            strict=True,
+        ).exists
+        open_brute = brute_stochastic_certificate_exists(
+            row_assignment, margins, threshold, strict=True
+        )
+        assert closed_oracle == closed_brute, (
+            row_assignment, threshold, closed_oracle, closed_brute
+        )
+        assert open_oracle == open_brute, (
+            row_assignment, threshold, open_oracle, open_brute
+        )
+        stochastic_closed_certificate_cases += 1
+        stochastic_open_certificate_cases += 1
+
+deterministic_reduction_cases = 0
+for assignment in product(range(3), repeat=len(margins)):
+    latents = tuple((float(code),) for code in assignment)
+    one_hot_kernel = tuple(
+        tuple(1.0 if output == code else 0.0 for output in range(3))
+        for code in assignment
+    )
+    deterministic = audit_finite_static_fibers(latents, margins)
+    stochastic = audit_finite_stochastic_kernel(one_hot_kernel, margins)
+    assert stochastic.exact_defect == deterministic.exact_defect
+    assert stochastic.conflict_margins == deterministic.collision_margins
+    for threshold in stochastic_margin_grid:
+        assert check_finite_stochastic_completeness(
+            one_hot_kernel,
+            margins,
+            completeness_margin=threshold,
+        ).exists == check_sound_completeness(
+            latents,
+            margins,
+            completeness_margin=threshold,
+        ).exists
+    deterministic_reduction_cases += 1
+
+tv_rows = tuple(
+    (first / 2.0, second / 2.0, third / 2.0)
+    for first in range(3)
+    for second in range(3)
+    for third in range(3)
+    if first + second + third == 2
+)
+stochastic_tv_error_cases = 0
+for safe_row in tv_rows:
+    for unsafe_row in tv_rows:
+        point = finite_stochastic_pair_frontier(
+            (safe_row, unsafe_row),
+            (1.0, -1.0),
+        )[0]
+        subset_errors = []
+        for mask in range(1 << len(safe_row)):
+            accepted = {
+                output for output in range(len(safe_row)) if mask & (1 << output)
+            }
+            subset_errors.append(
+                sum(
+                    probability
+                    for output, probability in enumerate(safe_row)
+                    if output not in accepted
+                )
+                + sum(
+                    probability
+                    for output, probability in enumerate(unsafe_row)
+                    if output in accepted
+                )
+            )
+        assert point.minimum_total_separator_error == min(subset_errors)
+        assert point.minimum_total_separator_error == 1.0 - point.total_variation
+        assert point.overlap_mass == 1.0 - point.total_variation
+        assert point.equal_prior_bayes_error == 0.5 * point.minimum_total_separator_error
+        stochastic_tv_error_cases += 1
+
+binary_rows = ((1.0, 0.0), (0.5, 0.5), (0.0, 1.0))
+stochastic_data_processing_cases = 0
+for encoder in product(binary_rows, repeat=3):
+    for markov_kernel in product(binary_rows, repeat=2):
+        check = check_finite_stochastic_data_processing(
+            encoder,
+            markov_kernel,
+            (0.8, 0.2, -0.1),
+        )
+        assert check.exact_conflicts_preserved
+        assert check.exact_defect_monotone
+        assert check.total_variation_contracted
+        assert check.monotone
+        stochastic_data_processing_cases += 1
+
+stochastic_action_tradeoff_cases = 0
+for encoder in product(binary_rows, repeat=2):
+    for policy in product(binary_rows, repeat=2):
+        action_check = check_finite_stochastic_action_tradeoff(
+            encoder,
+            policy,
+            first_state_index=0,
+            second_state_index=1,
+            first_safe_action_indices=(0,),
+            second_safe_action_indices=(1,),
+        )
+        assert action_check.action_tv_contracted
+        assert action_check.tradeoff_holds
+        stochastic_action_tradeoff_cases += 1
+
+pair_point = finite_stochastic_pair_frontier(
+    ((0.9, 0.1), (0.6, 0.4)),
+    (1.0, -1.0),
+)[0]
+fine_kernel = ((1.0, 0.0), (0.0, 1.0))
+mixing_kernel = ((0.75, 0.25), (0.25, 0.75))
+coarse_kernel = postprocess_finite_stochastic_kernel(fine_kernel, mixing_kernel)
+mixing_check = check_finite_stochastic_data_processing(
+    fine_kernel,
+    mixing_kernel,
+    (0.8, -0.1),
+)
+tiny_overlap = 2.0**-50
+near_one_tv_point = finite_stochastic_pair_frontier(
+    ((1.0 - tiny_overlap, tiny_overlap), (0.0, 1.0)),
+    (0.7, -0.1),
+)[0]
+normalization_excess = 2.0**-41
+canonically_closed_point = finite_stochastic_pair_frontier(
+    (
+        (0.5 + normalization_excess, 0.5, 0.0, 0.0),
+        (0.0, 0.0, 0.5 + normalization_excess, 0.5),
+    ),
+    (1.0, -1.0),
+)[0]
+normalization_not_arithmetic_tolerance = check_finite_stochastic_data_processing(
+    ((0.75, 0.25), (0.25, 0.75)),
+    (
+        (1.0, normalization_excess, 0.0, 0.0),
+        (0.0, 0.0, 1.0, normalization_excess),
+    ),
+    (1.0, -1.0),
+)
+common_prior = (0.5, 0.5)
+pair_for_kl = ((0.75, 0.25), (0.25, 0.75))
+kl_values = tuple(
+    sum(probability * math.log(probability / prior)
+        for probability, prior in zip(law, common_prior, strict=True)
+        if probability > 0.0)
+    for law in pair_for_kl
+)
+kl_lower_bound = max(
+    0.0,
+    1.0 - math.sqrt(kl_values[0] / 2.0) - math.sqrt(kl_values[1] / 2.0),
+)
+kl_pair_error = finite_stochastic_pair_frontier(pair_for_kl, (1.0, -1.0))[
+    0
+].minimum_total_separator_error
+assert np.isclose(pair_point.total_variation, 0.3)
+assert np.isclose(pair_point.minimum_total_separator_error, 0.7)
+assert np.isclose(pair_point.equal_prior_bayes_error, 0.35)
+assert mixing_check.fine_exact_defect == 0.0
+assert mixing_check.coarse_exact_defect == 0.8
+assert np.isclose(near_one_tv_point.total_variation, 1.0, atol=1e-12)
+assert near_one_tv_point.total_variation < 1.0
+assert not near_one_tv_point.mutually_singular
+assert near_one_tv_point.equal_prior_bayes_error > 0.0
+assert canonically_closed_point.total_variation == 1.0
+assert canonically_closed_point.minimum_total_separator_error == 0.0
+assert normalization_not_arithmetic_tolerance.total_variation_contracted
+assert normalization_not_arithmetic_tolerance.maximum_total_variation_increase <= 0.0
+assert kl_pair_error + 1e-15 >= kl_lower_bound
+
+display({
+    "status": "FINITE STOCHASTIC THEOREM REGRESSION — NOT POPULATION EVIDENCE",
+    "closed_certificate_cases": stochastic_closed_certificate_cases,
+    "open_certificate_cases": stochastic_open_certificate_cases,
+    "deterministic_one_hot_reductions": deterministic_reduction_cases,
+    "exhaustive_tv_error_pairs": stochastic_tv_error_cases,
+    "markov_data_processing_cases": stochastic_data_processing_cases,
+    "randomized_action_tradeoff_cases": stochastic_action_tradeoff_cases,
+    "example_pair_tv": pair_point.total_variation,
+    "example_minimum_total_separator_error": pair_point.minimum_total_separator_error,
+    "example_equal_prior_bayes_error": pair_point.equal_prior_bayes_error,
+    "fine_to_coarse_defect": [
+        mixing_check.fine_exact_defect,
+        mixing_check.coarse_exact_defect,
+    ],
+    "near_one_tv_but_exact_support_overlap": not near_one_tv_point.mutually_singular,
+    "canonical_row_closure_preserves_singularity": canonically_closed_point.mutually_singular,
+    "common_prior_kl_lower_bound": kl_lower_bound,
+    "common_prior_pair_error": kl_pair_error,
+    "postprocessed_kernel": coarse_kernel,
+})
+"""
+        ),
+        _markdown(
+            r"""
+## 4. Endpoint diagnostic: the number `epsilon = 0` is not enough
 
 Both examples below have scalar defect zero because the definition adjoins `{0}`. In the first,
 the boundary state has a pure safe code; in the second, it shares a code with an unsafe state.
@@ -1518,7 +2052,7 @@ assert not endpoint_examples[1]["zero_complete_certificate_exists"]
         ),
         _markdown(
             r"""
-## 4. Deterministic versus randomized action safety
+## 5. Deterministic versus randomized action safety
 
 Two states share one code. Their safe action supports are disjoint. No deterministic latent policy
 can be pointwise safe, and no randomized policy can be almost-surely safe because its support would
@@ -1555,7 +2089,7 @@ assert np.isclose(worst_expected_margin[best_index], 0.0)
         ),
         _markdown(
             r"""
-### 4b. Pointwise expected-loss slack versus strong fiber-wise slack
+### 5b. Pointwise expected-loss slack versus strong fiber-wise slack
 
 The manuscript now keeps these semantics separate. For a finite loss matrix, `beta_exp` minimizes
 the worst-state *expected* loss, whereas `beta_strong` averages each action's worst-fiber loss. The
@@ -1628,7 +2162,103 @@ display({
         ),
         _markdown(
             r"""
-## 5. Vanishing average reconstruction loss with fixed worst-case defect
+### 5c. Helly boundary: intervals are pair-determined, planar halfspaces are not
+
+For one-dimensional closed intervals, the smallest Euclidean expansion making the full family
+intersect equals the largest two-interval slack. We check random interval families against the
+closed form. In two action dimensions, intersect the compact box `[-2, 2]^2` with each of the
+halfspaces `x >= 1`, `y >= 1`, and `x + y <= 1`. These three compact convex sets have feasible
+pairwise intersections but an empty full intersection. Their full geometric slack is exactly
+`1 - 1/sqrt(2)`, attained at `(1/sqrt(2), 1/sqrt(2))`. Thus pair-only action audits require a
+Helly-number assumption and cannot replace the full neighborhood intersection in general.
+"""
+        ),
+        _code(
+            r"""
+def interval_family_slack(intervals):
+    leftmost_required = max(left for left, _ in intervals)
+    rightmost_available = min(right for _, right in intervals)
+    return max(0.0, 0.5 * (leftmost_required - rightmost_available))
+
+
+def maximum_pair_interval_slack(intervals):
+    return max(
+        (
+            interval_family_slack((intervals[left], intervals[right]))
+            for left in range(len(intervals))
+            for right in range(left + 1, len(intervals))
+        ),
+        default=0.0,
+    )
+
+
+helly_rng = np.random.default_rng(20260822)
+interval_helly_trials = 500
+for _ in range(interval_helly_trials):
+    interval_count = int(helly_rng.integers(2, 10))
+    centers = helly_rng.normal(size=interval_count)
+    half_widths = helly_rng.uniform(0.0, 1.5, size=interval_count)
+    intervals = tuple(
+        (float(center - width), float(center + width))
+        for center, width in zip(centers, half_widths, strict=True)
+    )
+    assert np.isclose(
+        interval_family_slack(intervals),
+        maximum_pair_interval_slack(intervals),
+        atol=1e-12,
+        rtol=0.0,
+    )
+
+candidate = np.asarray([1.0 / np.sqrt(2.0), 1.0 / np.sqrt(2.0)])
+compact_box = (-2.0, 2.0)
+halfspace_violations = np.asarray([
+    max(0.0, 1.0 - candidate[0]),
+    max(0.0, 1.0 - candidate[1]),
+    max(0.0, (candidate.sum() - 1.0) / np.sqrt(2.0)),
+])
+planar_full_slack = float(1.0 - 1.0 / np.sqrt(2.0))
+analytic_lower_bound = float(1.0 / (2.0 + np.sqrt(2.0)))
+pair_feasible_witnesses = (
+    (1.0, 1.0),  # x >= 1 and y >= 1
+    (1.0, 0.0),  # x >= 1 and x + y <= 1
+    (0.0, 1.0),  # y >= 1 and x + y <= 1
+)
+candidate_projections = (
+    (1.0, candidate[1]),
+    (candidate[0], 1.0),
+    (0.5, 0.5),
+)
+assert all(
+    compact_box[0] <= coordinate <= compact_box[1]
+    for point in (*pair_feasible_witnesses, *candidate_projections)
+    for coordinate in point
+)
+assert all(
+    (
+        witness[0] >= 1.0 and witness[1] >= 1.0,
+        witness[0] >= 1.0 and witness[0] + witness[1] <= 1.0,
+        witness[1] >= 1.0 and witness[0] + witness[1] <= 1.0,
+    )[pair]
+    for pair, witness in enumerate(pair_feasible_witnesses)
+)
+assert np.allclose(halfspace_violations, planar_full_slack)
+assert np.isclose(planar_full_slack, analytic_lower_bound)
+
+display({
+    "random_interval_families_checked": interval_helly_trials,
+    "interval_full_vs_max_pair_violations": 0,
+    "planar_halfspace_pair_slack": 0.0,
+    "planar_halfspace_full_slack": planar_full_slack,
+    "analytic_lower_bound": analytic_lower_bound,
+    "compact_box": list(compact_box),
+    "analytic_value": "1 - 1/sqrt(2)",
+    "attaining_action": candidate.tolist(),
+})
+"""
+        ),
+        _markdown(
+            r"""
+## 6. Vanishing average reconstruction loss with fixed worst-case defect
 
 For each support size `N`, two physical states `-1` and `+1` share a code and decode to zero; every
 other state reconstructs exactly. Under the uniform distribution, mean squared reconstruction
@@ -1666,7 +2296,7 @@ display({
         ),
         _markdown(
             r"""
-### 5b. Smooth population construction with identity dynamics
+### 6b. Smooth population construction with identity dynamics
 
 The finite construction above can be dismissed as an atom of vanishing probability. The analytic
 construction in Proposition 1 is stronger: a compactly supported C-infinity perturbation of the
@@ -1727,7 +2357,7 @@ display({
 })
 """
         ),
-        _markdown("## 6. Visual audit and theorem-check summary"),
+        _markdown("## 7. Visual audit and theorem-check summary"),
         _code(
             r"""
 fig, axes = plt.subplots(1, 2, figsize=(10.5, 3.8))
@@ -1751,10 +2381,22 @@ checks = {
     "static_equivalence_cases": frontier_cases,
     "data_processing_cases": data_processing_cases,
     "data_processing_violations": 0,
+    "stochastic_closed_certificate_cases": stochastic_closed_certificate_cases,
+    "stochastic_open_certificate_cases": stochastic_open_certificate_cases,
+    "deterministic_one_hot_reductions": deterministic_reduction_cases,
+    "stochastic_tv_error_pairs": stochastic_tv_error_cases,
+    "stochastic_data_processing_cases": stochastic_data_processing_cases,
+    "stochastic_action_tradeoff_cases": stochastic_action_tradeoff_cases,
+    "near_one_tv_support_overlap_detected": not near_one_tv_point.mutually_singular,
+    "common_prior_kl_lower_bound_checked": kl_pair_error + 1e-15 >= kl_lower_bound,
     "zero_endpoint_cases_distinguished": True,
     "action_conflict_detected": action_audit.conflicting_fiber_count == 1,
     "finite_action_lp_trials": finite_action_trials,
     "strong_randomized_equals_deterministic": hard_slacks[2] == hard_slacks[0],
+    "interval_helly_trials": interval_helly_trials,
+    "interval_helly_violations": 0,
+    "planar_halfspace_pairs_feasible": True,
+    "planar_halfspace_full_slack": planar_full_slack,
     "average_loss_counterexample_verified": set(worst_defects) == {1.0},
     "smooth_population_counterexample_verified": bool(
         smooth_action.conflicting_fiber_count == 1
@@ -1768,23 +2410,25 @@ print(json.dumps(checks, indent=2, sort_keys=True))
             r"""
 ## Takeaways and proof obligations that remain
 
-The finite oracles agree with brute-force certificate enumeration, and no counterexample to finite
-data processing appeared in the exhaustive grid. The endpoint, randomization, and average-loss
-examples should be retained as regression tests because each blocks a tempting overstatement.
+The deterministic and stochastic finite oracles agree with brute-force certificate enumeration,
+the one-hot reduction, and exhaustive Markov data-processing checks. The interval regression
+confirms the one-dimensional pair reduction, while the analytic three-halfspace example shows that
+pairwise feasibility is insufficient in two action dimensions. The endpoint, randomization, and
+average-loss examples should be retained because each blocks a tempting overstatement.
 
 This does **not** close the population theory. Remaining obligations include the treatment of
 non-attained suprema, measurability/selection for positive action results, continuous action spaces,
-uncountable fibers, approximate latent neighborhoods, and a certified way to compute population
-violation scores. The source of novelty is also not the maximal pure-safe latent set itself; the
-paper must distinguish its quantitative/action/partial-observability results from prior latent-safe
-set work.
+uncountable stochastic state families, approximate latent neighborhoods, and a certified way to
+compute population violation scores. The source of novelty is also not the maximal pure-safe latent
+set itself; the paper must distinguish its quantitative/action/partial-observability results from
+prior latent-safe set work.
 """
         ),
     ]
     return _notebook(cells, experiment="Theory finite exhaustive checks")
 
 
-def _dynamic_regret_oracle_notebook() -> nbf.NotebookNode:
+def _dynamic_regret_oracle_notebook() -> Any:
     cells = [
         _markdown(
             r"""
@@ -1794,9 +2438,10 @@ def _dynamic_regret_oracle_notebook() -> nbf.NotebookNode:
 mechanism in both controlled domains. Privileged kinematic state and a two-frame observation-only
 history retain the full-history Bellman value on every enumerated node. The identical current
 frame has both positive optimal-margin regret `rho_3` and positive sign obstruction `kappa_3`:
-every common action is unsafe for at least one viable root in both domains. These are exhaustive
-finite floating-point checks at recorded tolerance, not learned-model evidence or a
-population/deployment certificate.
+every common action is unsafe for at least one viable root in both domains. The D1 table's six
+`kappa_3`/global-policy rows are provisional internal evidence; all `rho`, `delta*`, loss, and bound
+outputs are excluded diagnostics. This is not learned-model evidence or a population/deployment
+certificate.
 """
         ),
         _markdown(
@@ -1816,8 +2461,10 @@ population/deployment certificate.
 - `rho_s` is robust optimal-margin regret, not a safety defect. `kappa_s` separately measures
   first-action sign obstruction on viable fibers; global policy existence is checked by the
   finite common-safe-action Bellman characterization.
-- Exact tuple equality and exhaustive branches do not imply exact arithmetic. Dynamics use binary
-  floating point and trigonometry; all inequalities use the report's recorded tolerance.
+- Exact tuple equality and exhaustive branches do not imply symbolic arithmetic. Viability,
+  common-safe-action, and global-policy sign decisions compare the stored binary floats directly
+  with zero (`>= 0.0`), with no tolerance. The recorded `1e-12` tolerance is used only for theorem
+  bound comparisons and the separately labelled `kappa_s <= 1e-12` stagewise diagnostic.
 - The result covers only the enumerated roots, horizon, action grid, and nominal dynamics. It does
   not cover the continuous population, Gaussian disturbances, model mismatch, or learned models.
 """
@@ -1866,12 +2513,14 @@ print({
     "status": "finite_nominal_theorem_oracle_not_empirical_evidence",
     "domains": list(reports),
     "horizon": 3,
-    "tolerances": {name: report.tolerance for name, report in reports.items()},
+    "bound_and_stagewise_diagnostic_tolerances": {
+        name: report.tolerance for name, report in reports.items()
+    },
     "config_sha256": {name: report.config_sha256 for name, report in reports.items()},
     "training_support_status": {
         name: report.training_support_status for name, report in reports.items()
     },
-    "repo_root": str(ROOT),
+    "working_directory": "notebooks",
 })
 """
         ),
@@ -2071,7 +2720,68 @@ display(root_rows)
 display(root_fiber_rows)
 """
         ),
-        _markdown("### 4. Visual check at the registered three-step horizon"),
+        _markdown(
+            r"""
+### 4. Explicit provisional-evidence whitelist
+
+Only the six rows and four displayed fields below belong to the provisional D1 evidence surface.
+The exact global-policy Boolean uses stored-float `>= 0.0` sign decisions throughout the finite
+Bellman induction. The rounded `kappa_3` string is a presentation value paired here with its exact
+stored float. Every other notebook output—including `rho`, `delta*`, realized loss, and `B`—is an
+excluded diagnostic and must not be cited as empirical evidence.
+"""
+        ),
+        _code(
+            r"""
+domain_display = {"cart": "Cart", "pendulum": "Pendulum"}
+representation_display = {
+    PRIVILEGED_STATE: "privileged state",
+    MEMORYLESS_PIXELS: "current frame",
+    TWO_FRAME_HISTORY: "causal two-frame history",
+}
+d1_table_rows = []
+for domain in ("cart", "pendulum"):
+    for representation in (PRIVILEGED_STATE, MEMORYLESS_PIXELS, TWO_FRAME_HISTORY):
+        summary = summaries[(domain, representation)]
+        root_kappa = summary.stages[-1].kappa_s
+        d1_table_rows.append({
+            "domain": domain_display[domain],
+            "representation": representation_display[representation],
+            "root_kappa_3_display": "0" if root_kappa == 0.0 else f"{root_kappa:.6f}",
+            "global_policy_display": (
+                "yes" if summary.exact_viability_preserving_code_policy_exists else "no"
+            ),
+        })
+
+assert d1_table_rows == [
+    {"domain": "Cart", "representation": "privileged state", "root_kappa_3_display": "0", "global_policy_display": "yes"},
+    {"domain": "Cart", "representation": "current frame", "root_kappa_3_display": "0.017987", "global_policy_display": "no"},
+    {"domain": "Cart", "representation": "causal two-frame history", "root_kappa_3_display": "0", "global_policy_display": "yes"},
+    {"domain": "Pendulum", "representation": "privileged state", "root_kappa_3_display": "0", "global_policy_display": "yes"},
+    {"domain": "Pendulum", "representation": "current frame", "root_kappa_3_display": "0.015351", "global_policy_display": "no"},
+    {"domain": "Pendulum", "representation": "causal two-frame history", "root_kappa_3_display": "0", "global_policy_display": "yes"},
+]
+display({
+    "evidence_status": "PROVISIONAL INTERNAL EVIDENCE — D1 TABLE OUTPUTS ONLY",
+    "claim_id": "D1-controlled-dynamic-oracle",
+    "whitelisted_columns": [
+        "domain",
+        "representation",
+        "root_kappa_3_display",
+        "global_policy_display",
+    ],
+    "rows": d1_table_rows,
+    "excluded_diagnostic_outputs": [
+        "rho_s",
+        "delta_s_star",
+        "realized_loss",
+        "B/path/global bounds",
+        "plots",
+    ],
+})
+"""
+        ),
+        _markdown("### 5. Excluded diagnostic visual at the registered three-step horizon"),
         _code(
             r"""
 labels = []
@@ -2118,6 +2828,8 @@ The finite oracle makes two distinct statements visible. Identical current pixel
 robust optimal-margin regret in both dynamics. More strongly, each memoryless root fiber has
 positive `kappa_3`: every common action is unsafe for at least one full-history-viable root. A
 causal second frame alone removes both registered obstructions; no previous action is supplied.
+Only the explicitly whitelisted six-row D1 table is provisional internal evidence. The plotted and
+tabulated `rho`, `delta*`, loss, and bound quantities remain excluded diagnostics.
 
 This is a theorem/benchmark integration check, not a learned-representation result. It cannot be
 used as paper evidence that an H4 neural encoder discovers velocity, nor as a population safety
@@ -2131,7 +2843,601 @@ validation data.
     return _notebook(
         cells,
         experiment="Two-domain finite dynamic regret oracle",
-        status="executed_finite_nominal_oracle_not_empirical_evidence",
+        status="provisional_internal_D1_table_only_other_outputs_diagnostic",
+    )
+
+
+def _confirmatory_preflight_notebook() -> Any:
+    cells = [
+        _markdown(
+            r"""
+# E2 confirmatory inference preflight
+
+**TL;DR.** This deterministic preflight sends a complete fabricated 240-observation factorial
+through the production confirmatory API. It asserts the frozen 36-bound, eight-paired-seed,
+100,000-resample one-sided Bonferroni contract and demonstrates that one missing row fails closed.
+All values are synthetic protocol fixtures; none are empirical or paper evidence.
+"""
+        ),
+        _markdown(
+            r"""
+## Context, assumptions, and pass criteria
+
+- The independent unit is a paired training seed after equal AE/beta-VAE averaging within a
+  domain; frames and model families are not treated as independent replicates.
+- The proposed profile arm is compared with four frozen comparators over three domains and three
+  endpoints, yielding exactly 36 elementary upper bounds.
+- Primary UCBs are the nonstudentized percentile quantile at `1 - 0.05 / 36`, from 100,000
+  paired-seed bootstrap replicates with seed 20260822. Holm is not part of this primary preflight.
+- The fixture passes by construction. Removing any required row must raise before a result exists.
+"""
+        ),
+        _code(
+            r"""
+from itertools import product
+from pathlib import Path
+import sys
+
+from IPython.display import display
+
+ROOT = Path.cwd()
+if ROOT.name == "notebooks":
+    ROOT = ROOT.parent
+elif (ROOT / "LatentSafety" / "src").exists():
+    ROOT = ROOT / "LatentSafety"
+if not (ROOT / "src" / "latent_safety").exists():
+    raise RuntimeError(f"Could not locate repository root from {Path.cwd()}")
+sys.path.insert(0, str(ROOT / "src"))
+
+from latent_safety.analysis import (
+    FROZEN_CONFIRMATORY_SPEC,
+    ConfirmatoryObservation,
+    run_confirmatory_inference,
+)
+
+spec = FROZEN_CONFIRMATORY_SPEC
+spec.validate()
+display({
+    "status": "SYNTHETIC PROTOCOL PREFLIGHT — NOT EMPIRICAL EVIDENCE",
+    "domains": spec.domains,
+    "comparators": spec.comparators,
+    "endpoints": spec.endpoints,
+    "paired_seeds": spec.paired_seeds,
+    "elementary_bounds": spec.elementary_bound_count,
+    "bootstrap_resamples": spec.bootstrap_resamples,
+    "bootstrap_seed": spec.bootstrap_seed,
+    "primary_ucb_probability": spec.ucb_probability,
+    "primary_ucb_method": spec.bootstrap_method,
+    "multiplicity": spec.multiplicity_method,
+})
+assert spec.elementary_bound_count == 36
+assert spec.bootstrap_resamples == 100_000
+assert spec.bootstrap_seed == 20_260_822
+assert abs(spec.ucb_probability - (1.0 - 0.05 / 36.0)) <= 1e-15
+"""
+        ),
+        _markdown("## Data — complete synthetic factorial"),
+        _code(
+            r"""
+observations = []
+for domain_index, domain in enumerate(spec.domains):
+    for family_index, family in enumerate(spec.model_families):
+        for arm, seed in product((spec.proposed_arm, *spec.comparators), spec.paired_seeds):
+            seed_index = spec.paired_seeds.index(seed)
+            nuisance = 0.001 * domain_index + 0.0005 * family_index + 0.0001 * seed_index
+            proposed = arm == spec.proposed_arm
+            observations.append(
+                ConfirmatoryObservation(
+                    domain=domain,
+                    model_family=family,
+                    arm=arm,
+                    seed=seed,
+                    safety=(0.20 if proposed else 0.35) + nuisance,
+                    reconstruction=(1.02 if proposed else 1.00) * (1.0 + nuisance),
+                    rollout=(1.03 if proposed else 1.00) * (1.0 + nuisance),
+                    run_complete=True,
+                    coverage_complete=True,
+                )
+            )
+
+assert len(observations) == 240
+assert len({(row.domain, row.model_family, row.arm, row.seed) for row in observations}) == 240
+display({
+    "fixture_rows": len(observations),
+    "fixture_status": "complete synthetic factorial",
+    "run_complete": all(row.run_complete for row in observations),
+    "coverage_complete": all(row.coverage_complete for row in observations),
+})
+"""
+        ),
+        _markdown("## Results — exact primary contract and fail-closed rejection"),
+        _code(
+            r"""
+result = run_confirmatory_inference(observations)
+bound_preview = [
+    {
+        "hypothesis_id": bound.hypothesis_id,
+        "point_mean": bound.point_mean,
+        "upper_confidence_bound": bound.upper_confidence_bound,
+        "passed": bound.passed,
+    }
+    for bound in result.bounds[:4]
+]
+display({
+    "status": "SYNTHETIC API REGRESSION — NOT A RESULT",
+    "input_observation_count": result.input_observation_count,
+    "expected_observation_count": result.expected_observation_count,
+    "bound_count": len(result.bounds),
+    "safety_bound_count": result.safety_bound_count,
+    "utility_bound_count": result.utility_bound_count,
+    "passed_bound_count": result.passed_bound_count,
+    "confirmatory_success_on_constructed_fixture": result.confirmatory_success,
+    "bounded_preview": bound_preview,
+})
+assert result.input_observation_count == result.expected_observation_count == 240
+assert len(result.bounds) == 36
+assert result.safety_bound_count == 12
+assert result.utility_bound_count == 24
+assert result.all_elementary_bounds_passed
+
+try:
+    run_confirmatory_inference(observations[:-1])
+except ValueError as error:
+    rejection = str(error)
+else:
+    raise AssertionError("an incomplete confirmatory factorial was accepted")
+assert "missing 1 cells" in rejection
+display({
+    "fail_closed_check": "passed",
+    "removed_rows": 1,
+    "rejection": rejection,
+})
+"""
+        ),
+        _markdown(
+            r"""
+## Takeaways
+
+The production engine is runnable before unblinding, emits exactly the predeclared 36 bounds, and
+rejects incomplete coverage. Passing this deliberately favorable fixture validates plumbing only;
+it says nothing about a learned profile arm, any domain effect, or confirmatory success on real
+final-test data.
+"""
+        ),
+    ]
+    return _notebook(
+        cells,
+        experiment="E2 confirmatory inference preflight",
+        status="synthetic_confirmatory_protocol_preflight_not_paper_evidence",
+    )
+
+
+def _method_protocol_notebook() -> Any:
+    cells = [
+        _markdown(
+            r"""
+# Method-protocol and third-domain engineering smoke
+
+**TL;DR.** This deterministic notebook exercises four preconfirmation interfaces without fitting
+a model: the five-fold predicted-profile manifest and 200-bundle p95 gate, validation-only
+matched-radius reduction, the categorical FCSRL target recursion, and a Dubins-style third-domain
+pixel/history alias. These outputs are protocol and engineering checks only, not learned-method
+performance or paper evidence.
+"""
+        ),
+        _markdown(
+            r"""
+## Context, assumptions, and pass criteria
+
+- Profile labels are cross-fit by trajectory with five deterministic teachers; known-dynamics
+  profiles remain label-generation or diagnostic oracles and never become learner inputs.
+- Every domain/family/data-seed cell requires 200 coverage bundles, and the nearest-rank normalized
+  bundle-max p95 must be at most 0.10.
+- Matched-radius reduction fixes the control relative radius at 0.05. The learned grid point is
+  selected only by normalized nonself-neighborhood mass, before its safety endpoint is inspected.
+- The FCSRL adaptation uses 63 symlog atoms and the frozen ten-transition recursion; this is not a
+  claim that the original end-to-end FCSRL agent was reproduced.
+- The Dubins renderer hides obstacle direction in one frame. A causal second frame distinguishes
+  the constructed opposite-motion histories under nominal dynamics.
+"""
+        ),
+        _code(
+            r"""
+import dataclasses
+import hashlib
+from pathlib import Path
+import sys
+
+import matplotlib.pyplot as plt
+import numpy as np
+from IPython.display import display
+
+ROOT = Path.cwd()
+if ROOT.name == "notebooks":
+    ROOT = ROOT.parent
+elif (ROOT / "LatentSafety" / "src").exists():
+    ROOT = ROOT / "LatentSafety"
+if not (ROOT / "src" / "latent_safety").exists():
+    raise RuntimeError(f"Could not locate repository root from {Path.cwd()}")
+sys.path.insert(0, str(ROOT / "src"))
+
+from latent_safety.learning import (
+    COVERAGE_BUNDLES_PER_DOMAIN_SEED,
+    FCSRL_ATOM_COUNT,
+    FCSRL_RETURN_LENGTH,
+    DubinsState,
+    assign_coverage_teachers,
+    build_crossfit_manifest,
+    build_target_trace,
+    build_torch_target_trace,
+    deterministic_batch_indices,
+    deterministic_step,
+    evaluate_profile_gate,
+    load_config,
+    observation_feature_vector,
+    render_state,
+    require_torch,
+)
+from latent_safety.learning.profile_teacher import build_teacher_split_spec
+from latent_safety.analysis.matched_radius import (
+    CONTROL_REFERENCE_RELATIVE_RADIUS,
+    RELATIVE_RADIUS_GRID,
+    build_validation_radius_audit,
+    match_validation_radius_audits,
+)
+from latent_safety.records import AuditRecord
+
+CONFIG_PATH = ROOT / "configs" / "e1_world_models" / "torch_dubins_pilot.toml"
+config = load_config(CONFIG_PATH)
+config_sha256 = hashlib.sha256(CONFIG_PATH.read_bytes()).hexdigest()
+assert config.data.task == "controlled_dubins_navigation_pixels"
+"""
+        ),
+        _markdown("## 1. Cross-fit fold and teacher-seed manifest"),
+        _code(
+            r"""
+split_spec = build_teacher_split_spec(config, data_seed=100, fold_index=0)
+trajectory_ids = list(split_spec.all_training_ids)
+manifest, manifest_sha256 = build_crossfit_manifest(
+    task=config.data.task,
+    model_family=config.model.family,
+    data_seed=100,
+    training_trajectory_ids=trajectory_ids,
+    action_grid=config.data.actions,
+    horizon=config.data.action_profile_horizon,
+    margin_scale=config.objective.margin_scale,
+    inherited_config_sha256=config_sha256,
+)
+manifest_repeat, digest_repeat = build_crossfit_manifest(
+    task=config.data.task,
+    model_family=config.model.family,
+    data_seed=100,
+    training_trajectory_ids=list(reversed(trajectory_ids)),
+    action_grid=config.data.actions,
+    horizon=config.data.action_profile_horizon,
+    margin_scale=config.objective.margin_scale,
+    inherited_config_sha256=config_sha256,
+)
+assert (manifest, manifest_sha256) == (manifest_repeat, digest_repeat)
+fold_sizes = [len(manifest["folds"][str(index)]) for index in range(5)]
+assert max(fold_sizes) - min(fold_sizes) <= 1
+assert list(manifest["teacher_seeds"].values()) == list(range(11_000, 11_005))
+assert set(split_spec.fitting_ids).isdisjoint(split_spec.held_out_ids)
+assert set(split_spec.fitting_ids) | set(split_spec.held_out_ids) == set(trajectory_ids)
+assert split_spec.held_out_ids == tuple(sorted(manifest["folds"]["0"]))
+display({
+    "status": "DETERMINISTIC PROFILE MANIFEST PREFLIGHT",
+    "task": manifest["task"],
+    "fold_seed": manifest["fold_seed"],
+    "all_training_trajectory_count": len(trajectory_ids),
+    "fold_sizes": fold_sizes,
+    "selected_fold": 0,
+    "selected_fitting_trajectory_count": len(split_spec.fitting_ids),
+    "selected_held_out_trajectory_count": len(split_spec.held_out_ids),
+    "selected_fitting_ids_sha256": split_spec.fitting_ids_sha256,
+    "selected_held_out_ids_sha256": split_spec.held_out_ids_sha256,
+    "teacher_seeds": manifest["teacher_seeds"],
+    "coverage_bundles_required": manifest["coverage_bundles_required"],
+    "manifest_sha256": manifest_sha256,
+})
+"""
+        ),
+        _markdown("## 2. Exact 200-bundle nearest-rank p95 boundary"),
+        _code(
+            r"""
+bundle_ids = [
+    f"dubins-coverage-{index:03d}"
+    for index in range(COVERAGE_BUNDLES_PER_DOMAIN_SEED)
+]
+teacher_routes = assign_coverage_teachers(bundle_ids)
+targets = {bundle: (-0.02, 0.03, 0.08) for bundle in bundle_ids}
+predictions = {bundle: (-0.01, 0.03, 0.08) for bundle in bundle_ids}
+profile_gate = evaluate_profile_gate(predictions, targets, margin_scale=0.10)
+assert profile_gate.bundle_count == 200
+assert np.isclose(profile_gate.normalized_p95_error, 0.10, atol=1e-15, rtol=0.0)
+assert profile_gate.passed
+assert [sum(fold == index for fold in teacher_routes.values()) for index in range(5)] == [40] * 5
+display({
+    "status": "SYNTHETIC PROFILE-GATE BOUNDARY — NOT A LEARNED RESULT",
+    "bundle_count": profile_gate.bundle_count,
+    "teacher_route_counts": [
+        sum(fold == index for fold in teacher_routes.values()) for index in range(5)
+    ],
+    "normalized_nearest_rank_p95": profile_gate.normalized_p95_error,
+    "required_max": profile_gate.required_max,
+    "passed_at_boundary": profile_gate.passed,
+    "false_safe_count": profile_gate.false_safe_count,
+})
+"""
+        ),
+        _markdown(
+            "## 3. Validation-only matched-radius reducer"
+        ),
+        _code(
+            r"""
+synthetic_profiles = (
+    (1.0, -1.0),
+    (-1.0, 1.0),
+    (1.0, -0.5),
+    (-0.5, 1.0),
+)
+
+def synthetic_validation_records(latents):
+    return tuple(
+        AuditRecord(
+            sample_id=f"matched-radius-{index}",
+            trajectory_id="paired-a" if index < 2 else "paired-b",
+            split="validation",
+            safety_margin=0.2 - 0.1 * index,
+            latent=(float(latent),),
+            action_safety_margins=synthetic_profiles[index],
+        )
+        for index, latent in enumerate(latents)
+    )
+
+control_radius_audit = build_validation_radius_audit(
+    synthetic_validation_records((0.0, 0.04, 1.0, 1.04))
+)
+learned_radius_audit = build_validation_radius_audit(
+    synthetic_validation_records((0.0, 0.015, 1.0, 1.015))
+)
+matched_radius = match_validation_radius_audits(
+    control_radius_audit,
+    learned_radius_audit,
+)
+
+# Make the smaller mass-tied learned radius deliberately worse on the post-selection safety field.
+# A selector that peeked at safety would switch radii; the registered mass-only reducer must not.
+adversarial_curve = tuple(
+    dataclasses.replace(
+        point,
+        trajectory_balanced_p95_required_violation=(
+            1.0
+            if point.relative_radius == 0.02
+            and point.trajectory_balanced_p95_required_violation is not None
+            else 0.0
+            if point.trajectory_balanced_p95_required_violation is not None
+            else None
+        ),
+    )
+    for point in learned_radius_audit.curve
+)
+adversarial_learned_audit = dataclasses.replace(
+    learned_radius_audit,
+    curve=adversarial_curve,
+)
+adversarial_learned_audit.validate()
+matched_after_safety_perturbation = match_validation_radius_audits(
+    control_radius_audit,
+    adversarial_learned_audit,
+)
+matched_radius_repeat = match_validation_radius_audits(
+    build_validation_radius_audit(
+        reversed(synthetic_validation_records((0.0, 0.04, 1.0, 1.04)))
+    ),
+    build_validation_radius_audit(
+        reversed(synthetic_validation_records((0.0, 0.015, 1.0, 1.015)))
+    ),
+)
+
+assert CONTROL_REFERENCE_RELATIVE_RADIUS == 0.05
+assert tuple(point.relative_radius for point in control_radius_audit.curve) == (
+    RELATIVE_RADIUS_GRID
+)
+assert tuple(point.relative_radius for point in learned_radius_audit.curve) == (
+    RELATIVE_RADIUS_GRID
+)
+assert matched_radius.control_reference_relative_radius == 0.05
+assert matched_radius.learned_relative_radius == 0.02
+assert matched_after_safety_perturbation.learned_relative_radius == 0.02
+assert matched_radius.radius_selection_used_safety is False
+assert control_radius_audit.safety_used_for_radius_scale is False
+assert learned_radius_audit.safety_used_for_radius_selection is False
+assert matched_radius.to_dict() == matched_radius_repeat.to_dict()
+
+provenance = matched_radius.to_dict()["selector_radius_provenance"]
+expected_provenance_fields = {
+    "control_reference_relative_radius",
+    "control_absolute_radius",
+    "learned_relative_radius",
+    "learned_absolute_radius",
+    "control_audit_sha256",
+    "learned_audit_sha256",
+    "pairing_sha256",
+    "relative_neighborhood_mass_mismatch",
+    "mass_match_passed",
+    "strict_safety_improvement",
+}
+assert set(provenance) == expected_provenance_fields
+assert provenance["control_reference_relative_radius"] == 0.05
+assert provenance["learned_relative_radius"] == 0.02
+assert all(
+    len(provenance[field]) == 64
+    for field in ("control_audit_sha256", "learned_audit_sha256", "pairing_sha256")
+)
+
+display({
+    "status": "MATCHED-RADIUS REDUCER CONTRACT SMOKE — NO SCIENTIFIC RESULT",
+    "validation_only": (
+        control_radius_audit.split == learned_radius_audit.split == "validation_only"
+    ),
+    "control_relative_radius_is_fixed_at_0p05": True,
+    "learned_choice_is_on_frozen_grid": True,
+    "selection_unchanged_after_safety_perturbation": True,
+    "radius_selection_used_safety": matched_radius.radius_selection_used_safety,
+    "selector_radius_provenance_complete": set(provenance) == expected_provenance_fields,
+    "selector_radius_provenance_fields": sorted(provenance),
+    "provenance_hashes_are_sha256": True,
+    "fresh_ordering_repeat_equal": matched_radius.to_dict() == matched_radius_repeat.to_dict(),
+    "raw_safety_endpoint_displayed": False,
+})
+"""
+        ),
+        _markdown(
+            "## 4. Frozen categorical FCSRL recursion, tensor parity, and batch order"
+        ),
+        _code(
+            r"""
+violations = [0] * FCSRL_RETURN_LENGTH
+violations[5] = 1
+terminations = [False] * FCSRL_RETURN_LENGTH
+terminations[7] = True
+trace = build_target_trace(
+    violations=violations,
+    terminations=terminations,
+    truncations=[False] * FCSRL_RETURN_LENGTH,
+    bootstrap_values=[0.2] * FCSRL_RETURN_LENGTH,
+)
+assert len(trace.targets) == FCSRL_RETURN_LENGTH == 10
+assert trace.targets[5] == 1.0
+assert trace.mask == (1, 1, 1, 1, 1, 1, 1, 1, 0, 0)
+assert trace.train_targets == trace.targets[:4]
+assert all(len(distribution) == FCSRL_ATOM_COUNT for distribution in trace.projected_targets)
+assert all(abs(sum(distribution) - 1.0) <= 1e-12 for distribution in trace.projected_targets)
+
+modules = require_torch()
+torch = modules.torch
+tensor_trace = build_torch_target_trace(
+    torch,
+    torch.tensor([violations], dtype=torch.bool),
+    torch.tensor([terminations], dtype=torch.bool),
+    torch.zeros((1, FCSRL_RETURN_LENGTH), dtype=torch.bool),
+    torch.full((1, FCSRL_RETURN_LENGTH), 0.2, dtype=torch.float64),
+)
+np.testing.assert_allclose(
+    tensor_trace.targets.squeeze(0).cpu().numpy(),
+    np.asarray(trace.targets),
+    rtol=0.0,
+    atol=1e-15,
+)
+assert tuple(bool(value) for value in tensor_trace.mask.squeeze(0).tolist()) == trace.mask
+np.testing.assert_allclose(
+    tensor_trace.projected_targets.squeeze(0).cpu().numpy(),
+    np.asarray(trace.projected_targets),
+    rtol=0.0,
+    atol=5e-14,
+)
+
+batch_plan = deterministic_batch_indices(
+    23,
+    batch_size=6,
+    seed=20_260_822,
+    epoch=3,
+)
+assert batch_plan == deterministic_batch_indices(
+    23,
+    batch_size=6,
+    seed=20_260_822,
+    epoch=3,
+)
+assert sorted(index for batch in batch_plan for index in batch) == list(range(23))
+batch_plan_sha256 = hashlib.sha256(repr(batch_plan).encode("utf-8")).hexdigest()
+display({
+    "status": "FCSRL ADAPTATION COMPONENT REGRESSION — NOT AGENT EVIDENCE",
+    "atom_count": FCSRL_ATOM_COUNT,
+    "targets": trace.targets,
+    "sequence_mask": trace.mask,
+    "four_step_train_targets": trace.train_targets,
+    "four_step_train_mask": trace.train_mask,
+    "dependency_free_and_tensor_paths_equal_within_5e-14": True,
+    "deterministic_batch_sizes": [len(batch) for batch in batch_plan],
+    "deterministic_batch_plan_sha256": batch_plan_sha256,
+})
+"""
+        ),
+        _markdown("## 5. Third-domain render and causal-history alias smoke"),
+        _code(
+            r"""
+clockwise = DubinsState(
+    x=0.0,
+    y=-0.10,
+    heading=0.0,
+    obstacle_phase=0.4,
+    obstacle_direction=-1,
+    nuisance_phase=0.2,
+)
+counterclockwise = dataclasses.replace(clockwise, obstacle_direction=1)
+clockwise_pixels = render_state(clockwise, config.data)
+counterclockwise_pixels = render_state(counterclockwise, config.data)
+clockwise_next = deterministic_step(clockwise, 0.0, config.data)
+counterclockwise_next = deterministic_step(counterclockwise, 0.0, config.data)
+
+h1 = dataclasses.replace(config.data, history_length=1)
+h2 = dataclasses.replace(config.data, history_length=2)
+assert clockwise_pixels == counterclockwise_pixels
+assert observation_feature_vector((clockwise,), 0, h1) == observation_feature_vector(
+    (counterclockwise,), 0, h1
+)
+assert observation_feature_vector((clockwise, clockwise_next), 1, h2) != observation_feature_vector(
+    (counterclockwise, counterclockwise_next), 1, h2
+)
+
+def image_from_pixels(pixels):
+    image = np.asarray(pixels).reshape(
+        config.data.channels,
+        config.data.image_size,
+        config.data.image_size,
+    )
+    return np.moveaxis(image, 0, -1)
+
+fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.2))
+axes[0].imshow(image_from_pixels(clockwise_pixels), vmin=0.0, vmax=1.0)
+axes[0].set_title("shared current frame")
+axes[1].imshow(image_from_pixels(render_state(clockwise_next, config.data)), vmin=0.0, vmax=1.0)
+axes[1].set_title("next: clockwise obstacle")
+axes[2].imshow(image_from_pixels(render_state(counterclockwise_next, config.data)), vmin=0.0, vmax=1.0)
+axes[2].set_title("next: counterclockwise obstacle")
+for axis in axes:
+    axis.axis("off")
+fig.tight_layout()
+plt.show()
+
+display({
+    "status": "THIRD-DOMAIN ENGINEERING ALIAS SMOKE — NOT PERFORMANCE EVIDENCE",
+    "task": config.data.task,
+    "single_frame_equal": clockwise_pixels == counterclockwise_pixels,
+    "two_frame_features_distinct": True,
+    "hidden_quantity": "obstacle_direction",
+    "known_dynamics_only": True,
+})
+"""
+        ),
+        _markdown(
+            r"""
+## Takeaways
+
+The real configured profile split, exact 200-bundle boundary, validation-only mass-matched radius
+choice, scalar/tensor categorical target parity, deterministic FCSRL batch plan, and Dubins
+observation/history interface all execute deterministically. They validate protocol wiring and a
+third-domain engineering fixture only. No teacher was trained, no learned arm was evaluated, no raw
+safety endpoint is promoted, and no result is eligible for the manuscript from this notebook.
+"""
+        ),
+    ]
+    return _notebook(
+        cells,
+        experiment="Method protocol and controlled-Dubins engineering smoke",
+        status="protocol_and_engineering_smoke_not_paper_evidence",
     )
 
 
@@ -2142,6 +3448,8 @@ BUILDERS = {
     "03_pilot_analysis_template.ipynb": _analysis_notebook,
     "04_two_domain_oracle_controls.ipynb": _two_domain_oracle_notebook,
     "05_dynamic_regret_oracle.ipynb": _dynamic_regret_oracle_notebook,
+    "06_confirmatory_inference_preflight.ipynb": _confirmatory_preflight_notebook,
+    "07_method_protocol_smoke.ipynb": _method_protocol_notebook,
 }
 
 
@@ -2153,14 +3461,29 @@ def main() -> None:
         choices=tuple(BUILDERS),
         help="Notebook filenames to build (default: all).",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=NOTEBOOK_DIR,
+        help="Destination directory (default: notebooks/).",
+    )
     args = parser.parse_args()
 
-    NOTEBOOK_DIR.mkdir(parents=True, exist_ok=True)
+    output_dir = (
+        args.output_dir
+        if args.output_dir.is_absolute()
+        else ROOT / args.output_dir
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
     selected = args.names or list(BUILDERS)
     for name in selected:
-        path = NOTEBOOK_DIR / name
-        nbf.write(BUILDERS[name](), path)
-        print(f"built {path.relative_to(ROOT)}")
+        path = output_dir / name
+        _write_atomic(BUILDERS[name](), path)
+        try:
+            display_path = path.relative_to(ROOT)
+        except ValueError:
+            display_path = path
+        print(f"built {display_path}")
 
 
 if __name__ == "__main__":

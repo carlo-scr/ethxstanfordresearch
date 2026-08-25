@@ -1,0 +1,199 @@
+{
+  "artifact": "D1 controlled current-frame aliases",
+  "assertions": {
+    "all_current_frame_pairs_pixel_identical": true,
+    "all_previous_frame_pairs_pixel_different": true,
+    "all_viable_first_action_intersections_empty": true
+  },
+  "claim_id": "D1-controlled-dynamic-oracle",
+  "domains": [
+    {
+      "current_frames_pixel_identical": true,
+      "display_name": "Controlled cart",
+      "domain": "controlled_cart_video",
+      "frame_shape_hwc": [
+        32,
+        32,
+        3
+      ],
+      "oracle_config_sha256": "46997bc3fef0f3ca7f7789ff560ae90fac9732a6e9514919b8b8bf558d17d991",
+      "previous_frames_pixel_different": true,
+      "roots": [
+        {
+          "current_frame_sha256": "22139f40be704242dda37cf10ffc60ea73a0c3adcc6a2435f23e2a1b2e3b2094",
+          "current_kinematics": [
+            -0.3,
+            -1.85
+          ],
+          "display_name": "incoming left",
+          "hidden_velocity": -1.85,
+          "history_id": "cart_incoming_left",
+          "previous_frame_sha256": "559613d647aefcb02df09038e8c7c2822e48e619e70459d431c0712cf5dd059a",
+          "previous_kinematics": [
+            -0.07799999999999999,
+            -2.010869565217391
+          ],
+          "q_values": [
+            {
+              "action": -1.0,
+              "value": -0.04301888000000009
+            },
+            {
+              "action": 0.0,
+              "value": -0.007166336000000162
+            },
+            {
+              "action": 1.0,
+              "value": 0.02868620799999999
+            }
+          ],
+          "viable_first_actions": [
+            1.0
+          ]
+        },
+        {
+          "current_frame_sha256": "22139f40be704242dda37cf10ffc60ea73a0c3adcc6a2435f23e2a1b2e3b2094",
+          "current_kinematics": [
+            -0.3,
+            3.85
+          ],
+          "display_name": "incoming right",
+          "hidden_velocity": 3.85,
+          "history_id": "cart_incoming_right",
+          "previous_frame_sha256": "33438ac074774fda85f1fc32e0fe3c85453de93294eecc391ba07a7970cb612b",
+          "previous_kinematics": [
+            -0.762,
+            4.184782608695652
+          ],
+          "q_values": [
+            {
+              "action": -1.0,
+              "value": 0.017865087999999862
+            },
+            {
+              "action": 0.0,
+              "value": -0.01798745600000007
+            },
+            {
+              "action": 1.0,
+              "value": -0.05384000000000011
+            }
+          ],
+          "viable_first_actions": [
+            -1.0
+          ]
+        }
+      ],
+      "viable_first_action_intersection": []
+    },
+    {
+      "current_frames_pixel_identical": true,
+      "display_name": "Controlled pendulum",
+      "domain": "controlled_pendulum_video",
+      "frame_shape_hwc": [
+        32,
+        32,
+        3
+      ],
+      "oracle_config_sha256": "575d545e0a5d5e0087f777d3a6bc44f6c6e1eb60ba697c71fd9bc9ef68caf3d9",
+      "previous_frames_pixel_different": true,
+      "roots": [
+        {
+          "current_frame_sha256": "186ca57097be55ddf7cf48fd859ef11e3e00033592261a76bcdc450466b72bba",
+          "current_kinematics": [
+            -0.04,
+            -3.0
+          ],
+          "display_name": "clockwise",
+          "hidden_velocity": -3.0,
+          "history_id": "pendulum_fast_clockwise",
+          "previous_frame_sha256": "59b066a07676e68ce30010bf9a5854dcace695c9ba2cda613b3feb32b856d06e",
+          "previous_kinematics": [
+            0.20000000000000018,
+            -3.0618208593539133
+          ],
+          "q_values": [
+            {
+              "action": -1.0,
+              "value": -0.04585080731712954
+            },
+            {
+              "action": 0.0,
+              "value": -0.015350554566108121
+            },
+            {
+              "action": 1.0,
+              "value": 0.015151341576020938
+            }
+          ],
+          "viable_first_actions": [
+            1.0
+          ]
+        },
+        {
+          "current_frame_sha256": "186ca57097be55ddf7cf48fd859ef11e3e00033592261a76bcdc450466b72bba",
+          "current_kinematics": [
+            -0.04,
+            3.25
+          ],
+          "display_name": "counterclockwise",
+          "hidden_velocity": 3.25,
+          "history_id": "pendulum_fast_counterclockwise",
+          "previous_frame_sha256": "80e49b58b9af82304a8423faeefc45675e6721cb73518880801dd990379c401a",
+          "previous_kinematics": [
+            -0.2999999999999998,
+            3.3234940269369613
+          ],
+          "q_values": [
+            {
+              "action": -1.0,
+              "value": 0.03943963786085525
+            },
+            {
+              "action": 0.0,
+              "value": 0.008933348724771362
+            },
+            {
+              "action": 1.0,
+              "value": -0.02157147544806004
+            }
+          ],
+          "viable_first_actions": [
+            -1.0,
+            0.0
+          ]
+        }
+      ],
+      "viable_first_action_intersection": []
+    }
+  ],
+  "generator": "scripts/build_d1_alias_figure.py",
+  "outputs": {
+    "pdf": {
+      "path": "paper/figures/d1_controlled_aliases.pdf",
+      "sha256": "7928f18bb022d9df253a8d0543f67a5fd129fe9f1ada9d4186ad02e0f4da5702"
+    },
+    "png": {
+      "path": "paper/figures/d1_controlled_aliases.png",
+      "sha256": "3c2b5d0ebb3124df5e948b9dde8da5eb8ea72878cf991739167b79c52e625b2f"
+    }
+  },
+  "provenance": {
+    "config_files": {
+      "configs/e1_world_models/torch_pendulum_pilot.toml": "09cdb5598338916f6c8a4aa7d05b694708ed9c1b4912b443872fb6d6b2a3c771",
+      "configs/e1_world_models/torch_pilot.toml": "25e1deef0f127226ec18ac6ae9423526e650cb30a966bfbd4a5947237e2f6497"
+    },
+    "evidence": {
+      "path": "evidence/controlled_dynamic_oracle_v1.json",
+      "sha256": "c5f9e29dd4a5b36327f4f11b377970e9f3b2b0704aab3f124546a6ffa41d34b3"
+    },
+    "source_files": {
+      "scripts/build_d1_alias_figure.py": "1a60784e5dfc96d5240e6c294e63063a366174f74d294d985eabeda5afe8d175",
+      "src/latent_safety/benchmarks/dynamic_oracle.py": "c4e5e27cf66d067c2cd53d2f12acec06872567e8fee93ac92a0fe56b6d449160",
+      "src/latent_safety/learning/data.py": "36d9165133bcaace58716a24b47e73a0c468a1190bd8b34514af47e51b06eb02",
+      "src/latent_safety/metrics/dynamic.py": "f584e0eccbf5258bf6416864e8878a05caf9486908e99c6f8d184a63b35ceff1"
+    }
+  },
+  "schema_version": 1,
+  "scope": "registered two-root, three-step, finite-action, noise-free nominal controls; not learned-model or population evidence"
+}

@@ -1,23 +1,125 @@
 \section{Auditing and learning}
 
 \paragraph{Finite-sample witnesses.}
-At a fixed radius $\delta$, an observed safe/unsafe pair within the radius witnesses a lower bound
-on the population robust supremum.  An unthresholded nearest unsafe neighbor does not witness an
-exact collision; it depends on sample density and class balance.  We report radius-indexed curves,
-witness pairs, observation-level controls, and sample-size convergence.  Distributional quantiles
-require a separate tolerance argument, and that argument is conditional on computing the true
-per-state violation score rather than a finite-reference surrogate.
+Let $z_i=R(x_i)$, $h_i=h(x_i)$, and let $q_i(a)$ be the declared finite-action safety margin, with
+$q_i(a)\geq0$ denoting feasibility of action $a$ at sample $i$.  At a frozen radius $\delta$, the
+static finite-reference witness is
+\[
+ \widehat\varepsilon_\delta
+ =\max\!\left(\{h_i:h_i\geq0,\ \exists j\text{ with }h_j<0,
+ \ \|z_i-z_j\|_2\leq\delta\}\cup\{0\}\right).
+\]
+Every returned pair is traceable to sample identifiers.  Conditional on exact margins and
+distances, an observed pair lower-bounds the corresponding population radius supremum; absence of
+a pair supplies no population upper bound.  An unthresholded nearest unsafe neighbor does not
+witness an exact collision and is retained only as a sampling-dependent diagnostic.
+
+For action sufficiency, first restrict the reference population to individually viable indices
+$\mathcal I_0=\{j:\max_a q_j(a)\geq0\}$.  For each $i\in\mathcal I_0$, center the viable
+neighborhood
+$N_i^{\mathcal V}(\delta)=\{j\in\mathcal I_0:\|z_j-z_i\|_2\leq\delta\}$ and retain it only when
+$|N_i^{\mathcal V}(\delta)|\geq2$.  Its required common-action violation is
+\[
+ v_i(\delta)=\left[-\max_a\min_{j\in N_i^{\mathcal V}(\delta)}q_j(a)\right]_+.
+\]
+This detects conflicts involving more than two states and records maximizing witnesses, eligible
+denominator, and conflict fraction; a trajectory with no eligible center fails rather than scoring
+zero.  The primary summary is the arithmetic mean across trajectories of their linearly
+interpolated $0.95$ quantiles; seeds, not trajectories, are paired for inference.  A repair weight
+is eligible only if every validation stratum satisfies the preregistered within-family native-
+utility margin, retains the required center and trajectory coverage, and preserves the improvement
+sign under a radius chosen to match the frozen encoder's nonself neighborhood mass.  Exact gates,
+radii, and multiplicity corrections freeze in the foundation-study protocol before test access.
+Trajectories are resampled only within seed for tail estimation.  The global maximum remains a lower
+witness, not the sole endpoint.  Continuous-action claims require verified, not grid-only, optimization.
 
 \paragraph{Operational calibration.}
-Raw latent radii change under code rescaling.  The radius must arise from a deployment uncertainty
-set, verified set propagation, or a calibration split fixed without test safety labels.  We retain
-translation, rotation, rescaling, and irrelevant-coordinate controls.  Exact-code synthetic tests
-serve as unit tests, not evidence that continuous neural encoders collide in practice.
+Raw latent radii change under code rescaling.  A calibration split may define an exploratory scale
+convention; robust or certified semantics require a deployment-grounded uncertainty set or verified
+set propagation.  We retain
+translation, rotation, rescaling, and irrelevant-coordinate controls.  A radius expressed as a
+fraction of calibration-set median pairwise distance is only a scale-normalized exploratory view;
+the conclusion must also survive a frozen radius curve, matched-neighborhood-mass analysis, and
+physically generated perturbation or alias pairs.  Exact-code synthetic tests serve as unit tests,
+not evidence that continuous neural encoders collide in practice.
 
-\paragraph{Training intervention.}
-The baseline pairwise hinge penalizes
-$[|h(x)-h(x')|-\kappa\|R(x)-R(x')\|]_+^2$, with explicit scale control.  Because random pairs can
-miss the boundary and a small mean is not verification, we compare boundary hard-negative mining,
-prediction or appending of $h$, and preservation of safe-action constraint values.  A proposed
-method must expand the validation-selected safety/utility frontier beyond the simple $h$ controls.
+\paragraph{Buffered action profiles.}
+Let $\mathcal A=\{1,\ldots,K\}$ be the registered action or skill library and let $q_i(a)$ be the
+margin produced by the declared rollout from history $x_i$.  For a buffer $\gamma\geq0$, retain the
+individually feasible reference set
+\[
+ \mathcal I_\gamma=\{i:\max_{a\in\mathcal A}q_i(a)\geq\gamma\}.
+\]
+For nonempty $B\subseteq\mathcal I_\gamma$, its common-action margin and violation are
+\[
+ c_\gamma(B)=\max_{a\in\mathcal A}\min_{j\in B}\{q_j(a)-\gamma\},
+ \qquad
+ v_\gamma(B)=[-c_\gamma(B)]_+.
+\]
+Thus $v_\gamma(B)=0$ exactly when one declared action has margin at least $\gamma$ for every member.
+The audit above is the case $\gamma=0$ and $B=N_i^{\mathcal V}(\delta)$.  Profiles may come from exhaustive
+simulator branching, a verified model, or a cross-fitted action-conditioned teacher, but their
+source and error semantics are reported separately.  If a finite-reference teacher has a uniform
+error bound $\eta$, both $c_\gamma$ and $v_\gamma$ change by at most $\eta$; a percentile error gate
+does not imply this uniform statement.
 
+\paragraph{Common-Action Geometry Repair.}
+Let $R_0$ be a pretrained representation and let $R_\theta$ update modules that still access tokens
+or observations before the audited bottleneck.  Write $z_i^\theta=R_\theta(x_i)$ and let
+$d_\theta(i,j)$ be Euclidean distance after a calibration-frozen normalization.  For
+$\delta_{\rm train}>\delta_{\rm audit}$, define
+\[
+ C_i^\theta(a)=
+ \sum_{j\in\mathcal I_\gamma}
+ [\gamma-q_j(a)]_+
+ [\delta_{\rm train}-d_\theta(i,j)]_+^2,
+ \qquad
+ \mathcal L_{\rm CA}(\theta)
+ =\frac{1}{|\mathcal I_\gamma|}
+ \sum_{i\in\mathcal I_\gamma}\min_{a\in\mathcal A} C_i^\theta(a).
+\]
+The action minimum is replaced by a temperature-controlled soft minimum for optimization.  On a
+finite reference set, a zero hard loss implies that every strict
+$\delta_{\rm train}$ neighborhood restricted to $\mathcal I_\gamma$ has a common action with margin
+at least $\gamma$; sampled
+minibatches or mined neighborhoods do not promote this statement to the population.  Unlike a
+pairwise contrastive loss, the action minimum is shared by the entire centered neighborhood and can
+therefore expose higher-order conflicts whose safe-action sets intersect pairwise but not jointly.
+
+An action-conditioned head
+$\widehat q_{\theta,\psi}(x,a)=g_\psi(R_\theta(x),a)$ supplies a tail-sensitive, boundary-weighted
+profile loss $\mathcal L_{\rm prof}$.  The complete objective is
+\[
+ \mathcal L_{\rm repair}
+ =\mathcal L_{\rm native}
+ +\lambda_{\rm prof}\mathcal L_{\rm prof}
+ +\lambda_{\rm CA}\mathcal L_{\rm CA}
+ +\lambda_{\rm retain}\mathcal L_{\rm retain}.
+\]
+Here $\mathcal L_{\rm native}$ retains the model's original utility and
+$\mathcal L_{\rm retain}$ anchors frozen-teacher features or calibration-set pairwise geometry.
+These terms are family-relative rather than a single commensurate score.  Cosmos retains
+reconstruction/perceptual and rate utility through its decoder; V-JEPA retains latent prediction
+and frozen-teacher features; DINO retains dense frozen-teacher feature geometry
+\citep{nvidia2025cosmostokenizer,assran2025vjepa2,simeoni2025dinov3}.
+
+\paragraph{Where repair occurs.}
+For continuous Cosmos, the primary intervention places residual bottlenecks before the tokenizer
+latent and evaluates reconstruction through a frozen decoder.  For V-JEPA and DINO, low-rank or
+bottleneck modules enter the final internal transformer blocks before the deployed pooling and
+rate constraint.  A deterministic post-code adapter $T_\theta\circ R_0$ cannot split exact
+$R_0$ fibers by data processing; it is retained only as a finite-radius geometry control.  A fixed
+discrete-token remapping has the same limitation, so discrete-token repair must update the encoder
+or token assignment.  Appending the true or predicted profile is a side-channel upper bound, not
+evidence that the original representation was repaired.
+
+\paragraph{Separating representation repair from probe fitting.}
+After post-training, we discard the joint profile head, freeze $R_\theta$, recompute the
+nonparametric defect from held-out physical profiles, and fit a fresh capacity-matched readout and
+downstream selector on a disjoint split.  The decisive controls are a frozen encoder with the same
+head, profile-only and common-action-only internal adaptation, pairwise conflict separation, native-
+loss-only adaptation, post-code adaptation, scalar-margin and FCSRL-style supervision, shuffled
+profiles, conflict-count-matched random groups, and an oracle appended profile.  Unit-normalized
+codes, frozen radius curves, matched-neighborhood-mass or fixed-$k$ audits, physical perturbation
+groups, effective rank, distance spectra, retained viable coverage, and token entropy prevent a
+trivial win by uniformly spreading codes or emptying neighborhoods.

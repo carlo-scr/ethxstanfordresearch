@@ -3,6 +3,7 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{booktabs}
+\usepackage{float}
 \usepackage{graphicx}
 \usepackage[hidelinks]{hyperref}
 \usepackage[numbers,sort&compress]{natbib}
@@ -19,8 +20,8 @@
 \newcommand{\Usafe}{\mathcal{U}_{\mathrm{safe}}}
 \newcommand{\epssep}{\varepsilon_{\mathrm{sep}}}
 
-\title{Does Safety Survive Encoding?\\
-Safety-Sufficient Representations for Certification and Control}
+\title{Do Safe Choices Survive Encoding?\\
+Auditing and Repairing Safe-Action Sufficiency in Pretrained Visual Representations}
 \author{Anonymous Authors}
 \date{}
 
@@ -36,8 +37,12 @@ Safety-Sufficient Representations for Certification and Control}
 \input{sections/experiments}
 \input{sections/limitations}
 
+\begingroup
+\scriptsize
+\setlength{\bibsep}{0pt}
 \bibliographystyle{plainnat}
 \bibliography{references}
+\endgroup
 
 \appendix
 \input{sections/appendix}

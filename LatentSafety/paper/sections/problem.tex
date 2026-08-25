@@ -1,4 +1,4 @@
-\section{Safety-sufficient representation problem}
+\section{Safe-action sufficiency of representations}
 
 Let $x\in\K$ denote a physical state, history, or belief; $O(x)$ its observation; and
 $R(x)=E(O(x))\in\Z$ the representation used for decisions.  Let the safe set be
@@ -11,12 +11,22 @@ The exact $h$-relative separation defect is
   \epssep(R)=\sup\!\left(\{h(x):h(x)\geq0,\ \exists x'\in\K,\ h(x')<0,
   \ R(x')=R(x)\}\cup\{0\}\right).
 \]
-The operational defect replaces equality by membership in a pre-specified latent uncertainty set.
+For the implemented Euclidean audit, the radius-$\delta$ population object is
+\[
+  \epssep^\delta(R)=\sup\!\left(\{h(x):h(x)\geq0,\ \exists x'\in\K,\ h(x')<0,
+  \ \|R(x)-R(x')\|_2\leq\delta\}\cup\{0\}\right).
+\]
+Other operational defects require an explicitly declared latent uncertainty set or metric.
 \end{definition}
 
 For arbitrary latent subsets, the exact defect is intended to characterize the \emph{infimum}
 completeness margin of a sound certificate.  In general, impossibility is strict below the
 supremum and achievability is strict above it; endpoint and regularity conditions matter.
+For a stochastic encoder we instead write $P_x$ for the output law and require a measurable
+accepted set to have probability zero under every unsafe law and probability one under every
+required safe law.  This almost-sure semantics is deliberately stronger than a small expected or
+Bayes error.  The experiments below audit deterministic posterior means, so their reported fibers
+must not be reinterpreted as audits of sampled posterior laws.
 
 Static separation is insufficient for control.  Let $\Usafe(x)$ contain actions satisfying a
 declared one-step, barrier, robust-MPC, or viability condition.
@@ -26,7 +36,8 @@ For the fiber $F_z=\{x:R(x)=z\}$, define
 \[
   \Usafe^R(z)=\bigcap_{x\in F_z}\Usafe(x).
 \]
-A fiber is action-conflicted when each $\Usafe(x)$ is nonempty but $\Usafe^R(z)$ is empty.
+A fiber is action-conflicted when each state is individually feasible under the declared condition,
+meaning $\Usafe(x)$ is nonempty, but $\Usafe^R(z)$ is empty.
 \end{definition}
 
 An action-conflicted fiber is an immediate witness that no deterministic memoryless policy
@@ -34,7 +45,43 @@ $\pi(z)$ satisfies the audited safety condition for every state in that fiber.  
 will require nonempty intersections, dynamics/transition sufficiency, and measurable-selection or
 regularity assumptions.
 
-Finally, if $R_2=T\circ R_1$, then every $R_1$ fiber is contained in an $R_2$ fiber.  This proposed
-data-processing lemma makes the observation map a lower floor: deterministic encoding cannot
-recover safety information that $O$ has already aliased.
+For the empirical study, the condition is induced by a finite registered library $\mathcal A$ of
+actions, short open-loop sequences, or closed-loop skill primitives.  Given a declared continuation
+rule and horizon $H$, define the counterfactual action profile and feasible set
+\[
+ q_H(x,a)=\min_{0\leq t\leq H} h(x_t^{(a)}),
+ \qquad
+ \Gamma_H(x)=\{a\in\mathcal A:q_H(x,a)\geq0\}.
+\]
+The notation does not denote a reward $Q$-function: it records the worst safety margin along the
+declared branch only.  With multiple constraints $h_r$, every physical normalization scale
+$s_r>0$ is frozen before outcomes are inspected and the joint profile is
+$q_H(x,a)=\min_{r,t\leq H}h_r(x_t^{(a)})/s_r$; the unaggregated constraint profiles are reported as
+secondary outcomes.  For a viable reference set
+$\mathcal V=\{x:\Gamma_H(x)\neq\varnothing\}$, we call $R$ \emph{safe-action sufficient for
+$(h,H,\mathcal A)$ on $\mathcal V$} when
+\[
+ \bigcap_{x\in F_z\cap\mathcal V}\Gamma_H(x)\neq\varnothing
+ \quad\text{for every }z\text{ with }F_z\cap\mathcal V\neq\varnothing.
+\]
+This is deliberately specification-, horizon-, continuation-, and library-relative.  It is not a
+claim of universal control sufficiency.
 
+We write the deployed decision representation as
+\[
+ R_\theta(x)=A_\theta\!\left(E_\theta(O(x))\right),
+\]
+where $E_\theta$ produces spatial or spatiotemporal tokens and $A_\theta$ includes any pooling,
+quantization, or rate-limited aggregation on which the controller acts.  This location matters:
+post-processing a frozen $R_0$ cannot split its exact fibers.  An intervention advertised as exact
+repair must therefore update modules that still access distinctions before the audited bottleneck,
+alter token assignment/quantization, or add new information.  A deterministic head or adapter of
+the form $T\circ R_0$ can change finite-radius geometry but is a negative control for exact repair.
+
+Finally, if $R_2=T\circ R_1$, then every $R_1$ fiber is contained in an $R_2$ fiber.  This
+data-processing relation makes the observation map a lower floor: deterministic encoding cannot
+recover safety information that $O$ has already aliased.  This exact comparison uses the same input
+domain and $h$-relative defect.  A separate countable-state theorem gives the analogous
+mutual-singularity order for stochastic encoders and Markov-kernel post-processing.  Neither result
+is an additive decomposition at finite radius or a comparison of one-frame observations with
+richer histories; finite-radius observation and state views require separately declared geometries.

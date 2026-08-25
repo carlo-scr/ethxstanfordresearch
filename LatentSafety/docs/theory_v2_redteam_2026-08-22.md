@@ -321,7 +321,7 @@ theorem.
 
 ## Checks executed
 
-- All 20 focused tests in `tests/test_dynamic_theory.py` passed after remediation.
+- All 23 focused tests in `tests/test_dynamic_theory.py` passed after the latest remediation.
 - Exhaustive enumeration of all 729 two-action Q tables with three histories and entries in
   `{-1,0,1}` found no violation of `rho <=` maximum within-fiber Q oscillation.
 - The supplied one-step factor-two and two-step horizon-sum fixtures were recomputed by hand and by
@@ -340,6 +340,17 @@ theorem.
 - Further regressions cover explicit Euclidean metric semantics and radius tolerance, premise
   provenance, strict finite-real validation, the direct Lipschitz/Hausdorff calculation, and every
   displayed inequality `0 <= V-J <= B <=` the stagewise global sum.
+- A separate complete-finite-domain verifier now derives the exact cover radius, representation/Q
+  Lipschitz constants, and sampled-Q error from an enumerated metric domain, then independently
+  checks the Q-coordinate oscillation bound on every enumerated pair within the operational latent
+  radius. The folded-interval regression attains its bound.
+- Both dynamic and cover calculators now reject finite inputs whose derived regret, distance,
+  radius, or Q-bound arithmetic overflows to a non-finite value.
+- The complete-finite verifier exposes raw diagnostics but advances each positive enumerated
+  Q-coordinate difference one float toward positive infinity before correcting the advertised
+  bound. Regressions cover both ordinary cover-arithmetic roundoff and subtraction that rounds
+  below the exact-real difference of the stored binary inputs; a large-scale regression confirms
+  that the mandatory one-ulp enclosure is not mistaken for failure against an absolute tolerance.
 - Primary-source statements above were checked against the linked paper pages/full text on
   2026-08-22.
 
@@ -349,9 +360,10 @@ The in-repository implementation/semantic findings are remediated: F1 now separa
 optimal-margin regret from sign obstruction and recursive viability; F3 uses an arbitrary-code-policy
 composition theorem; F4 makes the calculator explicitly Euclidean and records its tolerance; F5
 uses history-encoder/representation-policy scope; F7 is controlled-stage aligned; and F8/F9 have
-focused inequality, counterexample, exhaustive-policy, and strict-input regressions. F6 is resolved
-only at the naming and fail-closed provenance level: the object is explicitly a conditional bound
-calculator, not a verified population certificate.
+focused inequality, counterexample, exhaustive-policy, and strict-input regressions. F6 now has a
+verified route for a genuinely complete finite domain, while the original sampled-population path
+is resolved only at the naming and fail-closed provenance level: it remains explicitly a
+conditional bound calculator, not a verified population certificate.
 
 Keep `paper/sections/theory_v2_dynamic.tex` excluded from `main.tex`. The remaining gates are an
 independent proof audit; the unresolved F2 novelty comparison with AIS, Q-abstraction, symbolic

@@ -1,27 +1,48 @@
 \section{Introduction}
 
-Latent dynamics make planning from pixels tractable, but compression is not neutral: a learned code
-may discard a factor that is cheap for reconstruction yet decisive for safety.  Recent work designs
-barrier functions, reachability values, or robust controllers directly in learned latent spaces
-\citep{lutkus2025latent,anand2025safety,seo2025uncertainty,nath2026pixels}.  The strongest transfer
-results correctly define a latent safe set containing only codes with no unsafe preimage
-\citep{lutkus2025latent}.  This exposes an upstream question: how much useful safe region and
-control authority did the representation already make unavailable?
+Pretrained visual representations make physical decision-making from pixels tractable, but their
+compression and invariances are not neutral.  Cosmos Tokenizer is optimized as a reconstructive
+image/video codec \citep{nvidia2025cosmos,nvidia2025cosmostokenizer}; V-JEPA~2 learns predictable
+spatiotemporal features and its action-conditioned variant supports planning
+\citep{assran2025vjepa2,murlabadia2026vjepa21}; DINOv3 emphasizes semantic and dense spatial
+features \citep{simeoni2025dinov3}.  These objectives preserve different notions of utility, yet
+none directly requires the representation to preserve \emph{which action is safe}.  A factor can
+be cheap for pixels, semantics, or average prediction and still determine whether a robot should
+move left, right, stop, or release an object.
+
+This matters upstream of the controller.  Recent work designs barrier functions, reachability
+values, or robust controllers directly in learned latent spaces
+\citep{lutkus2025latent,anand2025safety,seo2025uncertainty,nath2026pixels}.  \citet{lutkus2025latent}
+define a latent safe set containing only codes with no unsafe preimage.  Once an upstream code has
+identified two physically different histories, however, no deterministic head can recover the
+lost distinction.  The resulting question is not only whether a code separates safe from unsafe
+states, but how much useful safe region and control authority it has made unavailable.
 
 A static safe/unsafe collision is only the first obstruction.  Encoding the known scalar safety
 margin itself separates the labels, yet states with the same margin can have different dynamics and
 disjoint safe actions.  Under partial observability, a single image may not even identify velocity
-or an occluded hazard.  We therefore treat the representation as an abstraction of state histories
-or beliefs and ask whether it is sufficient for persistent safe decisions.
+or an occluded hazard.  We first ask whether one representation-measurable decision can satisfy a
+declared support-wise condition.  Recursive representation-policy viability, Markov latent
+dynamics, and persistent closed-loop safety require additional theory and are not established in
+the main manuscript.
 
-Our current contributions are: (i) an exact static soundness--completeness equivalence with open,
-closed, attained, and non-attained endpoint cases; (ii) a deterministic data-processing theorem
-that separates observation ambiguity from encoder-induced ambiguity; (iii) common-safe-action
-impossibility results for deterministic and carefully qualified randomized decisions, together
-with distinct strong and pointwise expected-loss finite-action slacks; (iv) a smooth separation
-showing that vanishing average reconstruction and prediction losses need not control worst-case
-safety ambiguity; and (v) an executable audit
-and study protocol for testing safety-sufficient objectives against strong safety-aware baselines
-at matched utility.  The first
-four are foundations and separation results rather than end-to-end control guarantees.  All proof and
-empirical states remain governed by the repository claim registry and independent-review rule.
+The scientific unit of study is therefore not autonomous driving or any one tokenizer.  It is the
+mapping from a causal visual history to the feasible-action correspondence.  We compare three
+families as a deliberately controlled objective triangulation---reconstructive compression,
+temporal prediction, and semantic invariance---rather than attributing causal effects to checkpoints
+that also differ in architecture, scale, and pretraining data.  Manipulation and embodied
+navigation provide the primary, visually distinct control domains; driving remains a possible
+third stress test.
+
+The present draft contributes: (i) a specification-relative definition of \emph{safe-action
+sufficiency} and a traceable neighborhood defect that distinguishes physical infeasibility from
+representation-induced conflict; (ii) supporting exact results for static separation,
+post-processing, stochastic codes, deterministic and randomized actions, and a smooth
+average-loss separation; (iii) \emph{Common-Action Geometry Repair}, a pre-bottleneck encoder
+intervention that combines action-profile supervision with a set-wise common-action objective and
+family-specific utility retention; and (iv) a prospectively specified cross-family evaluation
+protocol that matches causal information and an operational capacity proxy, controls readout and
+downstream selection, and compares Cosmos Tokenizer,
+V-JEPA~2, and DINOv3.  Exact pixel cart and pendulum controls currently validate only the finite
+obstruction and observation floor.  The foundation-encoder audit, repair, and downstream claims
+remain prospective, and every status is governed by the claim registry.

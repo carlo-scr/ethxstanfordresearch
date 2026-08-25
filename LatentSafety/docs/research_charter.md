@@ -2,15 +2,16 @@
 
 ## Working title
 
-**Does Safety Survive Encoding? Safety-Sufficient Representations for Certification and Control**
+**Do Safe Choices Survive Encoding? Auditing and Repairing Safe-Action Sufficiency in Pretrained Visual Representations**
 
 ## One-sentence thesis
 
-A representation is adequate for safe control only if its fibers preserve both the safety
-specification and the feasible safe-action correspondence; standard reconstruction and prediction
-objectives need not control either obstruction. Exact finite oracles and carefully labeled sampled
-witnesses can diagnose the loss and provide targeted representation-learning objectives, while
-population or controller guarantees require additional coverage and dynamics premises.
+A visual representation is safe-action sufficient for a declared specification, horizon, and
+action/skill library only when every viable history represented together retains a common feasible
+choice. Reconstruction, semantic invariance, and latent prediction need not preserve that
+correspondence. Exact controls and traceable neighborhood audits diagnose the loss; pre-bottleneck
+Common-Action Geometry Repair targets it while retaining each pretrained family's native utility.
+Population and controller guarantees still require additional coverage and dynamics premises.
 
 ## Why the proposal needs this refinement
 
@@ -104,24 +105,25 @@ T1--T5 have internal proof drafts and executable finite checks but remain
 
 ## Empirical thesis
 
-At matched held-out world-model utility, ordinary learned representations exhibit materially
-different static and action defects; these defects predict certificate coverage or closed-loop
-violations better than reconstruction/rollout metrics; a safety-sufficient objective shifts the
-safety/utility Pareto frontier rather than merely improving a probe score.
+Under identical causal information and matched representation rate, pretrained reconstructive
+(Cosmos), predictive (V-JEPA), and semantic (DINO) representations may retain different amounts of
+safe-choice information. The common-action defect should predict held-fixed-controller violations
+beyond native utility and scalar probes. A pre-bottleneck set-wise repair should shift the
+within-family safety/utility frontier and survive removal of its training head.
 
 ## What would count as an ICML-level result
 
 The minimum convincing package is:
 
-1. a corrected theorem package covering both static and action ambiguity;
-2. an estimator validation suite where identity/injective controls converge to zero and constructed
-   collapses are recovered;
-3. two controlled pixel domains plus one harder domain with a distinct failure mechanism, and at
-   least two representation families;
-4. matched-utility comparisons with at least eight paired seeds for primary results;
-5. an intervention that improves a prospectively frozen safety/utility frontier;
-6. one downstream demonstration tying representation defect to certificate coverage or violations;
-7. all pilot and main-study claims reproducible from manifests.
+1. a corrected theorem package covering both static and common-action ambiguity;
+2. exact toy controls used only as estimator and observation-floor unit tests;
+3. identical-information and matched-rate audits of Cosmos Tokenizer, V-JEPA 2/2.1, and DINOv3;
+4. branchable manipulation and embodied-navigation domains with simulator-grounded profiles;
+5. within-family repair comparisons against frozen-head, native-adapter, scalar-feasibility,
+   pairwise, post-code, and safety-aware baselines;
+6. matched-utility comparisons with fresh paired seeds, head removal, and a held-fixed downstream
+   controller;
+7. specification and distribution shift, plus complete reproducibility manifests.
 
 ## Novelty boundary
 
@@ -134,9 +136,9 @@ Do **not** claim:
 - that static safety-faithfulness makes latent dynamics Markov or a controller safe; or
 - that the proposed quotient dimension is minimal without an admissible-encoder lower bound.
 
-Candidate differentiators are a traceable action-sufficiency audit with a non-vacuous verified
-upper route, a learned intervention evaluated at matched world-model utility against current
-safety-aware baselines, and demonstrated downstream relevance. The exact static/data-processing and
+Candidate differentiators are a traceable safe-action-sufficiency audit, a set-wise pre-bottleneck
+repair evaluated within pretrained family against strong safety-aware and geometry-only controls,
+and demonstrated downstream relevance after head removal. The exact static/data-processing and
 finite Bellman lemmas are supporting foundations rather than headline novelty.
 
 The novelty-safer primary thesis is the history/belief version under partial observability. The
@@ -146,12 +148,12 @@ memoryless static defect remains a motivating special case, not the sole headlin
 
 | Gate | Question | Pass criterion | If it fails |
 |---|---|---|---|
-| G0 | Can the proposal pilot be reproduced? | Original artifact recovery or independent recreation matches qualitative ordering | Remove every pilot number and treat PDF as motivation only |
-| G1 | Does the estimator measure its stated object? | Correct behavior under identity, collision, rescaling, class-balance, and sample-size controls | Redesign metric before training models |
-| G2 | Is the phenomenon ordinary? | Robust effect on at least 2 tasks x 2 model families, paired CIs excluding negligible effect | Reframe as theorem/method paper or stop |
-| G3 | Is it actionable? | Intervention Pareto-dominates or materially extends baseline frontier | Keep audit paper only if effect is very strong |
-| G4 | Is the theorem package nontrivial and correct? | Independent proof review; no reliance on unverified regularity | Target control venue with narrower claims |
-| G5 | Does it matter downstream? | Defect predicts coverage/violations beyond standard metrics | Do not claim control relevance |
+| G0 | Is accessible information matched? | Same causal span and modalities; DINO receives the registered temporal adapter; raw-history and privileged-state controls pass | Attribute the effect to sensing/history, not encoding |
+| G1 | Is the profile oracle trustworthy? | Exhaustive simulator branches reproduce known controls and teacher error is reported with an abstention band | Do not train or audit on predicted profiles |
+| G2 | Is the defect reproducible? | Robust effect in both primary domains and at least two pretrained families under matched rate and neighborhood mass | Reframe as a narrow case study or stop |
+| G3 | Does the audit matter? | It predicts held-fixed-controller violations beyond native utility, action prediction, and scalar probes | Do not claim downstream relevance |
+| G4 | Is the encoder repaired? | Pre-bottleneck repair beats frozen-head, native-adapter, pairwise, and post-code controls after head removal | Reframe as supervision/readout, not representation repair |
+| G5 | Does it transfer? | Gains survive fresh controllers, appearances, hazard types, thresholds, horizons, and denser action libraries | State specification/domain dependence or stop |
 
 ## Deliberate exclusions for the first submission
 

@@ -15,7 +15,7 @@ margin-loss buffer, but its minimax selector can be unsafe even when a common sa
 
 ## 1. Scope and semantics
 
-Fix a finite action set `A` and a horizon `T`. For each `s in {0,...,T}`, let `H_s` be a finite
+Fix a finite action set `A` and a horizon `T>=0`. For each `s in {0,...,T}`, let `H_s` be a finite
 nonempty set of histories with `s` controls remaining. A member `eta in H_s`
 may be the full observation/action history, a belief, or a belief support. The theorem does not
 require a Markov physical observation. We call `R_s` a history encoder: no recursive latent update
@@ -337,17 +337,110 @@ Let
 
 be the finite class of all time-indexed policies whose stage-`j` action depends only on the
 current code. Every `mu in Pi_{1:s}^R` is evaluated recursively by `J_j^mu` above; future actions
-remain representation-restricted. Define the exact universal fiber value
+remain representation-restricted.
+
+For any nonempty set `S subseteq H_s`, define
+
+\[
+g_s(S):=\min_{\eta\in S}G_s(\eta)
+\]
+
+and, for an action assignment `u:R_s(S)->A`,
+
+\[
+\operatorname{Post}_s^R(S,u)
+:=\bigcup_{\eta\in S}N_s\!\left(\eta,u(R_s(\eta))\right).
+\]
+
+Because `A` is nonempty, every such assignment extends arbitrarily from `R_s(S)` to all codes in
+`R_s(H_s)`; values on codes absent from `S` do not affect the current reachable-set value.
+
+The union is essential: one lower-layer code policy must work jointly for every successor of every
+initial history. Define the set-valued representation Bellman recursion
+
+\[
+\begin{aligned}
+W_0^R(S)&=g_0(S),\\
+W_s^R(S)&=
+\max_{u\in A^{R_s(S)}}
+\min\!\left\{g_s(S),
+W_{s-1}^R\!\left(\operatorname{Post}_s^R(S,u)\right)\right\}.
+\end{aligned}
+\]
+
+### Theorem 2 (exact set-valued representation Bellman recursion)
+
+For every nonempty `S subseteq H_s`,
+
+\[
+W_s^R(S)
+=\max_{\mu\in\Pi_{1:s}^R}\min_{\eta\in S}J_s^\mu(\eta).
+\]
+
+Consequently, `W_s^R(S)>=0` if and only if one deterministic time-indexed representation policy
+keeps the margin nonnegative on every branch from every history in `S`. Every maximum is attained.
+
+#### Proof
+
+The base case is the definition of `G_0`. At a controlled layer, restrict a policy's current
+assignment to `R_s(S)` and call it `u`; conversely, the arbitrary extension above makes every such
+`u` admissible. Write the remaining lower-layer policy as `nu`. For fixed `u,nu`, associativity of
+finite minima gives
+
+\[
+\min_{\eta\in S}J_s^{(u,\nu)}(\eta)
+=\min\!\left\{g_s(S),
+\min_{\eta'\in\operatorname{Post}_s^R(S,u)}J_{s-1}^\nu(\eta')\right\}.
+\]
+
+For fixed `u`, finiteness and monotonicity of `x mapsto min{g_s(S),x}` let the maximum over `nu`
+pass through this scalar minimum. The induction hypothesis then supplies
+`W_{s-1}^R(Post_s^R(S,u))`; maximizing over `u` proves the recursion. For a fixed policy, its
+recursive value is nonnegative exactly when every current and successor margin is nonnegative.
+The minimum over `S` makes the statement simultaneous, and finite maximization gives the endpoint
+and attainment. QED.
+
+### Proposition 5 (exact dynamic viability data processing)
+
+Suppose that, on the same history game, `R_j^c=T_j compose R_j^f` for every controlled layer
+`1<=j<=s`. Then, for every nonempty `S subseteq H_s`,
+
+\[
+W_s^{R^f}(S)\ge W_s^{R^c}(S).
+\]
+
+No postprocessing condition is needed at terminal layer zero. The premise is required at every
+future controlled layer, not only at the initial layer.
+
+#### Proof
+
+Every coarse policy lifts to the fine representation by
+`mu_j^f(z)=mu_j^c(T_j(z))`. The lifted and coarse policies choose the same physical action at every
+history, hence have identical recursively evaluated `J` values. The fine policy class contains all
+such lifted behavior, so maximizing over it cannot lower the common-set value. QED.
+
+The comparison must use the same initial history set. Monotonicity in the set argument additionally
+gives, for a fine code `z_f` and `z_c=T_s(z_f)`,
+
+\[
+W_s^{R^f}(F_{s,z_f}^{f})
+\ge W_s^{R^c}(F_{s,z_c}^{c}),
+\]
+
+because the fine fiber is contained in the corresponding coarse fiber.
+
+Define the exact universal fiber value as the special case
 
 \[
 \Lambda_s^R(z)
-:=\max_{\mu\in\Pi_{1:s}^R}
-   \min_{\eta\in F_{s,z}}J_s^\mu(\eta).
+:=W_s^R(F_{s,z})
+=\max_{\mu\in\Pi_{1:s}^R}
+  \min_{\eta\in F_{s,z}}J_s^\mu(\eta).
 \]
 
-### Theorem 2 (exact finite representation-policy viability)
+### Corollary 1 (exact finite representation-policy viability)
 
-For a finite game, `Lambda_s^R(z)>=0` if and only if there exists one deterministic time-indexed
+For a finite game and `s>=1`, `Lambda_s^R(z)>=0` if and only if there exists one deterministic time-indexed
 representation policy that keeps the margin nonnegative on every branch from every history in
 `F_{s,z}`. All maximizers are attained. The safe initial actions are exactly those appearing at
 `(s,z)` in at least one such policy.
@@ -356,8 +449,17 @@ representation policy that keeps the margin nonnegative on every branch from eve
 
 For a fixed policy, induction on the displayed recursion for `J_j^mu` shows that
 `J_s^mu(eta)>=0` exactly when it is safe on every branch from `eta`. Taking the minimum over the
-fiber imposes the guarantee simultaneously on all histories sharing the code. The finite maximum
-then gives the claimed existence equivalence and attainment. QED.
+fiber imposes the guarantee simultaneously on all histories sharing the code. Theorem 2 gives the
+existence equivalence and attainment. For a fiber, the exact safe initial actions are
+
+\[
+\left\{a\in A:
+\min\!\left[g_s(F_{s,z}),
+W_{s-1}^R\!\left(\bigcup_{\eta\in F_{s,z}}N_s(\eta,a)\right)\right]\ge0
+\right\}.
+\]
+
+QED.
 
 This object is not reducible to the one-step `kappa_s`. For example, let two one-step histories
 share a code and have Q rows `(1,-1)` and `(-1,1)`. Let a two-step singleton root have either action
@@ -365,7 +467,64 @@ lead nondeterministically to both histories. At the root, both full-history cont
 one, hence `kappa_2=0`. Yet every code policy chooses one action at the next shared code and incurs
 margin minus one on one branch, so `Lambda_2^R=-1`.
 
-The exhaustive finite checker also reports
+Let `U_s={eta:V_s(eta)>=0}` be the full-history viable set and define the recursive representation
+shortfall
+
+\[
+\chi_s(R)=
+\begin{cases}
+0,&U_s=\varnothing,\\
+[-W_s^R(U_s)]_+,&U_s\ne\varnothing.
+\end{cases}
+\]
+
+Theorem 2 and Proposition 5 give `chi_s(R^f)<=chi_s(R^c)`. Moreover,
+
+\[
+\max_{1\le s\le T}\chi_s(R)=0
+\quad\Longleftrightarrow\quad
+\kappa_{1:T}^{\max}(R)=0
+\quad\Longleftrightarrow\quad
+\exists\mu\ \forall s,\eta:\
+V_s(\eta)\ge0\Rightarrow J_s^\mu(\eta)\ge0.
+\]
+
+When `T=0`, both maxima over controlled layers are defined as zero, the policy family is the empty
+product, and the equivalence holds vacuously because `J_0=V_0=G_0`.
+
+For the only non-immediate direction, if `chi_s=0`, some policy safe on all of `U_s` supplies at
+its first layer a common action with `Q_s>=J_s^mu>=0` on every viable member of every fiber. Thus
+every `kappa_s` vanishes. Proposition 4 then constructs one policy that works simultaneously on
+all layers. Policies witnessing separate values of `chi_s` need not themselves be the same.
+
+The safely retainable family
+
+\[
+\mathfrak V_s(R)
+:=\{S\subseteq U_s:S=\varnothing\ \text{or}\ W_s^R(S)\ge0\}
+\]
+
+is downward closed, and deterministic coarsening gives
+`mathfrak V_s(R^c) subseteq mathfrak V_s(R^f)`. Its maximum cardinality equals the largest number
+of viable histories retained by any one representation policy. This yields an exact data-processing
+statement for the retained-viability statistic, not only for optimal-margin regret.
+
+Two coupling qualifications are essential. First, coarsening only at layer `s` does not order
+`W_s`: a singleton two-step root can lead to two next histories that a fine lower-layer code
+separates and a coarse lower-layer code merges, producing values one and minus one despite
+identical root codes. Second, checking `Lambda_s^R(z)>=0` separately for every initial code need
+not produce one joint policy. Two different-code roots can each be safe under incompatible choices
+at one shared successor code, while `W_s^R(U_s)<0`. The common-set recursion, rather than separate
+fiber maxima, detects this conflict.
+
+The finite implementation memoizes this reachable-history-set recursion and, under an explicit
+guard, enumerates `mathfrak V_s(R)`. It is checked against independent full-policy enumeration on
+every nonempty subset of randomized small games. The older policy enumerator remains as an
+independent oracle. Because these routines make exact sign and ordering decisions, they accept
+only finite numerical inputs unchanged by binary64 conversion and reject inexact conversions
+rather than rounding across a theorem endpoint.
+
+The viable-family checker also reports
 
 \[
 \operatorname{Ret}_s(R)
@@ -489,7 +648,7 @@ One must prove the Lipschitz constant and the Hausdorff successor bound under a 
 metric. A raw neural latent metric can be arbitrarily rescaled, and finite sampled successors do
 not upper-bound a population Hausdorff distance without coverage assumptions.
 
-### Proposition 5 (conditional Euclidean cover-bound calculation)
+### Proposition 6 (conditional Euclidean cover-bound calculation)
 
 There is a deterministic route from a verified cover to a population upper bound. Let a possibly
 infinite history layer have metric `d_H`; the latent metric in this proposition and its code is
@@ -553,6 +712,40 @@ probability needs explicit support-density and metric-entropy assumptions; certi
 Lipschitz constants may also be too loose. Provenance records where a premise was claimed; it does
 not validate that claim. The implementation deliberately does not accept an infinity-norm or
 arbitrary-metric interpretation of its Euclidean pair search.
+
+### 6.2 Verified complete-finite-domain route
+
+There is now a separate, stronger routine for a domain that is genuinely finite and completely
+enumerated. Given its full history-distance matrix, latent vectors, true Q table, and a subset of
+sample indices, `calculate_verified_finite_domain_q_bound`:
+
+1. validates the finite metric matrix, with any numerical validation tolerance recorded;
+2. computes the exact nearest-sample cover radius on the declared domain;
+3. derives the smallest pairwise Euclidean representation and coordinatewise Q Lipschitz
+   constants on that domain;
+4. computes the exact sampled-Q error against the supplied full Q table;
+5. runs the cover arithmetic; and
+6. independently enumerates every finite-domain pair and checks the claimed Q-coordinate
+   oscillation bound on those within the operational latent radius.
+
+It also reports the domain, sample, latent-dimension, and action counts; raw floating-point local
+and global Q oscillations; outward-enclosing versions of both oscillations; and the
+bound-to-global-oscillation ratio computed from the outward global value. These fields expose
+whether a valid finite-domain bound is uninformative at the declared scale. Metric validation is
+cubic in the domain size and is intended for bounded oracle problems.
+
+The raw conditional cover calculation remains visible. Each positive enumerated coordinate
+difference is advanced one representable value toward positive infinity, enclosing the exact-real
+difference of the stored binary inputs even when subtraction rounds down. A raw cover calculation
+that falls below the raw exhaustive oscillation by more than the declared arithmetic tolerance is
+rejected. Independently of that diagnostic, the returned verified bound is the maximum of the raw
+cover value and the outward local oscillation, and its correction is recorded. The outward step is
+not compared with a fixed absolute tolerance because one ulp is scale dependent.
+
+This closes the premises only relative to the supplied complete finite domain. It does not turn a
+finite dataset into the population of a continuous system, certify omitted histories or
+successors, or establish statistical coverage. The original conditional calculator remains the
+correct interface whenever any premise is externally declared rather than exhaustively derived.
 
 ## 7. Tightness and adversarial examples
 
@@ -690,20 +883,30 @@ learned method with a convincing matched safety--utility frontier.
 - sign-specific first-action obstructions and common-safe actions;
 - midpoint-optimal uniform latent-Q error;
 - the minimax margin selector and arbitrary-code-policy composition audit;
-- guarded exhaustive representation-policy viability and retained-volume audit;
+- memoized set-valued representation Bellman values, all-layer recursive shortfalls, and guarded
+  viable-history-family enumeration;
+- the older guarded exhaustive representation-policy audit as an independent oracle;
 - local path-sum and global sum buffers;
-- a per-controlled-stage deterministic-coarsening check; and
+- a per-controlled-stage deterministic-coarsening check;
 - a conditional Euclidean cover-bound calculator with metric, tolerance, status, and premise
-  provenance recorded.
+  provenance recorded; and
+- a complete-finite-domain verifier that derives the cover, Lipschitz, and sampled-Q premises and
+  checks the resulting Q-coordinate oscillation bound on every enumerated pair within the
+  operational latent radius.
 
 The cover calculator is Euclidean only. A bound established under another latent norm must not be
 passed to it as though the metrics were interchangeable.
 
 `tests/test_dynamic_theory.py` additionally covers the common-safe/minimax-unsafe counterexample,
 a non-minimax q-greedy policy across two stages, exact exhaustive representation-policy viability,
-every displayed loss inequality, a direct Lipschitz/Hausdorff calculation, terminal-only
-coarsening mismatch, Euclidean metric semantics, explicit radius tolerance, provenance, and strict
-finite-real validation.
+set-valued dynamic programming against independent policy enumeration on every nonempty subset of
+randomized small games, strict and randomized coarsening monotonicity, future-layer necessity,
+initial-fiber union coupling, viable-family heredity, and the recursive-shortfall/global-obstruction
+equivalence. It also checks every displayed loss inequality, a direct Lipschitz/Hausdorff
+calculation, terminal-only coarsening mismatch, Euclidean metric semantics, explicit radius
+tolerance, provenance, and strict finite-real validation, including rejection of non-finite
+derived arithmetic. The folded-interval regression checks the complete-finite-domain verifier
+against a tight bound.
 
 These are exact checks only because every history, action, margin, and successor is enumerated.
 Running the same code on a finite dataset does not certify an unseen continuous system.
@@ -741,6 +944,8 @@ Internally proof-drafted and exhaustively checked on the included finite counter
 - per-controlled-stage monotonicity under deterministic coarsening;
 - arbitrary-code-policy local/global loss bounds with the closed endpoint;
 - exact exhaustive finite representation-policy viability semantics;
+- exact set-valued representation Bellman recursion, recursive shortfall, viable-family heredity,
+  and dynamic data processing under refinement at every controlled layer;
 - best uniform latent-Q midpoint identity and factor-two bound; and
 - the Lipschitz/Hausdorff sufficient condition.
 

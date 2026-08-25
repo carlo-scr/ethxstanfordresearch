@@ -25,7 +25,7 @@ every theorem-to-experiment interface.
 | Sep 5-Sep 18 | theorem v0 | endpoint-correct T1; data processing; action-conflict theorem; counterexamples |
 | Sep 19-Oct 2 | two-task pipeline | pendulum/controlled-cart datasets, frozen splits, two model families, 3-seed pilot |
 | Oct 3-Oct 23 | prevalence decision | E1 pilot report with observation controls and fixed-radius curves |
-| Oct 24-Nov 13 | intervention decision | E2 frontier versus append-`h`, FCSRL, CVRL-BM, SRPL, and SDQC |
+| Oct 24-Nov 13 | intervention decision | E2 same-backbone frontier versus append-`h` and the frozen FCSRL feasibility-loss adaptation; CVRL-BM as architecture-changing sensitivity, with full RL baselines deferred to matched E5 |
 | Nov 14-Dec 4 | confirmatory run | frozen configs; 8 seeds; all failure logs; independent reruns |
 | Dec 5-Dec 18 | downstream and ablations | selected E5 result; history/memoryless and static/action ablations |
 | Dec 19-Jan 5 | paper freeze | eight-page narrative, appendix proofs, reproducibility package, red-team review |

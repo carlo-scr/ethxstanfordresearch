@@ -84,6 +84,8 @@ class LearningConfigTests(unittest.TestCase):
                 "h_prediction",
                 "boundary_contrastive",
                 "safe_action_profile",
+                "nonprivileged_predicted_action_profile",
+                "fcsrl_feasibility_loss_adaptation",
             ):
                 with self.subTest(family=family, arm=arm):
                     payload = copy.deepcopy(_payload())
@@ -98,6 +100,32 @@ class LearningConfigTests(unittest.TestCase):
                     config = parse_config(payload)
                     self.assertEqual(config.model.family, family)
                     self.assertEqual(config.objective.safety_arm, arm)
+
+    def test_fcsrl_configuration_freezes_head_width_and_sequence_horizon(self) -> None:
+        payload = copy.deepcopy(_payload())
+        payload["objective"]["safety_arm"] = (  # type: ignore[index]
+            "fcsrl_feasibility_loss_adaptation"
+        )
+        payload["objective"]["fcsrl_head_hidden_dim"] = 37  # type: ignore[index]
+        config = parse_config(payload)
+        self.assertEqual(config.objective.fcsrl_head_hidden_dim, 37)
+        self.assertEqual(dry_run_plan(config)["fcsrl"]["return_length"], 10)  # type: ignore[index]
+
+        payload["data"]["horizon"] = 9  # type: ignore[index]
+        payload["data"]["history_length"] = 4  # type: ignore[index]
+        payload["evaluation"]["rollout_horizons"] = [1, 4, 8]  # type: ignore[index]
+        with self.assertRaisesRegex(ConfigError, "requires data.horizon >= 10"):
+            parse_config(payload)
+
+    def test_fcsrl_head_width_is_required_and_positive(self) -> None:
+        missing = copy.deepcopy(_payload())
+        del missing["objective"]["fcsrl_head_hidden_dim"]  # type: ignore[index]
+        with self.assertRaisesRegex(ConfigError, "missing required field"):
+            parse_config(missing)
+        invalid = copy.deepcopy(_payload())
+        invalid["objective"]["fcsrl_head_hidden_dim"] = 0  # type: ignore[index]
+        with self.assertRaisesRegex(ConfigError, "must be finite and positive"):
+            parse_config(invalid)
 
     def test_resolved_checkpoint_config_round_trips(self) -> None:
         config = cpu_smoke_config(load_config(CONFIG_PATH))
@@ -189,6 +217,33 @@ class LearningConfigTests(unittest.TestCase):
             },
         )
         self.assertEqual(plan["selected_arm"], "none")
+
+    def test_cli_dry_run_exposes_fcsrl_head_and_resume_fields(self) -> None:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "run_e1_torch.py"),
+                "--config",
+                str(CONFIG_PATH),
+                "--dry-run",
+                "--safety-arm",
+                "fcsrl_feasibility_loss_adaptation",
+                "--safety-weight",
+                "0.1",
+                "--fcsrl-head-hidden-dim",
+                "23",
+                "--resume",
+                "checkpoint_last.pt",
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        plan = json.loads(completed.stdout)
+        self.assertEqual(plan["selected_arm"], "fcsrl_feasibility_loss_adaptation")
+        self.assertEqual(plan["fcsrl"]["head_hidden_dim"], 23)
+        self.assertTrue(plan["resume_from"].endswith("checkpoint_last.pt"))
 
     def test_cpu_smoke_preserves_real_split_and_objective(self) -> None:
         smoke = cpu_smoke_config(load_config(CONFIG_PATH))

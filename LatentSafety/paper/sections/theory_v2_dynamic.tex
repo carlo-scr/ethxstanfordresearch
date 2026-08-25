@@ -20,8 +20,8 @@ factor two below are specializations rather than standalone novelty.
 
 \subsection{Finite support-robust history game}
 
-Let $\mathsf A$ be a finite nonempty action set and let $\mathsf H_s$ be the finite nonempty set of
-histories with $s\in\{0,\ldots,T\}$ controls remaining.  A history may be a
+Let $\mathsf A$ be a finite nonempty action set, let $T\geq0$, and let $\mathsf H_s$ be the finite
+nonempty set of histories with $s\in\{0,\ldots,T\}$ controls remaining.  A history may be a
 full observation/action history, belief, or belief support.  If $I(\eta)$ is its nonempty set of
 compatible physical states, define the support-robust current margin
 \[
@@ -148,6 +148,7 @@ retained viable volume, as the counterexample above shows.
 Let
 $\kappa_{1:T}^{\max}(R)=\max_{1\leq j\leq T}\max_{z\in R_j(\mathsf H_j)}
 \kappa_j(z;R_j)$.
+When $T=0$, this and every subsequent maximum over controlled layers is defined as zero.
 \begin{proposition}[Exact global sign preservation]
 \label{prop:global-sign-preservation}
 $\kappa_{1:T}^{\max}(R)=0$ if and only if one time-indexed representation policy $\mu$ satisfies
@@ -181,11 +182,106 @@ For fixed $\mu$, induction on the recursion for $J_s^\mu$ gives branchwise safet
 $J_s^\mu(\eta)\geq0$.  The fiber minimum imposes this simultaneously on all histories; the finite
 policy maximum gives the existence equivalence and attainment.
 \end{proof}
+
+The policy enumeration above has an equivalent Bellman recursion that keeps all continuation
+decisions coupled.  For a nonempty $S\subseteq\mathsf H_s$, let
+\[
+ g_s(S)=\min_{\eta\in S}G_s(\eta),
+ \qquad
+ \operatorname{Post}_s^R(S,u)
+ =\bigcup_{\eta\in S}N_s\!\left(\eta,u(R_s(\eta))\right),
+\]
+where $u:R_s(S)\to\mathsf A$ assigns one action to each code currently represented in $S$.
+Because $\mathsf A$ is nonempty, $u$ extends arbitrarily to all codes in $R_s(\mathsf H_s)$; those
+outside $R_s(S)$ do not affect the current reachable-set value.
+Define
+\begin{align}
+ W_0^R(S)&=g_0(S),\nonumber\\
+ W_s^R(S)&=\max_{u\in\mathsf A^{R_s(S)}}
+ \min\left\{g_s(S),
+ W_{s-1}^R\!\left(\operatorname{Post}_s^R(S,u)\right)\right\}.
+ \label{eq:set-representation-bellman}
+\end{align}
+
+\begin{theorem}[Exact set-valued representation Bellman recursion]
+\label{thm:set-representation-bellman}
+For every nonempty $S\subseteq\mathsf H_s$,
+\[
+ W_s^R(S)=\max_{\mu\in\Pi_{1:s}^R}\min_{\eta\in S}J_s^\mu(\eta).
+\]
+Thus $W_s^R(S)\geq0$ if and only if one deterministic time-indexed representation policy keeps the
+margin nonnegative on every branch from every history in $S$.  Every maximum is attained, and
+$\Lambda_s^R(z)=W_s^R(F_{s,z})$.
+\end{theorem}
+\begin{proof}
+The base case is immediate.  At a controlled layer, restrict a policy's current assignment to
+$R_s(S)$ and call it $u$; conversely, the preceding arbitrary extension makes every such $u$
+admissible.  Write the remaining lower-layer policy as $\nu$.  Associativity of finite minima gives
+\[
+ \min_{\eta\in S}J_s^{(u,\nu)}(\eta)
+ =\min\left\{g_s(S),
+ \min_{\eta'\in\operatorname{Post}_s^R(S,u)}J_{s-1}^\nu(\eta')\right\}.
+\]
+For fixed $u$, finiteness and monotonicity of $x\mapsto\min\{g_s(S),x\}$ permit maximization over
+$\nu$ inside that scalar map.  The induction hypothesis supplies $W_{s-1}^R$; maximizing over $u$
+gives \eqref{eq:set-representation-bellman}.  The sign equivalence follows from the recursive
+definition of $J_s^\mu$, and finiteness gives attainment.
+\end{proof}
+
+\begin{proposition}[Exact dynamic viability data processing]
+\label{prop:dynamic-viability-data-processing}
+Suppose $R_j^c=T_j\circ R_j^f$ on the same history game for every controlled layer
+$1\leq j\leq s$.  Then, for every nonempty $S\subseteq\mathsf H_s$,
+\[
+ W_s^{R^f}(S)\geq W_s^{R^c}(S).
+\]
+No postprocessing condition is needed at terminal layer zero.
+\end{proposition}
+\begin{proof}
+Lift any coarse policy by $\mu_j^f(z)=\mu_j^c(T_j(z))$.  The lifted policy chooses the same physical
+action at every history and therefore has the same recursively evaluated $J$ value.  The fine
+policy class contains every lifted coarse behavior, so its maximum cannot be smaller.
+\end{proof}
+
+Let $U_s=\{\eta:V_s(\eta)\geq0\}$ and set $\chi_s(R)=0$ when $U_s$ is empty and
+$\chi_s(R)=[-W_s^R(U_s)]_+$ otherwise.  The preceding proposition gives
+$\chi_s(R^f)\leq\chi_s(R^c)$.  Together with
+Proposition~\ref{prop:global-sign-preservation}, Theorem~\ref{thm:set-representation-bellman} gives
+the exact three-way sign equivalence
+\[
+ \begin{aligned}
+ \max_{1\leq s\leq T}\chi_s(R)=0
+ &\quad\Longleftrightarrow\quad \kappa_{1:T}^{\max}(R)=0\\
+ &\quad\Longleftrightarrow\quad
+ \exists\mu\ \forall s,\eta:\
+ V_s(\eta)\geq0\Rightarrow J_s^\mu(\eta)\geq0.
+ \end{aligned}
+\]
+Indeed, a policy safe on all of $U_s$ supplies at its first layer a common action with
+$Q_s\geq J_s^\mu\geq0$ on every viable fiber member, so every $\kappa_s$ vanishes; the converse is
+Proposition~\ref{prop:global-sign-preservation}.  The safely retainable family
+\[
+ \mathfrak V_s(R)=
+ \{S\subseteq U_s:S=\varnothing\ \text{or}\ W_s^R(S)\geq0\}
+\]
+is downward closed, and deterministic coarsening gives
+$\mathfrak V_s(R^c)\subseteq\mathfrak V_s(R^f)$.  Its maximum cardinality is exactly the largest
+number of full-history viable histories retained by one representation policy.
+
 The one-step obstruction $\kappa_s$ does not compose.  If a two-step singleton root leads to two
 same-code one-step histories with Q rows $(1,-1)$ and $(-1,1)$, then $\kappa_2=0$ under
 full-history continuation but $\Lambda_2^R=-1$.  The finite oracle therefore enumerates code
 policies and also reports the maximum fraction of full-history viable histories retained by one
-policy.
+policy.  Equivalently, the new implementation memoizes
+\eqref{eq:set-representation-bellman} and can enumerate $\mathfrak V_s(R)$ under an explicit
+exponential guard; randomized small games are checked against independent full-policy enumeration.
+
+Two hypotheses cannot be weakened silently.  Postprocessing only at the initial layer does not
+order $W_s$: identical root codes may lead to histories separated by the fine future code and
+merged by the coarse future code.  Also, separate nonnegative values $\Lambda_s^R(z)$ need not
+combine into one global policy: different initial fibers can require incompatible continuation
+actions after reaching the same lower-layer code.  The common-set value $W_s^R(U_s)$ detects that
+coupling.
 
 This is a theorem about representation-measurable history policies: $R_s$ may be recomputed from
 the full history.  It does not establish a recursive code update, a Markov latent transition, or
@@ -273,6 +369,14 @@ and an explicit radius-comparison tolerance $\tau_{\rm rad}$; the finite search 
 $\delta+2L_Rr_{\rm cov}+\tau_{\rm rad}$ and defaults to $\tau_{\rm rad}=0$.  The routine checks
 arithmetic, not the cover, Lipschitz, or uniform-error premises, and is not a verified finite-data
 certificate or an i.i.d. generalization result.
+
+A separate implementation closes these premises when the declared domain itself is finite and
+completely enumerated: it validates the full history-distance matrix, derives the exact cover
+radius and pairwise Lipschitz constants, computes sampled-Q error against the full Q table, and
+checks the resulting Q-coordinate oscillation bound on every enumerated pair within the operational
+latent radius.  This gives a verified bound only on that enumerated domain.  It supplies no coverage
+statement for omitted histories, a continuous system, or an external population, and therefore
+does not remove the population-certification gate.
 
 \paragraph{Limits and novelty boundary.}
 The finite assumptions supply attained, measurable selectors and make the zero endpoint valid.

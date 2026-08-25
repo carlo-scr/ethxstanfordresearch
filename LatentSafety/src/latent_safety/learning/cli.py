@@ -18,7 +18,13 @@ from latent_safety.learning.config import (
 from latent_safety.learning.runtime import TorchUnavailableError
 
 
-_SAFETY_ARMS = ("none", "h_prediction", "boundary_contrastive", "safe_action_profile")
+_SAFETY_ARMS = (
+    "none",
+    "h_prediction",
+    "boundary_contrastive",
+    "safe_action_profile",
+    "fcsrl_feasibility_loss_adaptation",
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -41,6 +47,29 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--kl-weight", type=float)
     parser.add_argument("--safety-arm", choices=_SAFETY_ARMS, help="override one ablation arm")
     parser.add_argument("--safety-weight", type=float, help="override its supervision weight")
+    parser.add_argument(
+        "--fcsrl-head-hidden-dim",
+        type=int,
+        help="override the frozen categorical-head width for an FCSRL arm",
+    )
+    parser.add_argument(
+        "--resume",
+        type=Path,
+        help="resume from a strict checkpoint into a new output directory",
+    )
+    parser.add_argument(
+        "--access-scope",
+        choices=("full_evaluation", "train_validation_only"),
+        default="full_evaluation",
+        help=(
+            "freeze which splits and oracle labels may be materialized; "
+            "train_validation_only forbids calibration, test, and action-profile oracles"
+        ),
+    )
+    parser.add_argument(
+        "--orchestration-plan-sha256",
+        help="record the distinct SHA-256 of the plan that scheduled this run",
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -89,6 +118,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 objective,
                 safety_weight=float(arguments.safety_weight),
             )
+        if arguments.fcsrl_head_hidden_dim is not None:
+            objective = dataclasses.replace(
+                objective,
+                fcsrl_head_hidden_dim=arguments.fcsrl_head_hidden_dim,
+            )
         config = dataclasses.replace(
             config,
             run=run,
@@ -107,6 +141,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         plan = dry_run_plan(config)
         plan["config"] = str(config_path)
         plan["output_dir"] = str(output_dir.resolve())
+        plan["resume_from"] = (
+            str(arguments.resume.resolve()) if arguments.resume else None
+        )
+        plan["access_scope"] = arguments.access_scope
+        plan["orchestration_plan_sha256"] = arguments.orchestration_plan_sha256
         if arguments.dry_run:
             print(json.dumps(plan, indent=2, sort_keys=True))
             return 0
@@ -120,6 +159,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             config_path=config_path,
             output_dir=output_dir.resolve(),
             repo_root=repo_root,
+            resume_from=(arguments.resume.resolve() if arguments.resume else None),
+            access_scope=arguments.access_scope,
+            orchestration_plan_sha256=arguments.orchestration_plan_sha256,
         )
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0

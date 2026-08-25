@@ -1,28 +1,138 @@
 schema_version = 1
 experiment = "e2_safety_utility_frontier"
-status = "protocol_only"
+status = "planned_preconfirmation_tuning_only"
 
 [run]
-seeds = [0, 1, 2, 3, 4, 5, 6, 7]
+seeds = [0, 1, 2]
+seed_role = "exploratory pilot seeds; forbidden in the confirmatory core"
 
-[interventions]
+[controls]
+names = ["none"]
+regularization = "not_applicable"
+
+[required_core_learned_arms]
 names = [
-  "none",
-  "fcsrl_feasibility_consistent",
-  "safety_bisimulation_cvrl_bm",
-  "srpl_steps_to_cost",
-  "sdqc_reward_cost_decoupling",
-  "safety_value_prediction_head",
+  "h_prediction",
+  "nonprivileged_predicted_action_profile",
+  "fcsrl_feasibility_loss_adaptation",
+]
+gates_confirmation = true
+positive_weight_freeze = true
+
+[optional_same_backbone_sensitivities]
+names = [
   "pairwise_safety_faithfulness",
   "boundary_contrastive",
-  "safe_action_set_preservation",
-  "append_known_safety_value_oracle",
 ]
+gates_confirmation = false
+positive_weight_freeze = false
+
+[architecture_changing_sensitivities]
+names = ["safety_bisimulation_cvrl_bm"]
+gates_confirmation = false
+positive_weight_freeze = false
+
+[end_to_end_e5_agents]
+names = ["srpl_steps_to_cost", "sdqc_reward_cost_decoupling"]
+gates_confirmation = false
+positive_weight_freeze = false
+
+[unweighted_oracle_controls]
+names = ["append_known_safety_value_oracle"]
+regularization = "not_applicable"
+gates_confirmation = false
+positive_weight_freeze = false
 
 [regularization]
-weights = [0.0, 0.001, 0.01, 0.1, 1.0, 10.0]
+positive_weights = [0.001, 0.01, 0.1, 1.0, 10.0]
+scope = "required_core_learned_arms only; every other category is outside the confirmation weight freeze"
 
 [selection]
 rule = "validation_pareto_frontier_only"
-primary_utility = "held_out_multistep_prediction"
-primary_safety = "pre_registered_operational_defect_auc"
+primary_utility = "paired_none_normalized_reconstruction_and_rollout_ratios"
+primary_safety = "trajectory_balanced_p95_required_common_action_violation_at_frozen_radius"
+secondary_safety = "pre_registered_operational_defect_auc"
+utility_noninferiority = "each utility ratio at most 1.05"
+zero_control_error = "only zero learned error is eligible; define the zero-over-zero ratio as 1"
+tie_break = "lowest primary safety endpoint, then lower maximum utility ratio, then smaller weight"
+safety_selection_aggregate = "arithmetic mean across all three complete paired preconfirmation seeds"
+reconstruction_ratio = "mean arm validation reconstruction MSE divided by mean paired-none validation reconstruction MSE"
+rollout_ratio = "mean arm validation maximum-horizon rollout pixel MSE divided by mean paired-none validation rollout MSE"
+tuning_scope = "required_core_learned_arms only; jobs are outside the 192 fresh-seed core"
+primary_aggregate = "equal weight per domain-by-model-family stratum"
+joint_success = "safety superiority and utility noninferiority in every domain"
+
+[selection_artifact]
+entrypoint = "scripts/select_preconfirmation_weights.py"
+aggregator_entrypoint = "scripts/aggregate_e2_preconfirmation.py"
+aggregator_protocol = "e2_preconfirmation_validation_observations_v1"
+task_handoff_protocol = "e2_preconfirmation_task_handoff_v1"
+input_split = "validation_only"
+expected_observations = 288
+required_radius_sidecars = 288
+observation_formula = "18 none rows plus 3 learned arms x 5 positive weights x 3 domains x 2 families x 3 pilot seeds"
+required_weight_freezes = 18
+freeze_formula = "3 learned arms x 3 domains x 2 model families"
+selected_radius_freezes_required = true
+selected_radius_freeze_scope = "every selected weight retains one complete matched-radius and audit-hash freeze for each of its three paired pilot seeds"
+output = "runs/e2_frontier/preconfirmation_selected_weights.json"
+final_test_access = false
+matched_mass_sign_scope = "strict arm safety below paired none separately in every pilot seed"
+profile_label_manifest_reuse = "one checksum-identical five-shard manifest across all five weights in each domain-family-data-seed cell"
+
+[eligibility]
+required_strata = "every required domain-family-data-seed validation cell"
+max_relative_reconstruction_degradation = 0.05
+max_relative_rollout_degradation = 0.05
+minimum_eligible_center_coverage = 0.80
+max_coverage_fraction_loss_vs_none = 0.05
+eligible_center_coverage_denominator = "individually viable validation centers"
+minimum_eligible_centers_per_trajectory = 1
+neighborhood_mass_statistic = "median nonself neighborhood mass"
+max_relative_neighborhood_mass_mismatch = 0.05
+required_matched_mass_effect = "primary p95 improvement retains its sign"
+matched_radius_freeze = "before final-test access"
+predicted_profile_normalized_p95_error_max = 0.10
+
+[matched_radius_reduction]
+entrypoint = "scripts/reduce_preconfirmation_radius.py"
+input_split = "validation_only"
+relative_radius_grid = [0.0, 0.01, 0.02, 0.05, 0.10]
+control_reference_relative_radius = 0.05
+scale = "per-arm median pairwise latent distance over at most 1024 validation samples selected by SHA-256 of sample ID"
+max_scale_points = 1024
+scale_uses_safety_labels = false
+mass = "median over eligible centers of (number of viable nonself validation samples inside the closed latent ball) / (paired validation sample count - 1)"
+eligible_center = "the center is individually viable and its closed ball, formed only over individually viable reference samples, contains at least one nonself sample"
+coverage = "eligible-center coverage is the fraction of individually viable validation centers with at least one viable nonself neighbor; viable fraction is reported separately"
+primary_safety = "arithmetic mean across validation trajectories of the within-trajectory linearly interpolated p95 eligible-center required common-action violation"
+trajectory_tail_quantile = 0.95
+radius_selection = "minimize relative median normalized nonself-mass mismatch; ties use smaller learned relative radius"
+radius_selection_uses_safety = false
+zero_mass = "undefined support; fail closed rather than treating zero-over-zero as a match"
+max_relative_mass_mismatch = 0.05
+paired_identity = "identical sample IDs, trajectory IDs, physical margins, and evaluation action profiles"
+observation_provenance = "every learned selector row carries control relative radius 0.05, selected learned relative radius, both absolute radii, control and learned audit SHA-256, pairing SHA-256, mass mismatch, and strict sign"
+freeze_provenance = "the selected-weight artifact retains the selected candidate's complete matched-radius provenance"
+calibration_access = false
+final_test_access = false
+
+[fail_closed]
+all_required_core_learned_arms_must_pass_all_required_cells = true
+no_eligible_weight = "arm fails the stratum"
+empty_trajectory_allowed = false
+post_hoc_arm_substitution_allowed = false
+any_confirmation_teacher_failure = "cancel confirmation before final-test access"
+on_any_required_failure = "cancel or prospectively reframe before final-test access"
+
+[predicted_profile]
+specification = "docs/predicted_profile_protocol.md"
+implementation_status = "teacher training, five-shard assembly, observed-rollout coverage, downstream ingestion, and post-fit validation audit implemented and CPU-smoked; production gates unexecuted; confirmation blocked"
+
+[predicted_profile_gate]
+gate_scope = "every domain-family-data-seed cell"
+preconfirmation_seeds = [0, 1, 2]
+confirmation_seeds = [100, 101, 102, 103, 104, 105, 106, 107]
+teachers_required_per_cell = 5
+all_cells_and_teachers_required = true
+on_any_confirmation_teacher_failure = "cancel confirmation before final-test access"

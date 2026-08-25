@@ -87,7 +87,9 @@ def compute_losses(
         kl = _zero(outputs["z"])
 
     arm = config.safety_arm
-    if arm == "none":
+    if arm in {"none", "fcsrl_feasibility_loss_adaptation"}:
+        # The sequence trainer adds the FCSRL categorical term after computing this unchanged
+        # world-model objective.  Keeping it external prevents relabeling the transition MSE.
         safety = _zero(outputs["z"])
     elif arm == "h_prediction":
         safety = functional.smooth_l1_loss(
@@ -105,6 +107,21 @@ def compute_losses(
         safety = functional.smooth_l1_loss(
             outputs["predicted_action_profile"] / config.margin_scale,
             batch["action_safety_margins"] / config.margin_scale,
+        )
+    elif arm == "nonprivileged_predicted_action_profile":
+        if "action_safety_margins" in batch:
+            raise ValueError(
+                "nonprivileged predicted-profile training forbids oracle action_safety_margins"
+            )
+        target = batch.get("predicted_action_profile_target")
+        if target is None:
+            raise ValueError(
+                "nonprivileged predicted-profile training requires "
+                "predicted_action_profile_target"
+            )
+        safety = functional.smooth_l1_loss(
+            outputs["predicted_action_profile"] / config.margin_scale,
+            target / config.margin_scale,
         )
     else:  # guarded by configuration validation
         raise AssertionError(f"unhandled safety arm: {arm}")

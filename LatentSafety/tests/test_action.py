@@ -71,6 +71,25 @@ class ActionFiberTests(unittest.TestCase):
         self.assertEqual(audit.conflicting_neighborhood_count, 0)
         self.assertEqual(audit.center_required_violations, (None, None))
 
+    def test_nonviable_point_does_not_hide_viable_conflict(self) -> None:
+        audit = audit_radius_action_neighborhoods(
+            [(0.0,), (0.0,), (0.0,)],
+            [(-1.0, -1.0), (1.0, -0.5), (-0.25, 1.0)],
+            delta=0.0,
+        )
+        self.assertEqual(audit.individually_viable_neighborhood_count, 2)
+        self.assertEqual(audit.conflicting_neighborhood_count, 2)
+        self.assertEqual(audit.center_required_violations, (None, 0.25, 0.25))
+
+    def test_nonviable_point_does_not_hide_exact_fiber_conflict(self) -> None:
+        audit = audit_exact_action_fibers(
+            latents=((0.0,), (0.0,), (0.0,)),
+            action_safety_margins=((-1.0, -1.0), (1.0, -0.5), (-0.25, 1.0)),
+        )
+        self.assertEqual(audit.individually_viable_fiber_count, 1)
+        self.assertEqual(audit.conflicting_fiber_count, 1)
+        self.assertEqual(audit.worst_required_violation, 0.25)
+
 
 if __name__ == "__main__":
     unittest.main()

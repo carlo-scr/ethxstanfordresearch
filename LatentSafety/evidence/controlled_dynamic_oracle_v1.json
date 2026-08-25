@@ -1,0 +1,582 @@
+{
+  "claim_id": "D1-controlled-dynamic-oracle",
+  "generator": "scripts/run_dynamic_oracle.py --format claim-evidence",
+  "manuscript_label": "tab:dynamic-controls",
+  "manuscript_table_rows": [
+    {
+      "domain": "Cart",
+      "global_policy_display": "yes",
+      "global_policy_exact": true,
+      "representation": "privileged state",
+      "root_kappa_3_display": "0",
+      "root_kappa_3_exact": 0.0
+    },
+    {
+      "domain": "Cart",
+      "global_policy_display": "no",
+      "global_policy_exact": false,
+      "representation": "current frame",
+      "root_kappa_3_display": "0.017987",
+      "root_kappa_3_exact": 0.01798745600000007
+    },
+    {
+      "domain": "Cart",
+      "global_policy_display": "yes",
+      "global_policy_exact": true,
+      "representation": "causal two-frame history",
+      "root_kappa_3_display": "0",
+      "root_kappa_3_exact": 0.0
+    },
+    {
+      "domain": "Pendulum",
+      "global_policy_display": "yes",
+      "global_policy_exact": true,
+      "representation": "privileged state",
+      "root_kappa_3_display": "0",
+      "root_kappa_3_exact": 0.0
+    },
+    {
+      "domain": "Pendulum",
+      "global_policy_display": "no",
+      "global_policy_exact": false,
+      "representation": "current frame",
+      "root_kappa_3_display": "0.015351",
+      "root_kappa_3_exact": 0.015350554566108121
+    },
+    {
+      "domain": "Pendulum",
+      "global_policy_display": "yes",
+      "global_policy_exact": true,
+      "representation": "causal two-frame history",
+      "root_kappa_3_display": "0",
+      "root_kappa_3_exact": 0.0
+    }
+  ],
+  "reports": [
+    {
+      "actions": [
+        -1.0,
+        0.0,
+        1.0
+      ],
+      "config_sha256": "46997bc3fef0f3ca7f7789ff560ae90fac9732a6e9514919b8b8bf558d17d991",
+      "domain": "controlled_cart_video",
+      "fixture_roots": [
+        {
+          "current_kinematics": [
+            -0.3,
+            -1.85
+          ],
+          "current_margin": 0.52,
+          "history_id": "cart_incoming_left",
+          "previous_action": 0.0,
+          "previous_kinematics": [
+            -0.07799999999999999,
+            -2.010869565217391
+          ],
+          "previous_margin": 0.742,
+          "state_kind": "CartState"
+        },
+        {
+          "current_kinematics": [
+            -0.3,
+            3.85
+          ],
+          "current_margin": 0.52,
+          "history_id": "cart_incoming_right",
+          "previous_action": 0.0,
+          "previous_kinematics": [
+            -0.762,
+            4.184782608695652
+          ],
+          "previous_margin": 0.05799999999999994,
+          "state_kind": "CartState"
+        }
+      ],
+      "fixture_version": "two_domain_empty_common_safe_action_v1",
+      "horizon": 3,
+      "node_count_by_remaining": [
+        54,
+        18,
+        6,
+        2
+      ],
+      "population_certificate": false,
+      "representations": [
+        {
+          "exact_viability_preserving_code_policy_exists": true,
+          "global_sign_characterization_holds": true,
+          "representation": "privileged_kinematic_state_exact",
+          "root_code_count": 2,
+          "root_fiber_safety": [
+            {
+              "common_safe_actions": [
+                1.0
+              ],
+              "fiber_index": 0,
+              "first_action_obstruction": 0.0,
+              "histories": [
+                "cart_incoming_left"
+              ],
+              "least_violating_safety_action": 1.0,
+              "optimal_margin_action": 1.0,
+              "viable_histories": [
+                "cart_incoming_left"
+              ]
+            },
+            {
+              "common_safe_actions": [
+                -1.0
+              ],
+              "fiber_index": 1,
+              "first_action_obstruction": 0.0,
+              "histories": [
+                "cart_incoming_right"
+              ],
+              "least_violating_safety_action": -1.0,
+              "optimal_margin_action": -1.0,
+              "viable_histories": [
+                "cart_incoming_right"
+              ]
+            }
+          ],
+          "root_outcomes": [
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": true,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": true,
+              "first_action_safety_policy_value": 0.0038030079999998856,
+              "history_id": "cart_incoming_left",
+              "optimal_value": 0.02868620799999999,
+              "path_bound_B": 0.0,
+              "realized_policy_loss": 0.0,
+              "representation_policy_value": 0.02868620799999999
+            },
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": true,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": true,
+              "first_action_safety_policy_value": 0.017865087999999862,
+              "history_id": "cart_incoming_right",
+              "optimal_value": 0.017865087999999862,
+              "path_bound_B": 0.0,
+              "realized_policy_loss": 0.0,
+              "representation_policy_value": 0.017865087999999862
+            }
+          ],
+          "root_stage": {
+            "delta_s_star": 0.0,
+            "fibers_without_common_safe_action": 0,
+            "full_history_viable_count": 2,
+            "kappa_s": 0.0,
+            "remaining_steps": 3,
+            "rho_s": 0.0,
+            "selected_policy_retained_viable_count": 2,
+            "selected_policy_retained_viable_fraction": 1.0
+          },
+          "stagewise_first_action_feasible_within_tolerance": true
+        },
+        {
+          "exact_viability_preserving_code_policy_exists": false,
+          "global_sign_characterization_holds": true,
+          "representation": "memoryless_rendered_frame_exact",
+          "root_code_count": 1,
+          "root_fiber_safety": [
+            {
+              "common_safe_actions": [],
+              "fiber_index": 0,
+              "first_action_obstruction": 0.01798745600000007,
+              "histories": [
+                "cart_incoming_left",
+                "cart_incoming_right"
+              ],
+              "least_violating_safety_action": 0.0,
+              "optimal_margin_action": 0.0,
+              "viable_histories": [
+                "cart_incoming_left",
+                "cart_incoming_right"
+              ]
+            }
+          ],
+          "root_outcomes": [
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": false,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": false,
+              "first_action_safety_policy_value": -0.032049536000000045,
+              "history_id": "cart_incoming_left",
+              "optimal_value": 0.02868620799999999,
+              "path_bound_B": 0.03585254400000015,
+              "realized_policy_loss": 0.03585254400000015,
+              "representation_policy_value": -0.007166336000000162
+            },
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": false,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": false,
+              "first_action_safety_policy_value": -0.01798745600000007,
+              "history_id": "cart_incoming_right",
+              "optimal_value": 0.017865087999999862,
+              "path_bound_B": 0.03585254400000015,
+              "realized_policy_loss": 0.03585254399999993,
+              "representation_policy_value": -0.01798745600000007
+            }
+          ],
+          "root_stage": {
+            "delta_s_star": 0.04126310400000005,
+            "fibers_without_common_safe_action": 1,
+            "full_history_viable_count": 2,
+            "kappa_s": 0.01798745600000007,
+            "remaining_steps": 3,
+            "rho_s": 0.03585254400000015,
+            "selected_policy_retained_viable_count": 0,
+            "selected_policy_retained_viable_fraction": 0.0
+          },
+          "stagewise_first_action_feasible_within_tolerance": false
+        },
+        {
+          "exact_viability_preserving_code_policy_exists": true,
+          "global_sign_characterization_holds": true,
+          "representation": "two_frame_rendered_history_exact",
+          "root_code_count": 2,
+          "root_fiber_safety": [
+            {
+              "common_safe_actions": [
+                1.0
+              ],
+              "fiber_index": 0,
+              "first_action_obstruction": 0.0,
+              "histories": [
+                "cart_incoming_left"
+              ],
+              "least_violating_safety_action": 1.0,
+              "optimal_margin_action": 1.0,
+              "viable_histories": [
+                "cart_incoming_left"
+              ]
+            },
+            {
+              "common_safe_actions": [
+                -1.0
+              ],
+              "fiber_index": 1,
+              "first_action_obstruction": 0.0,
+              "histories": [
+                "cart_incoming_right"
+              ],
+              "least_violating_safety_action": -1.0,
+              "optimal_margin_action": -1.0,
+              "viable_histories": [
+                "cart_incoming_right"
+              ]
+            }
+          ],
+          "root_outcomes": [
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": true,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": true,
+              "first_action_safety_policy_value": 0.0038030079999998856,
+              "history_id": "cart_incoming_left",
+              "optimal_value": 0.02868620799999999,
+              "path_bound_B": 0.0,
+              "realized_policy_loss": 0.0,
+              "representation_policy_value": 0.02868620799999999
+            },
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": true,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": true,
+              "first_action_safety_policy_value": 0.017865087999999862,
+              "history_id": "cart_incoming_right",
+              "optimal_value": 0.017865087999999862,
+              "path_bound_B": 0.0,
+              "realized_policy_loss": 0.0,
+              "representation_policy_value": 0.017865087999999862
+            }
+          ],
+          "root_stage": {
+            "delta_s_star": 0.0,
+            "fibers_without_common_safe_action": 0,
+            "full_history_viable_count": 2,
+            "kappa_s": 0.0,
+            "remaining_steps": 3,
+            "rho_s": 0.0,
+            "selected_policy_retained_viable_count": 2,
+            "selected_policy_retained_viable_fraction": 1.0
+          },
+          "stagewise_first_action_feasible_within_tolerance": true
+        }
+      ],
+      "tolerance": 1e-12
+    },
+    {
+      "actions": [
+        -1.0,
+        0.0,
+        1.0
+      ],
+      "config_sha256": "575d545e0a5d5e0087f777d3a6bc44f6c6e1eb60ba697c71fd9bc9ef68caf3d9",
+      "domain": "controlled_pendulum_video",
+      "fixture_roots": [
+        {
+          "current_kinematics": [
+            -0.04,
+            -3.0
+          ],
+          "current_margin": 0.6599999999999999,
+          "history_id": "pendulum_fast_clockwise",
+          "previous_action": 0.0,
+          "previous_kinematics": [
+            0.20000000000000018,
+            -3.0618208593539133
+          ],
+          "previous_margin": 0.4999999999999998,
+          "state_kind": "PendulumState"
+        },
+        {
+          "current_kinematics": [
+            -0.04,
+            3.25
+          ],
+          "current_margin": 0.6599999999999999,
+          "history_id": "pendulum_fast_counterclockwise",
+          "previous_action": 0.0,
+          "previous_kinematics": [
+            -0.2999999999999998,
+            3.3234940269369613
+          ],
+          "previous_margin": 0.40000000000000013,
+          "state_kind": "PendulumState"
+        }
+      ],
+      "fixture_version": "two_domain_empty_common_safe_action_v1",
+      "horizon": 3,
+      "node_count_by_remaining": [
+        54,
+        18,
+        6,
+        2
+      ],
+      "population_certificate": false,
+      "representations": [
+        {
+          "exact_viability_preserving_code_policy_exists": true,
+          "global_sign_characterization_holds": true,
+          "representation": "privileged_kinematic_state_exact",
+          "root_code_count": 2,
+          "root_fiber_safety": [
+            {
+              "common_safe_actions": [
+                1.0
+              ],
+              "fiber_index": 0,
+              "first_action_obstruction": 0.0,
+              "histories": [
+                "pendulum_fast_clockwise"
+              ],
+              "least_violating_safety_action": 1.0,
+              "optimal_margin_action": 1.0,
+              "viable_histories": [
+                "pendulum_fast_clockwise"
+              ]
+            },
+            {
+              "common_safe_actions": [
+                -1.0,
+                0.0
+              ],
+              "fiber_index": 1,
+              "first_action_obstruction": 0.0,
+              "histories": [
+                "pendulum_fast_counterclockwise"
+              ],
+              "least_violating_safety_action": -1.0,
+              "optimal_margin_action": -1.0,
+              "viable_histories": [
+                "pendulum_fast_counterclockwise"
+              ]
+            }
+          ],
+          "root_outcomes": [
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": true,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": true,
+              "first_action_safety_policy_value": 0.004911341576020911,
+              "history_id": "pendulum_fast_clockwise",
+              "optimal_value": 0.015151341576020938,
+              "path_bound_B": 0.0,
+              "realized_policy_loss": 0.0,
+              "representation_policy_value": 0.015151341576020938
+            },
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": true,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": true,
+              "first_action_safety_policy_value": 0.03943963786085525,
+              "history_id": "pendulum_fast_counterclockwise",
+              "optimal_value": 0.03943963786085525,
+              "path_bound_B": 0.0,
+              "realized_policy_loss": 0.0,
+              "representation_policy_value": 0.03943963786085525
+            }
+          ],
+          "root_stage": {
+            "delta_s_star": 0.0,
+            "fibers_without_common_safe_action": 0,
+            "full_history_viable_count": 2,
+            "kappa_s": 0.0,
+            "remaining_steps": 3,
+            "rho_s": 0.0,
+            "selected_policy_retained_viable_count": 2,
+            "selected_policy_retained_viable_fraction": 1.0
+          },
+          "stagewise_first_action_feasible_within_tolerance": true
+        },
+        {
+          "exact_viability_preserving_code_policy_exists": false,
+          "global_sign_characterization_holds": true,
+          "representation": "memoryless_rendered_frame_exact",
+          "root_code_count": 1,
+          "root_fiber_safety": [
+            {
+              "common_safe_actions": [],
+              "fiber_index": 0,
+              "first_action_obstruction": 0.015350554566108121,
+              "histories": [
+                "pendulum_fast_clockwise",
+                "pendulum_fast_counterclockwise"
+              ],
+              "least_violating_safety_action": 0.0,
+              "optimal_margin_action": 0.0,
+              "viable_histories": [
+                "pendulum_fast_clockwise",
+                "pendulum_fast_counterclockwise"
+              ]
+            }
+          ],
+          "root_outcomes": [
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": false,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": false,
+              "first_action_safety_policy_value": -0.07659764817912795,
+              "history_id": "pendulum_fast_clockwise",
+              "optimal_value": 0.015151341576020938,
+              "path_bound_B": 0.030506289136083886,
+              "realized_policy_loss": 0.03050189614212906,
+              "representation_policy_value": -0.015350554566108121
+            },
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": true,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": true,
+              "first_action_safety_policy_value": 0.008933348724771362,
+              "history_id": "pendulum_fast_counterclockwise",
+              "optimal_value": 0.03943963786085525,
+              "path_bound_B": 0.030506289136083886,
+              "realized_policy_loss": 0.030506289136083886,
+              "representation_policy_value": 0.008933348724771362
+            }
+          ],
+          "root_stage": {
+            "delta_s_star": 0.04264522258899239,
+            "fibers_without_common_safe_action": 1,
+            "full_history_viable_count": 2,
+            "kappa_s": 0.015350554566108121,
+            "remaining_steps": 3,
+            "rho_s": 0.030506289136083886,
+            "selected_policy_retained_viable_count": 1,
+            "selected_policy_retained_viable_fraction": 0.5
+          },
+          "stagewise_first_action_feasible_within_tolerance": false
+        },
+        {
+          "exact_viability_preserving_code_policy_exists": true,
+          "global_sign_characterization_holds": true,
+          "representation": "two_frame_rendered_history_exact",
+          "root_code_count": 2,
+          "root_fiber_safety": [
+            {
+              "common_safe_actions": [
+                1.0
+              ],
+              "fiber_index": 0,
+              "first_action_obstruction": 0.0,
+              "histories": [
+                "pendulum_fast_clockwise"
+              ],
+              "least_violating_safety_action": 1.0,
+              "optimal_margin_action": 1.0,
+              "viable_histories": [
+                "pendulum_fast_clockwise"
+              ]
+            },
+            {
+              "common_safe_actions": [
+                -1.0,
+                0.0
+              ],
+              "fiber_index": 1,
+              "first_action_obstruction": 0.0,
+              "histories": [
+                "pendulum_fast_counterclockwise"
+              ],
+              "least_violating_safety_action": -1.0,
+              "optimal_margin_action": -1.0,
+              "viable_histories": [
+                "pendulum_fast_counterclockwise"
+              ]
+            }
+          ],
+          "root_outcomes": [
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": true,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": true,
+              "first_action_safety_policy_value": 0.004911341576020911,
+              "history_id": "pendulum_fast_clockwise",
+              "optimal_value": 0.015151341576020938,
+              "path_bound_B": 0.0,
+              "realized_policy_loss": 0.0,
+              "representation_policy_value": 0.015151341576020938
+            },
+            {
+              "finite_horizon_viable_under_first_action_safety_policy": true,
+              "finite_horizon_viable_under_optimal_policy": true,
+              "finite_horizon_viable_under_representation_policy": true,
+              "first_action_safety_policy_value": 0.03943963786085525,
+              "history_id": "pendulum_fast_counterclockwise",
+              "optimal_value": 0.03943963786085525,
+              "path_bound_B": 0.0,
+              "realized_policy_loss": 0.0,
+              "representation_policy_value": 0.03943963786085525
+            }
+          ],
+          "root_stage": {
+            "delta_s_star": 0.0,
+            "fibers_without_common_safe_action": 0,
+            "full_history_viable_count": 2,
+            "kappa_s": 0.0,
+            "remaining_steps": 3,
+            "rho_s": 0.0,
+            "selected_policy_retained_viable_count": 2,
+            "selected_policy_retained_viable_fraction": 1.0
+          },
+          "stagewise_first_action_feasible_within_tolerance": true
+        }
+      ],
+      "tolerance": 1e-12
+    }
+  ],
+  "schema_version": 1,
+  "scope": "complete floating-point enumeration of the registered roots, finite action grid, three-step noise-free nominal trees, exact code equality, and recorded tolerance; not learned-model or population evidence",
+  "source_paths": [
+    "configs/e1_world_models/torch_pilot.toml",
+    "configs/e1_world_models/torch_pendulum_pilot.toml",
+    "src/latent_safety/benchmarks/dynamic_oracle.py",
+    "src/latent_safety/metrics/dynamic.py"
+  ],
+  "status": "verified_internal_finite_control"
+}

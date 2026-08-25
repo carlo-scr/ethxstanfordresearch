@@ -67,6 +67,8 @@ boundary_band = 0.18
 positive_margin_band = 0.05
 contrastive_margin = 1.0
 max_contrastive_pairs = 4096
+# Frozen categorical-head width for the same-backbone FCSRL adaptation.
+fcsrl_head_hidden_dim = 64
 
 [evaluation]
 rollout_horizons = [1, 4, 8]

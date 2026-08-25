@@ -1,12 +1,18 @@
+import math
 import random
 import unittest
-from itertools import product
+from fractions import Fraction
+from itertools import combinations, product
 
 from latent_safety.metrics.dynamic import (
     audit_exact_representation_viability,
     audit_finite_dynamic_sufficiency,
     audit_finite_q_greedy_policy,
+    audit_finite_recursive_representation_viability,
+    audit_finite_set_representation_viability,
+    audit_finite_viable_history_set_family,
     calculate_conditional_euclidean_q_bound,
+    calculate_verified_finite_domain_q_bound,
     check_dynamic_data_processing,
 )
 
@@ -151,6 +157,99 @@ def recursively_unsafe_representation_fixture():
         }
     )
     return actions, histories, margins, successors, codes
+
+
+def future_code_conflict_fixture(*, split_stage_one: bool, two_roots: bool):
+    """Two-stage fixture whose continuation actions conflict after merging."""
+
+    actions = (0, 1)
+    histories = (
+        ("plus0", "plus1", "minus0", "minus1"),
+        ("plus", "minus"),
+        (("root_plus", "root_minus") if two_roots else ("root",)),
+    )
+    margins = {
+        (0, "plus0"): 1.0,
+        (0, "plus1"): -1.0,
+        (0, "minus0"): -1.0,
+        (0, "minus1"): 1.0,
+        (1, "plus"): 1.0,
+        (1, "minus"): 1.0,
+    }
+    margins.update({(2, history): 1.0 for history in histories[2]})
+    successors = {
+        (1, "plus", 0): ("plus0",),
+        (1, "plus", 1): ("plus1",),
+        (1, "minus", 0): ("minus0",),
+        (1, "minus", 1): ("minus1",),
+    }
+    if two_roots:
+        for action in actions:
+            successors[(2, "root_plus", action)] = ("plus",)
+            successors[(2, "root_minus", action)] = ("minus",)
+    else:
+        for action in actions:
+            successors[(2, "root", action)] = ("plus", "minus")
+
+    codes = {(0, history): history for history in histories[0]}
+    codes[(1, "plus")] = "plus" if split_stage_one else "shared"
+    codes[(1, "minus")] = "minus" if split_stage_one else "shared"
+    if two_roots:
+        codes[(2, "root_plus")] = "root_plus"
+        codes[(2, "root_minus")] = "root_minus"
+    else:
+        codes[(2, "root")] = "root"
+    return actions, histories, margins, successors, codes
+
+
+def brute_force_set_policy_value(
+    *,
+    actions,
+    histories,
+    margins,
+    successors,
+    codes,
+    remaining_steps,
+    initial_histories,
+):
+    """Independent full-policy enumeration for a same-layer initial set."""
+
+    policy_keys = []
+    for remaining in range(1, remaining_steps + 1):
+        stage_codes = []
+        for history in histories[remaining]:
+            code = codes[(remaining, history)]
+            if code not in stage_codes:
+                stage_codes.append(code)
+        policy_keys.extend((remaining, code) for code in stage_codes)
+
+    best = -math.inf
+    for assignment in product(actions, repeat=len(policy_keys)):
+        policy = dict(zip(policy_keys, assignment, strict=True))
+        policy_values = [dict() for _ in range(remaining_steps + 1)]
+        policy_values[0] = {
+            history: margins[(0, history)] for history in histories[0]
+        }
+        for remaining in range(1, remaining_steps + 1):
+            for history in histories[remaining]:
+                action = policy[(remaining, codes[(remaining, history)])]
+                policy_values[remaining][history] = min(
+                    margins[(remaining, history)],
+                    min(
+                        policy_values[remaining - 1][next_history]
+                        for next_history in successors[
+                            (remaining, history, action)
+                        ]
+                    ),
+                )
+        best = max(
+            best,
+            min(
+                policy_values[remaining_steps][history]
+                for history in initial_histories
+            ),
+        )
+    return best
 
 
 class FiniteDynamicTheoryTests(unittest.TestCase):
@@ -453,6 +552,87 @@ class FiniteDynamicTheoryTests(unittest.TestCase):
                     tolerance=invalid_tolerance,  # type: ignore[arg-type]
                 )
 
+    def test_exact_oracles_reject_inexact_binary64_conversion(self) -> None:
+        actions, histories, margins, successors, codes = one_step_conflict()
+        margin_key = (0, "plus_left")
+
+        for inexact_margin in (Fraction(-1, 10**400), 2**53 + 1):
+            invalid_margins = dict(margins)
+            invalid_margins[margin_key] = inexact_margin  # type: ignore[assignment]
+            with self.assertRaisesRegex(ValueError, "exactly representable"):
+                audit_finite_set_representation_viability(
+                    actions=actions,
+                    histories_by_remaining=histories,
+                    margins=invalid_margins,
+                    successors=successors,
+                    codes=codes,
+                    remaining_steps=1,
+                    initial_histories=histories[1],
+                )
+
+        overflow_margins = dict(margins)
+        overflow_margins[margin_key] = 10**5000  # type: ignore[assignment]
+        with self.assertRaisesRegex(ValueError, "finite and exactly representable"):
+            audit_finite_set_representation_viability(
+                actions=actions,
+                histories_by_remaining=histories,
+                margins=overflow_margins,
+                successors=successors,
+                codes=codes,
+                remaining_steps=1,
+                initial_histories=histories[1],
+            )
+
+        exact_margins = dict(margins)
+        exact_margins[margin_key] = Fraction(1, 2)  # type: ignore[assignment]
+        accepted = audit_finite_set_representation_viability(
+            actions=actions,
+            histories_by_remaining=histories,
+            margins=exact_margins,
+            successors=successors,
+            codes=codes,
+            remaining_steps=1,
+            initial_histories=histories[1],
+        )
+        self.assertEqual(accepted.value, -1.0)
+
+    def test_terminal_only_viability_conventions(self) -> None:
+        common = {
+            "actions": ("stay",),
+            "histories_by_remaining": (("terminal",),),
+            "margins": {(0, "terminal"): 0.0},
+            "successors": {},
+            "codes": {(0, "terminal"): "terminal_code"},
+        }
+
+        set_audit = audit_finite_set_representation_viability(
+            **common,
+            remaining_steps=0,
+            initial_histories=("terminal",),
+        )
+        self.assertEqual(set_audit.value, 0.0)
+        self.assertTrue(set_audit.viable)
+        self.assertEqual(set_audit.optimal_first_action_maps, ())
+        self.assertEqual(set_audit.safe_first_action_maps, ())
+        self.assertEqual(set_audit.evaluated_action_map_count, 0)
+
+        recursive = audit_finite_recursive_representation_viability(**common)
+        self.assertEqual(recursive.horizon, 0)
+        self.assertEqual(recursive.recursive_shortfalls, (0.0,))
+        self.assertEqual(recursive.stage_first_action_obstructions, ())
+        self.assertTrue(recursive.all_layers_preservable)
+        self.assertTrue(recursive.all_stage_first_action_feasible)
+        self.assertTrue(recursive.zero_shortfall_characterization_holds)
+
+        family = audit_finite_viable_history_set_family(
+            **common,
+            remaining_steps=0,
+        )
+        self.assertEqual(family.viable_history_sets, ((), ("terminal",)))
+        self.assertEqual(family.maximum_retained_fraction, 1.0)
+        self.assertTrue(family.jointly_viable)
+        self.assertEqual(family.recursive_shortfall, 0.0)
+
     def test_exact_viability_matches_independent_exhaustive_policy_enumeration(self) -> None:
         actions, histories, margins, successors, codes = (
             recursively_unsafe_representation_fixture()
@@ -485,6 +665,355 @@ class FiniteDynamicTheoryTests(unittest.TestCase):
             max(root_policy_margins), dict(exact.fiber_latent_values[2])["root"]
         )
         self.assertTrue(exact.all_policy_values_below_optimal)
+
+    def test_set_bellman_matches_policy_enumeration_for_every_small_subset(
+        self,
+    ) -> None:
+        generator = random.Random(20260823)
+        actions = (0, 1)
+        for game_index in range(12):
+            histories = tuple(
+                tuple(f"g{game_index}_s{remaining}_h{index}" for index in range(3))
+                for remaining in range(3)
+            )
+            margins = {
+                (remaining, history): float(generator.randint(-2, 2))
+                for remaining, layer in enumerate(histories)
+                for history in layer
+            }
+            successors = {}
+            for remaining in range(1, len(histories)):
+                for history in histories[remaining]:
+                    for action in actions:
+                        count = generator.randint(1, len(histories[remaining - 1]))
+                        successors[(remaining, history, action)] = tuple(
+                            generator.sample(histories[remaining - 1], count)
+                        )
+            codes = {
+                (remaining, history): generator.randrange(2)
+                for remaining, layer in enumerate(histories)
+                for history in layer
+            }
+
+            for remaining, layer in enumerate(histories):
+                for subset_size in range(1, len(layer) + 1):
+                    for subset in combinations(layer, subset_size):
+                        expected = brute_force_set_policy_value(
+                            actions=actions,
+                            histories=histories,
+                            margins=margins,
+                            successors=successors,
+                            codes=codes,
+                            remaining_steps=remaining,
+                            initial_histories=subset,
+                        )
+                        actual = audit_finite_set_representation_viability(
+                            actions=actions,
+                            histories_by_remaining=histories,
+                            margins=margins,
+                            successors=successors,
+                            codes=codes,
+                            remaining_steps=remaining,
+                            initial_histories=reversed(subset),
+                        )
+                        self.assertEqual(actual.value, expected)
+                        self.assertEqual(actual.viable, expected >= 0.0)
+                        self.assertEqual(
+                            actual.recursive_shortfall,
+                            max(0.0, -expected),
+                        )
+                        self.assertEqual(
+                            actual.initial_histories,
+                            tuple(history for history in layer if history in subset),
+                        )
+
+    def test_set_bellman_recovers_existing_fiber_values_and_safe_actions(self) -> None:
+        actions, histories, margins, successors, codes = (
+            recursively_unsafe_representation_fixture()
+        )
+        exhaustive = audit_exact_representation_viability(
+            actions=actions,
+            histories_by_remaining=histories,
+            margins=margins,
+            successors=successors,
+            codes=codes,
+        )
+
+        for remaining in range(1, len(histories)):
+            fibers = {}
+            for history in histories[remaining]:
+                fibers.setdefault(codes[(remaining, history)], []).append(history)
+            expected_values = dict(exhaustive.fiber_latent_values[remaining])
+            expected_actions = dict(exhaustive.fiber_safe_initial_actions[remaining])
+            for code, fiber in fibers.items():
+                result = audit_finite_set_representation_viability(
+                    actions=actions,
+                    histories_by_remaining=histories,
+                    margins=margins,
+                    successors=successors,
+                    codes=codes,
+                    remaining_steps=remaining,
+                    initial_histories=fiber,
+                )
+                self.assertEqual(result.value, expected_values[code])
+                safe_actions = tuple(
+                    action_map[0][1] for action_map in result.safe_first_action_maps
+                )
+                self.assertEqual(safe_actions, expected_actions[code])
+
+    def test_dynamic_viability_data_processing_is_strict_on_action_conflict(
+        self,
+    ) -> None:
+        actions, histories, margins, successors, coarse_codes = one_step_conflict()
+        fine_codes = dict(coarse_codes)
+        fine_codes[(1, "plus")] = "plus"
+        fine_codes[(1, "minus")] = "minus"
+        initial = histories[1]
+
+        fine = audit_finite_set_representation_viability(
+            actions=actions,
+            histories_by_remaining=histories,
+            margins=margins,
+            successors=successors,
+            codes=fine_codes,
+            remaining_steps=1,
+            initial_histories=initial,
+        )
+        coarse = audit_finite_set_representation_viability(
+            actions=actions,
+            histories_by_remaining=histories,
+            margins=margins,
+            successors=successors,
+            codes=coarse_codes,
+            remaining_steps=1,
+            initial_histories=initial,
+        )
+        self.assertEqual(fine.value, 1.0)
+        self.assertEqual(coarse.value, -1.0)
+        self.assertEqual(fine.recursive_shortfall, 0.0)
+        self.assertEqual(coarse.recursive_shortfall, 1.0)
+
+        fine_family = audit_finite_viable_history_set_family(
+            actions=actions,
+            histories_by_remaining=histories,
+            margins=margins,
+            successors=successors,
+            codes=fine_codes,
+            remaining_steps=1,
+        )
+        coarse_family = audit_finite_viable_history_set_family(
+            actions=actions,
+            histories_by_remaining=histories,
+            margins=margins,
+            successors=successors,
+            codes=coarse_codes,
+            remaining_steps=1,
+        )
+        self.assertTrue(fine_family.jointly_viable)
+        self.assertFalse(coarse_family.jointly_viable)
+        self.assertEqual(fine_family.maximum_retained_count, 2)
+        self.assertEqual(coarse_family.maximum_retained_count, 1)
+        self.assertTrue(fine_family.hereditary)
+        self.assertTrue(coarse_family.hereditary)
+        self.assertTrue(
+            set(coarse_family.viable_history_sets).issubset(
+                set(fine_family.viable_history_sets)
+            )
+        )
+
+    def test_set_viability_is_monotone_under_random_stagewise_coarsening(self) -> None:
+        generator = random.Random(20260824)
+        actions = (0, 1)
+        for game_index in range(40):
+            histories = tuple(
+                tuple(f"m{game_index}_s{remaining}_h{index}" for index in range(3))
+                for remaining in range(3)
+            )
+            margins = {
+                (remaining, history): float(generator.randint(-3, 3))
+                for remaining, layer in enumerate(histories)
+                for history in layer
+            }
+            successors = {}
+            for remaining in range(1, len(histories)):
+                for history in histories[remaining]:
+                    for action in actions:
+                        successors[(remaining, history, action)] = tuple(
+                            generator.sample(
+                                histories[remaining - 1],
+                                generator.randint(1, 3),
+                            )
+                        )
+            fine_codes = {
+                (remaining, history): (remaining, generator.randrange(3))
+                for remaining, layer in enumerate(histories)
+                for history in layer
+            }
+            coarse_map = {
+                fine_code: (fine_code[0], fine_code[1] % 2)
+                for fine_code in set(fine_codes.values())
+            }
+            coarse_codes = {
+                key: coarse_map[fine_code]
+                for key, fine_code in fine_codes.items()
+            }
+            for remaining in range(len(histories)):
+                subset = tuple(
+                    history
+                    for history in histories[remaining]
+                    if generator.random() < 0.7
+                ) or (histories[remaining][0],)
+                fine = audit_finite_set_representation_viability(
+                    actions=actions,
+                    histories_by_remaining=histories,
+                    margins=margins,
+                    successors=successors,
+                    codes=fine_codes,
+                    remaining_steps=remaining,
+                    initial_histories=subset,
+                )
+                coarse = audit_finite_set_representation_viability(
+                    actions=actions,
+                    histories_by_remaining=histories,
+                    margins=margins,
+                    successors=successors,
+                    codes=coarse_codes,
+                    remaining_steps=remaining,
+                    initial_histories=subset,
+                )
+                self.assertGreaterEqual(fine.value, coarse.value)
+                self.assertLessEqual(
+                    fine.recursive_shortfall, coarse.recursive_shortfall
+                )
+
+    def test_current_layer_postprocessing_alone_does_not_order_recursive_value(
+        self,
+    ) -> None:
+        fine_problem = future_code_conflict_fixture(
+            split_stage_one=True, two_roots=False
+        )
+        coarse_problem = future_code_conflict_fixture(
+            split_stage_one=False, two_roots=False
+        )
+        self.assertEqual(fine_problem[4][(2, "root")], coarse_problem[4][(2, "root")])
+
+        fine = audit_finite_set_representation_viability(
+            actions=fine_problem[0],
+            histories_by_remaining=fine_problem[1],
+            margins=fine_problem[2],
+            successors=fine_problem[3],
+            codes=fine_problem[4],
+            remaining_steps=2,
+            initial_histories=("root",),
+        )
+        coarse = audit_finite_set_representation_viability(
+            actions=coarse_problem[0],
+            histories_by_remaining=coarse_problem[1],
+            margins=coarse_problem[2],
+            successors=coarse_problem[3],
+            codes=coarse_problem[4],
+            remaining_steps=2,
+            initial_histories=("root",),
+        )
+        self.assertEqual(fine.value, 1.0)
+        self.assertEqual(coarse.value, -1.0)
+
+    def test_individually_viable_fibers_can_fail_when_a_union_couples_them(self) -> None:
+        problem = future_code_conflict_fixture(
+            split_stage_one=False, two_roots=True
+        )
+        common = {
+            "actions": problem[0],
+            "histories_by_remaining": problem[1],
+            "margins": problem[2],
+            "successors": problem[3],
+            "codes": problem[4],
+            "remaining_steps": 2,
+        }
+        plus = audit_finite_set_representation_viability(
+            **common, initial_histories=("root_plus",)
+        )
+        minus = audit_finite_set_representation_viability(
+            **common, initial_histories=("root_minus",)
+        )
+        union = audit_finite_set_representation_viability(
+            **common, initial_histories=("root_plus", "root_minus")
+        )
+        self.assertEqual(plus.value, 1.0)
+        self.assertEqual(minus.value, 1.0)
+        self.assertEqual(union.value, -1.0)
+
+        family = audit_finite_viable_history_set_family(**common)
+        self.assertEqual(family.maximum_retained_count, 1)
+        self.assertEqual(family.maximum_retained_fraction, 0.5)
+        self.assertFalse(family.jointly_viable)
+        self.assertEqual(family.recursive_shortfall, 1.0)
+
+    def test_recursive_shortfall_matches_global_first_action_characterization(
+        self,
+    ) -> None:
+        merged = recursively_unsafe_representation_fixture()
+        merged_audit = audit_finite_recursive_representation_viability(
+            actions=merged[0],
+            histories_by_remaining=merged[1],
+            margins=merged[2],
+            successors=merged[3],
+            codes=merged[4],
+        )
+        self.assertEqual(merged_audit.recursive_shortfalls, (0.0, 1.0, 1.0))
+        self.assertEqual(merged_audit.stage_first_action_obstructions, (1.0, 0.0))
+        self.assertFalse(merged_audit.all_layers_preservable)
+        self.assertFalse(merged_audit.all_stage_first_action_feasible)
+        self.assertTrue(merged_audit.zero_shortfall_characterization_holds)
+
+        split = future_code_conflict_fixture(
+            split_stage_one=True, two_roots=False
+        )
+        split_audit = audit_finite_recursive_representation_viability(
+            actions=split[0],
+            histories_by_remaining=split[1],
+            margins=split[2],
+            successors=split[3],
+            codes=split[4],
+        )
+        self.assertEqual(split_audit.recursive_shortfalls, (0.0, 0.0, 0.0))
+        self.assertTrue(split_audit.all_layers_preservable)
+        self.assertTrue(split_audit.all_stage_first_action_feasible)
+        self.assertTrue(split_audit.zero_shortfall_characterization_holds)
+
+    def test_set_viability_guards_exponential_enumeration(self) -> None:
+        actions, histories, margins, successors, codes = one_step_conflict()
+        with self.assertRaisesRegex(ValueError, "max_action_map_count"):
+            audit_finite_set_representation_viability(
+                actions=actions,
+                histories_by_remaining=histories,
+                margins=margins,
+                successors=successors,
+                codes=codes,
+                remaining_steps=1,
+                initial_histories=histories[1],
+                max_action_map_count=1,
+            )
+        with self.assertRaisesRegex(ValueError, "above max_subset_count"):
+            audit_finite_viable_history_set_family(
+                actions=actions,
+                histories_by_remaining=histories,
+                margins=margins,
+                successors=successors,
+                codes=codes,
+                remaining_steps=1,
+                max_subset_count=3,
+            )
+        with self.assertRaisesRegex(ValueError, "non-empty"):
+            audit_finite_set_representation_viability(
+                actions=actions,
+                histories_by_remaining=histories,
+                margins=margins,
+                successors=successors,
+                codes=codes,
+                remaining_steps=1,
+                initial_histories=(),
+            )
 
     def test_model_local_lipschitz_hausdorff_bound_is_numerically_exact(self) -> None:
         actions = ("a",)
@@ -717,6 +1246,169 @@ class FiniteDynamicTheoryTests(unittest.TestCase):
                 cover_radius=0.0,
                 representation_lipschitz=1.0,
                 q_lipschitz=1.0,
+                premise_provenance=PREMISE_PROVENANCE,
+            )
+
+    def test_verified_finite_domain_bound_derives_and_checks_every_premise(self) -> None:
+        population = (-1.0, -0.5, 0.0, 0.5, 1.0)
+        result = calculate_verified_finite_domain_q_bound(
+            history_distances=[
+                [abs(left - right) for right in population] for left in population
+            ],
+            population_latents=[(abs(point),) for point in population],
+            population_q_values=[(point, -point) for point in population],
+            sample_indices=(1, 2, 3),
+        )
+
+        self.assertEqual(result.status, "verified_complete_finite_domain_only")
+        self.assertEqual(
+            result.calculation.status,
+            "premises_verified_on_complete_finite_domain_only",
+        )
+        self.assertEqual(result.domain_count, 5)
+        self.assertEqual(result.sample_indices, (1, 2, 3))
+        self.assertEqual(result.latent_metric, "euclidean_l2")
+        self.assertEqual(result.cover_radius, 0.5)
+        self.assertEqual(result.exact_representation_lipschitz, 1.0)
+        self.assertEqual(result.exact_q_lipschitz, 1.0)
+        self.assertEqual(result.exact_sample_q_estimation_error, 0.0)
+        self.assertEqual(result.population_q_oscillation, 2.0)
+        self.assertEqual(
+            result.outward_population_q_oscillation,
+            math.nextafter(2.0, math.inf),
+        )
+        self.assertEqual(
+            result.q_oscillation_upper_bound,
+            result.outward_population_q_oscillation,
+        )
+        self.assertEqual(result.bound_to_global_oscillation_ratio, 1.0)
+        self.assertFalse(result.nonvacuous_against_global_oscillation)
+        self.assertTrue(result.population_bound_holds)
+
+        noisy = calculate_verified_finite_domain_q_bound(
+            history_distances=[
+                [abs(left - right) for right in population] for left in population
+            ],
+            population_latents=[(abs(point),) for point in population],
+            population_q_values=[(point, -point) for point in population],
+            sample_indices=(1, 2, 3),
+            sample_q_estimates=[
+                (population[index] + 0.1, -population[index] + 0.1)
+                for index in (1, 2, 3)
+            ],
+        )
+        self.assertAlmostEqual(noisy.exact_sample_q_estimation_error, 0.1)
+        self.assertAlmostEqual(noisy.q_oscillation_upper_bound, 2.2)
+        self.assertTrue(noisy.population_bound_holds)
+
+    def test_verified_finite_domain_bound_outward_corrects_roundoff(self) -> None:
+        inner = 106.29554989233057
+        outer = 394.47360659037525
+        population = (-outer, -inner, 0.0, inner, outer)
+        result = calculate_verified_finite_domain_q_bound(
+            history_distances=[
+                [abs(left - right) for right in population] for left in population
+            ],
+            population_latents=[(abs(point),) for point in population],
+            population_q_values=[(point, -point) for point in population],
+            sample_indices=(1, 2, 3),
+        )
+
+        self.assertGreater(
+            result.population_q_oscillation,
+            result.raw_cover_q_oscillation_upper_bound,
+        )
+        self.assertEqual(
+            result.q_oscillation_upper_bound,
+            result.outward_population_q_oscillation,
+        )
+        self.assertEqual(
+            result.optimal_margin_regret_upper_bound,
+            result.outward_population_q_oscillation,
+        )
+        self.assertGreater(result.outward_bound_correction, 0.0)
+        self.assertTrue(result.population_bound_holds)
+
+    def test_verified_finite_domain_bound_encloses_exact_stored_float_regret(
+        self,
+    ) -> None:
+        small = 2.0**-54
+        result = calculate_verified_finite_domain_q_bound(
+            history_distances=((0.0, 1.0), (1.0, 0.0)),
+            population_latents=((0.0,), (0.0,)),
+            population_q_values=((1.0, -small), (-small, 1.0)),
+            sample_indices=(0, 1),
+        )
+
+        exact_regret = Fraction.from_float(1.0) - Fraction.from_float(-small)
+        returned_bound = Fraction.from_float(
+            result.optimal_margin_regret_upper_bound
+        )
+        self.assertEqual(result.population_q_oscillation, 1.0)
+        self.assertEqual(
+            result.outward_population_q_oscillation,
+            math.nextafter(1.0, math.inf),
+        )
+        self.assertGreaterEqual(returned_bound, exact_regret)
+        self.assertGreater(
+            result.optimal_margin_regret_upper_bound,
+            result.population_q_oscillation,
+        )
+        self.assertTrue(result.population_bound_holds)
+
+    def test_verified_finite_domain_outward_step_is_not_absolute_tolerance_limited(
+        self,
+    ) -> None:
+        large = 1.0e24
+        result = calculate_verified_finite_domain_q_bound(
+            history_distances=((0.0, 1.0), (1.0, 0.0)),
+            population_latents=((0.0,), (0.0,)),
+            population_q_values=((0.0,), (large,)),
+            sample_indices=(0, 1),
+        )
+
+        self.assertEqual(
+            result.raw_cover_q_oscillation_upper_bound,
+            result.population_q_oscillation,
+        )
+        self.assertEqual(
+            result.q_oscillation_upper_bound,
+            math.nextafter(result.population_q_oscillation, math.inf),
+        )
+        self.assertGreater(result.outward_bound_correction, 1e-12)
+        self.assertTrue(result.population_bound_holds)
+
+    def test_verified_finite_domain_bound_rejects_invalid_metric(self) -> None:
+        with self.assertRaisesRegex(ValueError, "triangle"):
+            calculate_verified_finite_domain_q_bound(
+                history_distances=((0.0, 1.0, 3.0), (1.0, 0.0, 1.0), (3.0, 1.0, 0.0)),
+                population_latents=((0.0,), (1.0,), (2.0,)),
+                population_q_values=((0.0,), (1.0,), (2.0,)),
+                sample_indices=(0, 2),
+            )
+
+    def test_dynamic_and_cover_audits_reject_nonfinite_derived_arithmetic(self) -> None:
+        actions, histories, margins, successors, codes = one_step_conflict()
+        huge_margins = {
+            key: (1e308 if value > 0.0 else -1e308)
+            for key, value in margins.items()
+        }
+        with self.assertRaisesRegex(ValueError, "derived action regret"):
+            audit_finite_dynamic_sufficiency(
+                actions=actions,
+                histories_by_remaining=histories,
+                margins=huge_margins,
+                successors=successors,
+                codes=codes,
+            )
+
+        with self.assertRaisesRegex(ValueError, "derived nominal search radius"):
+            calculate_conditional_euclidean_q_bound(
+                sample_latents=((0.0,),),
+                sample_q_values=((0.0,),),
+                cover_radius=1e308,
+                representation_lipschitz=1e308,
+                q_lipschitz=0.0,
                 premise_provenance=PREMISE_PROVENANCE,
             )
 

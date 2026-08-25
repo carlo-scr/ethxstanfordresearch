@@ -1,18 +1,21 @@
 \begin{abstract}
-Learned world models compress high-dimensional observations into latent states on which planners,
-safety filters, and certificates act.  Existing guarantees are typically conditional on the latent
-state preserving the distinctions needed by the safety specification and controlled dynamics.  We
-study when this information is lost.  Our framework separates two representation-level
-obstructions: safe states that share a code with unsafe states, and individually viable states that
-share a code but admit no common safe action.  We give an endpoint-correct characterization of the
-best completeness threshold attainable by any sound latent safe set and show that deterministic
-post-processing cannot beat observation-level ambiguity.  For safe actions, we characterize when
-deterministic and randomized memoryless decisions are impossible, give a common-action
-least-intervention construction, bound pointwise expected-loss randomization for finite actions,
-show that randomization gives no benefit under strong fiber-wise loss, and construct smooth
-encoders whose average reconstruction and prediction losses vanish while worst-case safety
-ambiguity persists.  We pair these results with finite-data audits, controlled
-partial-observability fixtures, and a prospectively frozen world-model study at matched utility.
-Large-scale empirical claims are
-intentionally withheld until that study is complete.
+Pretrained visual representations increasingly serve as the state interface for planning, control,
+and safety filters.  Their native objectives preserve pixels, semantic structure, or predictable
+features, but none requires histories mapped to one code to retain a common safe action.  We call
+this requirement \emph{safe-action sufficiency}.  We characterize exact static and common-action
+obstructions, prove that deterministic post-processing cannot repair exact aliases, and give a
+smooth construction in which average reconstruction and prediction losses can be driven
+arbitrarily close to zero while worst-case safety ambiguity remains fixed.  We then define a
+traceable finite-radius common-action audit and propose \emph{Common-Action Geometry Repair}: update
+pre-bottleneck encoder modules using an
+action-profile loss, a set-wise neighborhood objective, and a family-specific retention loss.
+Unlike a safety probe, the intervention will be evaluated after removing its training head and
+fitting a fresh downstream readout.  The prospective study deliberately triangulates reconstructive,
+predictive, and semantic pretraining through Cosmos Tokenizer, V-JEPA~2, and DINOv3.  The protocol
+is designed to match the causal information span and an explicitly quantized capacity
+proxy within each comparison, and will use simulator-branched action profiles in manipulation and
+embodied navigation; driving is an optional
+external-validity study rather than the paper's identity.  Exact cart and pendulum aliases presently
+validate only the obstruction and observation-floor controls.  No pretrained-encoder repair or
+closed-loop foundation-model result is claimed before the prospectively specified study is executed.
 \end{abstract}

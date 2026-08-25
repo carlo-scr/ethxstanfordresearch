@@ -118,15 +118,19 @@ def audit_exact_action_fibers(
         if len(indices) < 2:
             continue
         nontrivial += 1
-        states_are_viable = all(
-            max(float(value) for value in action_safety_margins[index]) >= 0.0
+        viable_indices = tuple(
+            index
             for index in indices
+            if max(float(value) for value in action_safety_margins[index]) >= 0.0
         )
-        if not states_are_viable:
+        if len(viable_indices) < 2:
             continue
         individually_viable += 1
         robust_action_margins = [
-            min(float(action_safety_margins[index][action]) for index in indices)
+            min(
+                float(action_safety_margins[index][action])
+                for index in viable_indices
+            )
             for action in range(action_count)
         ]
         best_common_margin = max(robust_action_margins)
@@ -153,10 +157,12 @@ def audit_radius_action_neighborhoods(
 ) -> RadiusActionNeighborhoodAudit:
     """Audit common finite-grid actions in every fixed-radius latent neighborhood.
 
-    A neighborhood is centered at an observed state and contains every supplied state within
-    Euclidean distance ``delta``. It is conflicting only when all members are individually viable
-    on the action grid but their shared best action has negative worst-state margin. This detects
-    higher-order conflicts that pair-only checks can miss.
+    The reference population is first restricted to individually viable states. A neighborhood is
+    then centered at each viable observed state and contains every viable supplied state within
+    Euclidean distance ``delta``. It is conflicting when its shared best action has negative
+    worst-state margin. This ordering keeps physical infeasibility separate from
+    representation-induced conflict and detects higher-order conflicts that pair-only checks can
+    miss.
 
     The result is a finite-reference witness, not a certificate for unsampled states. A continuous
     action space requires verified optimization rather than presenting a coarse grid as exact.
@@ -194,17 +200,17 @@ def audit_radius_action_neighborhoods(
     worst_violation = 0.0
     witnesses: list[ActionNeighborhoodWitness] = []
     center_required_violations: list[float | None] = [None] * len(vectors)
-    for center_index, center in enumerate(vectors):
+    viable_indices = tuple(index for index, row in enumerate(rows) if max(row) >= 0.0)
+    for center_index in viable_indices:
+        center = vectors[center_index]
         members = tuple(
             index
-            for index, vector in enumerate(vectors)
-            if distance(center, vector) <= delta + tolerance
+            for index in viable_indices
+            if distance(center, vectors[index]) <= delta + tolerance
         )
         if len(members) < 2:
             continue
         nontrivial += 1
-        if not all(max(rows[index]) >= 0.0 for index in members):
-            continue
         viable += 1
         common_action_margins = [
             min(rows[index][action] for index in members) for action in range(action_count)
