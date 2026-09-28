@@ -1,0 +1,699 @@
+\begin{thebibliography}{94}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Adams and MacKay(2007)]{adams2007bocpd}
+Ryan~Prescott Adams and David J.~C. MacKay.
+\newblock Bayesian online changepoint detection.
+\newblock arXiv:0710.3742, 2007.
+
+\bibitem[Agarwal et~al.(2022)Agarwal, Kumar, Malik, and
+  Pathak]{agarwal2022egocentric}
+Ananye Agarwal, Ashish Kumar, Jitendra Malik, and Deepak Pathak.
+\newblock Legged locomotion in challenging terrains using egocentric vision.
+\newblock In \emph{Conference on Robot Learning (CoRL)}, 2022.
+
+\bibitem[Agrawal and Sreenath(2017)]{agrawal2017discrete}
+Ayush Agrawal and Koushil Sreenath.
+\newblock Discrete control barrier functions for safety-critical control of
+  discrete systems with application to bipedal robot navigation.
+\newblock In \emph{Robotics: Science and Systems (RSS)}, 2017.
+\newblock \doi{10.15607/RSS.2017.XIII.073}.
+
+\bibitem[Agrawal et~al.(2025)Agrawal, Seo, Nakamura, Tian, and
+  Bajcsy]{agrawal2025anysafe}
+Sankalp Agrawal, Junwon Seo, Kensuke Nakamura, Ran Tian, and Andrea Bajcsy.
+\newblock {AnySafe}: Adapting latent safety filters at runtime via safety
+  constraint parameterization in the latent space.
+\newblock arXiv:2509.19555, 2025.
+
+\bibitem[Anand and Kolathaya(2025)]{anand2025safety}
+Mehul Anand and Shishir Kolathaya.
+\newblock Safety certification in the latent space using control barrier
+  functions and world models.
+\newblock \emph{arXiv preprint arXiv:2507.13871}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2507.13871}.
+
+\bibitem[Assran et~al.(2025)Assran, Bardes, Fan, Garrido, Howes,
+  et~al.]{assran2025vjepa2}
+Mido Assran, Adrien Bardes, David Fan, Quentin Garrido, Russell Howes, et~al.
+\newblock {V-JEPA 2}: Self-supervised video models enable understanding,
+  prediction and planning.
+\newblock arXiv:2506.09985, 2025.
+
+\bibitem[Bauza and Rodriguez(2017)]{bauza2017probpush}
+Maria Bauza and Alberto Rodriguez.
+\newblock A probabilistic data-driven model for planar pushing.
+\newblock In \emph{IEEE International Conference on Robotics and Automation
+  (ICRA)}, pages 3008--3015, 2017.
+\newblock \doi{10.1109/ICRA.2017.7989345}.
+
+\bibitem[Benad et~al.(2026)Benad, Banerjee, R{\"o}der, Ay, Butz, and
+  Eppe]{benad2026dmash}
+Jan Benad, Pradeep~Kr. Banerjee, Frank R{\"o}der, Nihat Ay, Martin~V. Butz, and
+  Manfred Eppe.
+\newblock Dynamics-aligned shared hypernetworks for contextual {RL} under
+  discontinuous shifts.
+\newblock arXiv:2602.06550, 2026.
+
+\bibitem[Berkenkamp et~al.(2017)Berkenkamp, Turchetta, Schoellig, and
+  Krause]{berkenkamp2017safe}
+Felix Berkenkamp, Matteo Turchetta, Angela~P. Schoellig, and Andreas Krause.
+\newblock Safe model-based reinforcement learning with stability guarantees.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, volume~30, 2017.
+
+\bibitem[Blackmore and Williams(2006)]{blackmore2006discrimination}
+Lars Blackmore and Brian Williams.
+\newblock Finite horizon control design for optimal discrimination between
+  several models.
+\newblock In \emph{IEEE Conference on Decision and Control (CDC)}, pages
+  1147--1152, 2006.
+\newblock \doi{10.1109/CDC.2006.377045}.
+
+\bibitem[Blackmore et~al.(2008)Blackmore, Rajamanoharan, and
+  Williams]{blackmore2008active}
+Lars Blackmore, Senthooran Rajamanoharan, and Brian~C. Williams.
+\newblock Active estimation for jump {M}arkov linear systems.
+\newblock \emph{IEEE Transactions on Automatic Control}, 53\penalty0
+  (10):\penalty0 2223--2236, 2008.
+\newblock \doi{10.1109/TAC.2008.2006100}.
+
+\bibitem[Blom and Bar-Shalom(1988)]{blom1988imm}
+Henk A.~P. Blom and Yaakov Bar-Shalom.
+\newblock The interacting multiple model algorithm for systems with {M}arkovian
+  switching coefficients.
+\newblock \emph{IEEE Transactions on Automatic Control}, 33\penalty0
+  (8):\penalty0 780--783, 1988.
+\newblock \doi{10.1109/9.1299}.
+
+\bibitem[Bousquet and Warmuth(2002)]{bousquet2002tracking}
+Olivier Bousquet and Manfred~K. Warmuth.
+\newblock Tracking a small set of experts by mixing past posteriors.
+\newblock \emph{Journal of Machine Learning Research}, 3:\penalty0 363--396,
+  2002.
+
+\bibitem[Brunzema et~al.(2026)Brunzema, Lew, Zhang, Shirasawa, Subosits, and
+  Greiff]{brunzema2026vcvbll}
+Paul Brunzema, Thomas Lew, Ray Zhang, Takeru Shirasawa, John Subosits, and
+  Marcus Greiff.
+\newblock Vision-conditioned variational {B}ayesian last layer dynamics models.
+\newblock arXiv:2601.09178, 2026.
+
+\bibitem[Cai et~al.(2023)Cai, Everett, Sharma, Osteen, and
+  How]{cai2023probtrav}
+Xiaoyi Cai, Michael Everett, Lakshay Sharma, Philip~R. Osteen, and Jonathan~P.
+  How.
+\newblock Probabilistic traversability model for risk-aware motion planning in
+  off-road environments.
+\newblock In \emph{IEEE/RSJ International Conference on Intelligent Robots and
+  Systems (IROS)}, 2023.
+
+\bibitem[Casta{\~n}eda et~al.(2025)Casta{\~n}eda, Choi, Jung, Zhang, Tomlin,
+  and Sreenath]{castaneda2025recursively}
+Fernando Casta{\~n}eda, Jason~J. Choi, Wonsuhk Jung, Bike Zhang, Claire~J.
+  Tomlin, and Koushil Sreenath.
+\newblock Recursively feasible probabilistic safe online learning with control
+  barrier functions.
+\newblock \emph{IEEE Open Journal of Control Systems}, 4:\penalty0 531--548,
+  2025.
+\newblock \doi{10.1109/OJCSYS.2025.3620209}.
+
+\bibitem[Chua et~al.(2018)Chua, Calandra, McAllister, and Levine]{chua2018pets}
+Kurtland Chua, Roberto Calandra, Rowan McAllister, and Sergey Levine.
+\newblock Deep reinforcement learning in a handful of trials using
+  probabilistic dynamics models.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, volume~31, pages 4759--4770, 2018.
+
+\bibitem[Dixit et~al.(2023)Dixit, Lindemann, Wei, Cleaveland, Pappas, and
+  Burdick]{dixit2023adaptive}
+Anushri Dixit, Lars Lindemann, Skylar~X. Wei, Matthew Cleaveland, George~J.
+  Pappas, and Joel~W. Burdick.
+\newblock Adaptive conformal prediction for motion planning among dynamic
+  agents.
+\newblock In \emph{Learning for Dynamics and Control Conference (L4DC)}, volume
+  211 of \emph{PMLR}, pages 300--314, 2023.
+
+\bibitem[Doshi-Velez and Konidaris(2016)]{doshivelez2016hipmdp}
+Finale Doshi-Velez and George Konidaris.
+\newblock Hidden parameter {M}arkov decision processes: A semiparametric
+  regression approach for discovering latent task parametrizations.
+\newblock In \emph{International Joint Conference on Artificial Intelligence
+  (IJCAI)}, pages 1432--1440, 2016.
+
+\bibitem[Feng et~al.(2022)Feng, Huang, Zhang, and Magliacane]{feng2022factored}
+Fan Feng, Biwei Huang, Kun Zhang, and Sara Magliacane.
+\newblock Factored adaptation for non-stationary reinforcement learning.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2022.
+
+\bibitem[Fox et~al.(2011{\natexlab{a}})Fox, Sudderth, Jordan, and
+  Willsky]{fox2011bnpslds}
+Emily~B. Fox, Erik~B. Sudderth, Michael~I. Jordan, and Alan~S. Willsky.
+\newblock Bayesian nonparametric inference of switching dynamic linear models.
+\newblock \emph{IEEE Transactions on Signal Processing}, 59\penalty0
+  (4):\penalty0 1569--1585, 2011{\natexlab{a}}.
+\newblock \doi{10.1109/TSP.2010.2102756}.
+
+\bibitem[Fox et~al.(2011{\natexlab{b}})Fox, Sudderth, Jordan, and
+  Willsky]{fox2011sticky}
+Emily~B. Fox, Erik~B. Sudderth, Michael~I. Jordan, and Alan~S. Willsky.
+\newblock A sticky {HDP-HMM} with application to speaker diarization.
+\newblock \emph{The Annals of Applied Statistics}, 5\penalty0 (2A):\penalty0
+  1020--1056, 2011{\natexlab{b}}.
+\newblock \doi{10.1214/10-AOAS395}.
+
+\bibitem[Franklin and Frank(2018)]{franklin2018compositional}
+Nicholas~T. Franklin and Michael~J. Frank.
+\newblock Compositional clustering in task structure learning.
+\newblock \emph{PLOS Computational Biology}, 14\penalty0 (4):\penalty0
+  e1006116, 2018.
+\newblock \doi{10.1371/journal.pcbi.1006116}.
+
+\bibitem[Frey et~al.(2023)Frey, Mattamala, Chebrolu, Cadena, Fallon, and
+  Hutter]{frey2023wvn}
+Jonas Frey, Matias Mattamala, Nived Chebrolu, Cesar Cadena, Maurice Fallon, and
+  Marco Hutter.
+\newblock Fast traversability estimation for wild visual navigation.
+\newblock In \emph{Robotics: Science and Systems (RSS)}, 2023.
+
+\bibitem[Gao et~al.(2024)Gao, Sarkar, Xia, Xiao, Wu, Ichter, Majumdar, and
+  Sadigh]{gao2024physically}
+Jensen Gao, Bidipta Sarkar, Fei Xia, Ted Xiao, Jiajun Wu, Brian Ichter,
+  Anirudha Majumdar, and Dorsa Sadigh.
+\newblock Physically grounded vision-language models for robotic manipulation.
+\newblock In \emph{IEEE International Conference on Robotics and Automation
+  (ICRA)}, pages 12462--12469, 2024.
+\newblock \doi{10.1109/ICRA57147.2024.10610090}.
+
+\bibitem[Gershman et~al.(2010)Gershman, Blei, and Niv]{gershman2010context}
+Samuel~J. Gershman, David~M. Blei, and Yael Niv.
+\newblock Context, learning, and extinction.
+\newblock \emph{Psychological Review}, 117\penalty0 (1):\penalty0 197--209,
+  2010.
+\newblock \doi{10.1037/a0017808}.
+
+\bibitem[Gershman et~al.(2014)Gershman, Radulescu, Norman, and
+  Niv]{gershman2014statistical}
+Samuel~J. Gershman, Angela Radulescu, Kenneth~A. Norman, and Yael Niv.
+\newblock Statistical computations underlying the dynamics of memory updating.
+\newblock \emph{PLoS Computational Biology}, 10\penalty0 (11):\penalty0
+  e1003939, 2014.
+\newblock \doi{10.1371/journal.pcbi.1003939}.
+
+\bibitem[Gibbs and Cand{\`e}s(2021)]{gibbs2021adaptive}
+Isaac Gibbs and Emmanuel Cand{\`e}s.
+\newblock Adaptive conformal inference under distribution shift.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, volume~34, 2021.
+
+\bibitem[Gibson et~al.(2024)Gibson, Alavilli, Tevere, Theodorou, and
+  Spieler]{gibson2024visualterrain}
+Jason Gibson, Anoushka Alavilli, Erica Tevere, Evangelos~A. Theodorou, and
+  Patrick Spieler.
+\newblock Dynamics modeling using visual terrain features for high-speed
+  autonomous off-road driving.
+\newblock arXiv:2412.00581, 2024.
+
+\bibitem[Hansen et~al.(2024)Hansen, Su, and Wang]{hansen2024tdmpc2}
+Nicklas Hansen, Hao Su, and Xiaolong Wang.
+\newblock {TD-MPC2}: Scalable, robust world models for continuous control.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2024.
+
+\bibitem[Harrison et~al.(2018)Harrison, Sharma, and Pavone]{harrison2018alpaca}
+James Harrison, Apoorva Sharma, and Marco Pavone.
+\newblock Meta-learning priors for efficient online {B}ayesian regression.
+\newblock In \emph{Workshop on the Algorithmic Foundations of Robotics (WAFR)},
+  2018.
+
+\bibitem[Harrison et~al.(2020)Harrison, Sharma, Finn, and
+  Pavone]{harrison2020moca}
+James Harrison, Apoorva Sharma, Chelsea Finn, and Marco Pavone.
+\newblock Continuous meta-learning without tasks.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, volume~33, 2020.
+
+\bibitem[Harrison et~al.(2024)Harrison, Willes, and Snoek]{harrison2024vbll}
+James Harrison, John Willes, and Jasper Snoek.
+\newblock Variational {B}ayesian last layers.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2024.
+
+\bibitem[Haruno et~al.(2001)Haruno, Wolpert, and Kawato]{haruno2001mosaic}
+Masahiko Haruno, Daniel~M. Wolpert, and Mitsuo Kawato.
+\newblock {MOSAIC} model for sensorimotor learning and control.
+\newblock \emph{Neural Computation}, 13\penalty0 (10):\penalty0 2201--2220,
+  2001.
+\newblock \doi{10.1162/089976601750541778}.
+
+\bibitem[Heald et~al.(2021)Heald, Lengyel, and Wolpert]{heald2021coin}
+James~B. Heald, M{\'a}t{\'e} Lengyel, and Daniel~M. Wolpert.
+\newblock Contextual inference underlies the learning of sensorimotor
+  repertoires.
+\newblock \emph{Nature}, 600\penalty0 (7889):\penalty0 489--493, 2021.
+\newblock \doi{10.1038/s41586-021-04129-3}.
+
+\bibitem[Heald et~al.(2023)Heald, Wolpert, and Lengyel]{heald2023annurev}
+James~B. Heald, Daniel~M. Wolpert, and M{\'a}t{\'e} Lengyel.
+\newblock The computational and neural bases of context-dependent learning.
+\newblock \emph{Annual Review of Neuroscience}, 46:\penalty0 233--258, 2023.
+\newblock \doi{10.1146/annurev-neuro-092322-100402}.
+
+\bibitem[Heirung et~al.(2019)Heirung, Santos, and
+  Mesbah]{heirung2019mpcdiscrimination}
+Tor Aksel~N. Heirung, Tito L.~M. Santos, and Ali Mesbah.
+\newblock Model predictive control with active learning for stochastic systems
+  with structural model uncertainty: Online model discrimination.
+\newblock \emph{Computers \& Chemical Engineering}, 128:\penalty0 128--140,
+  2019.
+\newblock \doi{10.1016/j.compchemeng.2019.05.012}.
+
+\bibitem[Hoang et~al.(2024)Hoang, Vo, and Do]{hoang2024petta}
+Trung-Hieu Hoang, Duc~Minh Vo, and Minh~N. Do.
+\newblock Persistent test-time adaptation in recurring testing scenarios.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2024.
+
+\bibitem[Howard et~al.(2013)Howard, Wolpert, and
+  Franklin]{howard2013contextual}
+Ian~S. Howard, Daniel~M. Wolpert, and David~W. Franklin.
+\newblock The effect of contextual cues on the encoding of motor memories.
+\newblock \emph{Journal of Neurophysiology}, 109\penalty0 (10):\penalty0
+  2632--2644, 2013.
+\newblock \doi{10.1152/jn.00773.2012}.
+
+\bibitem[Huriot et~al.(2026)Huriot, Tabbara, and Sibai]{huriot2026safe}
+Sacha Huriot, Ihab Tabbara, and Hussein Sibai.
+\newblock Safe control using learned safety filters and adaptive conformal
+  inference.
+\newblock arXiv:2604.18482 (L4DC 2026), 2026.
+
+\bibitem[Jerfel et~al.(2019)Jerfel, Grant, Griffiths, and
+  Heller]{jerfel2019reconciling}
+Ghassen Jerfel, Erin Grant, Thomas~L. Griffiths, and Katherine Heller.
+\newblock Reconciling meta-learning and continual learning with online mixtures
+  of tasks.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, volume~32, 2019.
+
+\bibitem[Kersting et~al.(2007)Kersting, Plagemann, Pfaff, and
+  Burgard]{kersting2007hetgp}
+Kristian Kersting, Christian Plagemann, Patrick Pfaff, and Wolfram Burgard.
+\newblock Most likely heteroscedastic {G}aussian process regression.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, pages
+  393--400, 2007.
+\newblock \doi{10.1145/1273496.1273546}.
+
+\bibitem[Killian et~al.(2017)Killian, Daulton, Konidaris, and
+  Doshi-Velez]{killian2017robust}
+Taylor Killian, Samuel Daulton, George Konidaris, and Finale Doshi-Velez.
+\newblock Robust and efficient transfer learning with hidden-parameter {M}arkov
+  decision processes.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2017.
+
+\bibitem[Koller et~al.(2018)Koller, Berkenkamp, Turchetta, and
+  Krause]{koller2018learning}
+Torsten Koller, Felix Berkenkamp, Matteo Turchetta, and Andreas Krause.
+\newblock Learning-based model predictive control for safe exploration.
+\newblock In \emph{IEEE Conference on Decision and Control (CDC)}, pages
+  6059--6066, 2018.
+\newblock \doi{10.1109/CDC.2018.8619572}.
+
+\bibitem[Krichevsky and Trofimov(1981)]{krichevsky1981performance}
+Raphail~E. Krichevsky and Victor~K. Trofimov.
+\newblock The performance of universal encoding.
+\newblock \emph{IEEE Transactions on Information Theory}, 27\penalty0
+  (2):\penalty0 199--207, 1981.
+\newblock \doi{10.1109/TIT.1981.1056331}.
+
+\bibitem[Lai(1998)]{lai1998information}
+Tze~Leung Lai.
+\newblock Information bounds and quick detection of parameter changes in
+  stochastic systems.
+\newblock \emph{IEEE Transactions on Information Theory}, 44\penalty0
+  (7):\penalty0 2917--2929, 1998.
+\newblock \doi{10.1109/18.737522}.
+
+\bibitem[Lee et~al.(2020{\natexlab{a}})Lee, Seo, Lee, Lee, and
+  Shin]{lee2020context}
+Kimin Lee, Younggyo Seo, Seunghyun Lee, Honglak Lee, and Jinwoo Shin.
+\newblock Context-aware dynamics model for generalization in model-based
+  reinforcement learning.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, volume
+  119 of \emph{PMLR}, pages 5757--5766, 2020{\natexlab{a}}.
+
+\bibitem[Lee et~al.(2020{\natexlab{b}})Lee, Ha, Zhang, and Kim]{lee2020cndpm}
+Soochan Lee, Junsoo Ha, Dongsu Zhang, and Gunhee Kim.
+\newblock A neural {D}irichlet process mixture model for task-free continual
+  learning.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2020{\natexlab{b}}.
+
+\bibitem[Lew et~al.(2024)Lew, Bonalli, and Pavone]{lew2024risk}
+Thomas Lew, Riccardo Bonalli, and Marco Pavone.
+\newblock Risk-averse trajectory optimization via sample average approximation.
+\newblock \emph{IEEE Robotics and Automation Letters}, 9\penalty0 (2):\penalty0
+  1500--1507, 2024.
+\newblock \doi{10.1109/LRA.2023.3331889}.
+
+\bibitem[Li and Bar-Shalom(1996)]{li1996vsmm}
+X.~Rong Li and Yaakov Bar-Shalom.
+\newblock Multiple-model estimation with variable structure.
+\newblock \emph{IEEE Transactions on Automatic Control}, 41\penalty0
+  (4):\penalty0 478--493, 1996.
+\newblock \doi{10.1109/9.489270}.
+
+\bibitem[Lindemann et~al.(2023)Lindemann, Cleaveland, Shim, and
+  Pappas]{lindemann2023safe}
+Lars Lindemann, Matthew Cleaveland, Gihyun Shim, and George~J. Pappas.
+\newblock Safe planning in dynamic environments using conformal prediction.
+\newblock \emph{IEEE Robotics and Automation Letters}, 8\penalty0 (8):\penalty0
+  5116--5123, 2023.
+\newblock \doi{10.1109/LRA.2023.3292071}.
+
+\bibitem[Linderman et~al.(2017)Linderman, Johnson, Miller, Adams, Blei, and
+  Paninski]{linderman2017rslds}
+Scott Linderman, Matthew Johnson, Andrew Miller, Ryan Adams, David Blei, and
+  Liam Paninski.
+\newblock Bayesian learning and inference in recurrent switching linear
+  dynamical systems.
+\newblock In \emph{International Conference on Artificial Intelligence and
+  Statistics (AISTATS)}, volume~54 of \emph{PMLR}, pages 914--922, 2017.
+
+\bibitem[Lopez et~al.(2021)Lopez, Slotine, and How]{lopez2021robust}
+Brett~T. Lopez, Jean-Jacques~E. Slotine, and Jonathan~P. How.
+\newblock Robust adaptive control barrier functions: An adaptive and
+  data-driven approach to safety.
+\newblock \emph{IEEE Control Systems Letters}, 5\penalty0 (3):\penalty0
+  1031--1036, 2021.
+\newblock \doi{10.1109/LCSYS.2020.3005923}.
+
+\bibitem[Loquercio et~al.(2022)Loquercio, Kumar, and
+  Malik]{loquercio2022crossmodal}
+Antonio Loquercio, Ashish Kumar, and Jitendra Malik.
+\newblock Learning visual locomotion with cross-modal supervision.
+\newblock arXiv:2211.03785, 2022.
+
+\bibitem[Lorden(1971)]{lorden1971procedures}
+G.~Lorden.
+\newblock Procedures for reacting to a change in distribution.
+\newblock \emph{The Annals of Mathematical Statistics}, 42\penalty0
+  (6):\penalty0 1897--1908, 1971.
+\newblock \doi{10.1214/aoms/1177693055}.
+
+\bibitem[Lucia et~al.(2013)Lucia, Finkler, and Engell]{lucia2013multistage}
+Sergio Lucia, Tiago Finkler, and Sebastian Engell.
+\newblock Multi-stage nonlinear model predictive control applied to a
+  semi-batch polymerization reactor under uncertainty.
+\newblock \emph{Journal of Process Control}, 23\penalty0 (9):\penalty0
+  1306--1319, 2013.
+\newblock \doi{10.1016/j.jprocont.2013.08.008}.
+
+\bibitem[Lutkus et~al.(2025)Lutkus, Wang, Lindemann, and Tu]{lutkus2025latent}
+Paul Lutkus, Kaiyuan Wang, Lars Lindemann, and Stephen Tu.
+\newblock Latent representations for control design with provable stability and
+  safety guarantees.
+\newblock In \emph{IEEE Conference on Decision and Control}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2505.23210}.
+
+\bibitem[Lynch and Mason(1999)]{lynch1999dynamic}
+Kevin~M. Lynch and Matthew~T. Mason.
+\newblock Dynamic nonprehensile manipulation: Controllability, planning, and
+  experiments.
+\newblock \emph{International Journal of Robotics Research}, 18\penalty0
+  (1):\penalty0 64--92, 1999.
+\newblock \doi{10.1177/02783649922066079}.
+
+\bibitem[Ma and Rodriguez(2018)]{ma2018friction}
+Daolin Ma and Alberto Rodriguez.
+\newblock Friction variability in planar pushing data: Anisotropic friction and
+  data-collection bias.
+\newblock \emph{IEEE Robotics and Automation Letters}, 3\penalty0 (4):\penalty0
+  3232--3239, 2018.
+\newblock \doi{10.1109/LRA.2018.2851026}.
+
+\bibitem[Margolis et~al.(2023)Margolis, Fu, Ji, and
+  Agrawal]{margolis2023activesensing}
+Gabriel~B. Margolis, Xiang Fu, Yandong Ji, and Pulkit Agrawal.
+\newblock Learning to see physical properties with active sensing motor
+  policies.
+\newblock In \emph{Conference on Robot Learning (CoRL)}, 2023.
+
+\bibitem[Mazor et~al.(1998)Mazor, Averbuch, Bar-Shalom, and
+  Dayan]{mazor1998imm}
+Efim Mazor, Amir Averbuch, Yaakov Bar-Shalom, and Joshua Dayan.
+\newblock Interacting multiple model methods in target tracking: A survey.
+\newblock \emph{IEEE Transactions on Aerospace and Electronic Systems},
+  34\penalty0 (1):\penalty0 103--123, 1998.
+\newblock \doi{10.1109/7.640267}.
+
+\bibitem[Mendez et~al.(2022)Mendez, van Seijen, and Eaton]{mendez2022modular}
+Jorge~A. Mendez, Harm van Seijen, and Eric Eaton.
+\newblock Modular lifelong reinforcement learning via neural composition.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2022.
+
+\bibitem[Mesbah(2018)]{mesbah2018dual}
+Ali Mesbah.
+\newblock Stochastic model predictive control with active uncertainty learning:
+  A survey on dual control.
+\newblock \emph{Annual Reviews in Control}, 45:\penalty0 107--117, 2018.
+\newblock \doi{10.1016/j.arcontrol.2017.11.001}.
+
+\bibitem[Nagabandi et~al.(2019)Nagabandi, Finn, and Levine]{nagabandi2019mole}
+Anusha Nagabandi, Chelsea Finn, and Sergey Levine.
+\newblock Deep online learning via meta-learning: Continual adaptation for
+  model-based {RL}.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2019.
+
+\bibitem[Nakamura et~al.(2025)Nakamura, Peters, and Bajcsy]{nakamura2025latent}
+Kensuke Nakamura, Lasse Peters, and Andrea Bajcsy.
+\newblock Generalizing safety beyond collision-avoidance via latent-space
+  reachability analysis.
+\newblock In \emph{Robotics: Science and Systems}, 2025.
+\newblock \doi{10.15607/RSS.2025.XXI.113}.
+\newblock URL \url{https://www.roboticsproceedings.org/rss21/p113.html}.
+
+\bibitem[Nakamura et~al.(2026)Nakamura, Bishop, Man, Johnson, Manchester, and
+  Bajcsy]{nakamura2026latentcbf}
+Kensuke Nakamura, Arun~L. Bishop, Steven Man, Aaron~M. Johnson, Zachary
+  Manchester, and Andrea Bajcsy.
+\newblock How to train your latent control barrier function: Smooth safety
+  filtering under hard-to-model constraints.
+\newblock In \emph{Annual Learning for Dynamics and Control Conference}, volume
+  331 of \emph{Proceedings of Machine Learning Research}, pages 145--168, 2026.
+\newblock URL \url{https://proceedings.mlr.press/v331/nakamura26a.html}.
+
+\bibitem[Nath et~al.(2026)Nath, Srinivasan, Yin, Jiang, Fang, and
+  Chou]{nath2026pixels}
+Devesh Nath, Anutam Srinivasan, Haoran Yin, Ruitong Jiang, Jeffrey Fang, and
+  Glen Chou.
+\newblock Pixels to proofs: Probabilistically-safe latent world model control
+  via parallel conformal robust {MPC}.
+\newblock arXiv:2606.15594, 2026.
+
+\bibitem[Neal(2000)]{neal2000dpm}
+Radford~M. Neal.
+\newblock Markov chain sampling methods for {D}irichlet process mixture models.
+\newblock \emph{Journal of Computational and Graphical Statistics}, 9\penalty0
+  (2):\penalty0 249--265, 2000.
+\newblock \doi{10.1080/10618600.2000.10474879}.
+
+\bibitem[Oh and Schweighofer(2019)]{oh2019minimizing}
+Youngmin Oh and Nicolas Schweighofer.
+\newblock Minimizing precision-weighted sensory prediction errors via memory
+  formation and switching in motor adaptation.
+\newblock \emph{Journal of Neuroscience}, 39\penalty0 (46):\penalty0
+  9237--9250, 2019.
+\newblock \doi{10.1523/JNEUROSCI.3250-18.2019}.
+
+\bibitem[Press et~al.(2023)Press, Schneider, K{\"u}mmerer, and
+  Bethge]{press2023rdumb}
+Ori Press, Steffen Schneider, Matthias K{\"u}mmerer, and Matthias Bethge.
+\newblock {RDumb}: A simple approach that questions our progress in continual
+  test-time adaptation.
+\newblock arXiv:2306.05401, 2023.
+
+\bibitem[R{\"o}der et~al.(2025)R{\"o}der, Benad, Eppe, and
+  Banerjee]{roder2025dali}
+Frank R{\"o}der, Jan Benad, Manfred Eppe, and Pradeep~Kr. Banerjee.
+\newblock Dynamics-aligned latent imagination in contextual world models for
+  zero-shot generalization.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2025.
+
+\bibitem[Rubinstein(1999)]{rubinstein1999cem}
+Reuven Rubinstein.
+\newblock The cross-entropy method for combinatorial and continuous
+  optimization.
+\newblock \emph{Methodology and Computing in Applied Probability}, 1\penalty0
+  (2):\penalty0 127--190, 1999.
+\newblock \doi{10.1023/A:1010091220143}.
+
+\bibitem[Seo et~al.(2025)Seo, Nakamura, and Bajcsy]{seo2025uncertainty}
+Junwon Seo, Kensuke Nakamura, and Andrea Bajcsy.
+\newblock Uncertainty-aware latent safety filters for avoiding
+  out-of-distribution failures.
+\newblock In \emph{Conference on Robot Learning}, 2025.
+\newblock URL \url{https://proceedings.mlr.press/v305/seo25a.html}.
+
+\bibitem[Sheahan et~al.(2016)Sheahan, Franklin, and
+  Wolpert]{sheahan2016planning}
+Hannah~R. Sheahan, David~W. Franklin, and Daniel~M. Wolpert.
+\newblock Motor planning, not execution, separates motor memories.
+\newblock \emph{Neuron}, 92\penalty0 (4):\penalty0 773--779, 2016.
+\newblock \doi{10.1016/j.neuron.2016.10.017}.
+
+\bibitem[{\v{S}}imandl and Pun{\v{c}}och{\'a}{\v{r}}(2009)]{simandl2009afd}
+Miroslav {\v{S}}imandl and Ivo Pun{\v{c}}och{\'a}{\v{r}}.
+\newblock Active fault detection and control: Unified formulation and optimal
+  design.
+\newblock \emph{Automatica}, 45\penalty0 (9):\penalty0 2052--2059, 2009.
+\newblock \doi{10.1016/j.automatica.2009.04.028}.
+
+\bibitem[Smith et~al.(2006)Smith, Ghazizadeh, and
+  Shadmehr]{smith2006interacting}
+Maurice~A. Smith, Ali Ghazizadeh, and Reza Shadmehr.
+\newblock Interacting adaptive processes with different timescales underlie
+  short-term motor learning.
+\newblock \emph{PLoS Biology}, 4\penalty0 (6):\penalty0 e179, 2006.
+\newblock \doi{10.1371/journal.pbio.0040179}.
+
+\bibitem[Sobal et~al.(2025)Sobal, Zhang, Cho, Balestriero, Rudner, and
+  LeCun]{sobal2025pldm}
+Vlad Sobal, Wancong Zhang, Kyunghyun Cho, Randall Balestriero, Tim G.~J.
+  Rudner, and Yann LeCun.
+\newblock Learning from reward-free offline data: A case for planning with
+  latent dynamics models.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2025.
+
+\bibitem[Soni et~al.(2026)Soni, Sehgal, Dave, and Rueckert]{soni2026sandwich}
+Krishnam Soni, Aditya Sehgal, Vedant Dave, and Elmar Rueckert.
+\newblock Sandwich-residuals: Parameter-efficient test-time adaptation of world
+  models.
+\newblock arXiv:2609.21740, 2026.
+
+\bibitem[Srinivasan et~al.(2026)Srinivasan, Leeman, and
+  Chou]{srinivasan2026safety}
+Anutam Srinivasan, Antoine Leeman, and Glen Chou.
+\newblock Safety beyond the training data: Robust out-of-distribution {MPC} via
+  conformalized system level synthesis.
+\newblock arXiv:2602.12047, 2026.
+
+\bibitem[Sun et~al.(2020)Sun, Wang, Liu, Miller, Efros, and Hardt]{sun2020ttt}
+Yu~Sun, Xiaolong Wang, Zhuang Liu, John Miller, Alexei~A. Efros, and Moritz
+  Hardt.
+\newblock Test-time training with self-supervision for generalization under
+  distribution shifts.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2020.
+
+\bibitem[Taylor et~al.(2020)Taylor, Singletary, Yue, and
+  Ames]{taylor2020learning}
+Andrew Taylor, Andrew Singletary, Yisong Yue, and Aaron Ames.
+\newblock Learning for safety-critical control with control barrier functions.
+\newblock In \emph{Learning for Dynamics and Control Conference (L4DC)}, volume
+  120 of \emph{PMLR}, pages 708--717, 2020.
+
+\bibitem[Taylor and Ames(2020)]{taylor2020adaptive}
+Andrew~J. Taylor and Aaron~D. Ames.
+\newblock Adaptive safety with control barrier functions.
+\newblock In \emph{American Control Conference (ACC)}, pages 1399--1405, 2020.
+\newblock \doi{10.23919/ACC45564.2020.9147463}.
+
+\bibitem[Wang et~al.(2021)Wang, Shelhamer, Liu, Olshausen, and
+  Darrell]{wang2021tent}
+Dequan Wang, Evan Shelhamer, Shaoteng Liu, Bruno Olshausen, and Trevor Darrell.
+\newblock Tent: Fully test-time adaptation by entropy minimization.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2021.
+
+\bibitem[Wang et~al.(2026{\natexlab{a}})Wang, Tian, Swann, Shorinwa, Wu, and
+  Schwager]{wang2026phys2real}
+Maggie Wang, Stephen Tian, Aiden Swann, Ola Shorinwa, Jiajun Wu, and Mac
+  Schwager.
+\newblock {Phys2Real}: Fusing {VLM} priors with interactive online adaptation
+  for uncertainty-aware sim-to-real manipulation.
+\newblock In \emph{IEEE International Conference on Robotics and Automation
+  (ICRA)}, 2026{\natexlab{a}}.
+
+\bibitem[Wang et~al.(2022)Wang, Fink, Van~Gool, and Dai]{wang2022cotta}
+Qin Wang, Olga Fink, Luc Van~Gool, and Dengxin Dai.
+\newblock Continual test-time domain adaptation.
+\newblock In \emph{IEEE/CVF Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, 2022.
+
+\bibitem[Wang et~al.(2026{\natexlab{b}})Wang, Bounou, LeCun, and
+  Ren]{wang2026adajepa}
+Ying Wang, Oumayma Bounou, Yann LeCun, and Mengye Ren.
+\newblock {AdaJEPA}: An adaptive latent world model.
+\newblock arXiv:2606.32026, 2026{\natexlab{b}}.
+
+\bibitem[Wolpert and Kawato(1998)]{wolpert1998multiple}
+Daniel~M. Wolpert and Mitsuo Kawato.
+\newblock Multiple paired forward and inverse models for motor control.
+\newblock \emph{Neural Networks}, 11\penalty0 (7-8):\penalty0 1317--1329, 1998.
+\newblock \doi{10.1016/S0893-6080(98)00066-5}.
+
+\bibitem[Wu et~al.(2026)Wu, Xie, Zhang, Huang, Johansson, and
+  Alanwar]{wu2026points}
+Wenyuan Wu, Peng Xie, Zhen Zhang, Yanliang Huang, Karl~H. Johansson, and Amr
+  Alanwar.
+\newblock From points to sets: Set-based safety verification in the latent
+  space.
+\newblock \emph{arXiv preprint arXiv:2604.05799}, 2026.
+\newblock URL \url{https://arxiv.org/abs/2604.05799}.
+
+\bibitem[Xu et~al.(2020)Xu, Ding, Zhu, Liu, Chen, and Zhao]{xu2020taskagnostic}
+Mengdi Xu, Wenhao Ding, Jiacheng Zhu, Zuxin Liu, Baiming Chen, and Ding Zhao.
+\newblock Task-agnostic online reinforcement learning with an infinite mixture
+  of {G}aussian processes.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, volume~33, 2020.
+
+\bibitem[Yang(2026)]{yang2026cawm}
+Everest Yang.
+\newblock Changepoint-aware world models: Detecting dynamics shifts and
+  recovering by forgetting stale replay in model-based {RL}.
+\newblock arXiv:2609.18950, 2026.
+
+\bibitem[Yin et~al.(2023)Yin, Zhang, and Tsiotras]{yin2023risk}
+Ji~Yin, Zhiyuan Zhang, and Panagiotis Tsiotras.
+\newblock Risk-aware model predictive path integral control using conditional
+  value-at-risk.
+\newblock In \emph{IEEE International Conference on Robotics and Automation
+  (ICRA)}, pages 7937--7943, 2023.
+\newblock \doi{10.1109/ICRA48891.2023.10161100}.
+
+\bibitem[Yu et~al.(2016)Yu, Bauza, Fazeli, and Rodriguez]{yu2016million}
+Kuan-Ting Yu, Maria Bauza, Nima Fazeli, and Alberto Rodriguez.
+\newblock More than a million ways to be pushed: A high-fidelity experimental
+  dataset of planar pushing.
+\newblock In \emph{IEEE/RSJ International Conference on Intelligent Robots and
+  Systems (IROS)}, pages 30--37, 2016.
+\newblock \doi{10.1109/IROS.2016.7758091}.
+
+\bibitem[Zeng et~al.(2020)Zeng, Song, Lee, Rodriguez, and
+  Funkhouser]{zeng2020tossingbot}
+Andy Zeng, Shuran Song, Johnny Lee, Alberto Rodriguez, and Thomas Funkhouser.
+\newblock {TossingBot}: Learning to throw arbitrary objects with residual
+  physics.
+\newblock \emph{IEEE Transactions on Robotics}, 36\penalty0 (4):\penalty0
+  1307--1319, 2020.
+\newblock \doi{10.1109/TRO.2020.2988642}.
+
+\bibitem[Zhou et~al.(2025)Zhou, Pan, LeCun, and Pinto]{zhou2025dinowm}
+Gaoyue Zhou, Hengkai Pan, Yann LeCun, and Lerrel Pinto.
+\newblock {DINO-WM}: World models on pre-trained visual features enable
+  zero-shot planning.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, volume
+  267 of \emph{PMLR}, pages 79115--79135, 2025.
+
+\end{thebibliography}

@@ -1,0 +1,45 @@
+% First-contact timeline (compact).
+\begin{figure}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  >={Stealth[length=4pt]},
+  box/.style={draw, rounded corners=2pt, minimum height=7mm, minimum width=21mm, inner sep=2pt, align=center},
+  lane/.style={font=\scriptsize\bfseries, anchor=east, align=right},
+]
+\def\xa{1.45}\def\xb{4.75}\def\xc{7.75}\def\xd{10.35}
+\fill[black!4] (-0.1,-1.75) rectangle (6.55,1.05);
+% lane 1: reset
+\node[lane, text=cReset] at (-0.25,0.45) {Episode-reset\\adaptation};
+\node[box, draw=cReset, fill=white] (r0) at (\xa,0.45) {cue unused};
+\node[box, draw=cReset, fill=cReset!6] (r1) at (\xb,0.45) {predict with frozen $f$};
+\node[font=\large, text=cReset] (rx) at (\xc,0.52) {$\times$};
+\node[font=\tiny, text=cReset, anchor=north] at (\xc,0.3) {puck leaves table};
+\node[box, draw=cReset, fill=cReset!6] (r2) at (\xd+0.35,0.45) {update, reset next episode};
+\draw[->, cReset] (r0) -- (r1); \draw[->, cReset] (r1) -- (rx); \draw[->, cReset] (rx) -- (r2);
+% lane 2: CIRA
+\node[lane, text=cCira] at (-0.25,-0.75) {\method};
+\node[box, draw=cCira, fill=cCira!6] (c0) at (\xa,-0.75) {};
+\begin{scope}[shift={(\xa-0.78,-1.0)}]
+  \foreach \i/\h in {0/0.07, 1/0.06, 2/0.42, 3/0.03} {
+    \fill[cCira!75] (\i*0.28,0) rectangle ++(0.2,\h);
+  }
+\end{scope}
+\node[font=\tiny, text=cCira, anchor=west] at (\xa+0.28,-0.75) {belief};
+\node[box, draw=cCira, fill=cCira!6] (c1) at (\xb,-0.75) {predict with $f+\sum_c\pi_e(c)m_c$};
+\node[font=\large, text=cOracle] (cx) at (\xc,-0.68) {$\checkmark$};
+\node[font=\tiny, text=cOracle!80!black, anchor=north] at (\xc,-0.9) {stops at target};
+\node[box, draw=cCira, fill=cCira!6] (c2) at (\xd+0.35,-0.75) {revise belief, keep memory};
+\draw[->, cCira] (c0) -- (c1); \draw[->, cCira] (c1) -- (cx); \draw[->, cCira] (cx) -- (c2);
+% time axis
+\draw[->, thick, black!60] (-0.1,-1.95) -- (12.3,-1.95) node[right, black, font=\tiny] {time};
+\foreach \x/\t in {\xa/{scene and cue}, \xb/{strike committed}, \xc/{first contact}, \xd/{error observed}} {
+  \fill[black!60] (\x,-1.95) circle (1.2pt);
+  \node[below=0pt, font=\tiny] at (\x,-1.95) {\t};
+}
+\node[font=\tiny, text=black!55, anchor=south west] at (-0.05,-1.73) {no dynamics feedback yet};
+\end{tikzpicture}}
+\caption{\textbf{The first-contact limitation.} The strike is committed before any dynamics error is observed (shaded), so an episode-reset adapter strikes with the frozen model; \method selects memories before the strike.}
+\label{fig:teaser}
+\end{figure}

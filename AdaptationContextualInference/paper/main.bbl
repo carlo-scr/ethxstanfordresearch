@@ -1,0 +1,66 @@
+\begin{thebibliography}{8}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Abbasi-Yadkori et~al.(2011)Abbasi-Yadkori, P{\'a}l, and
+  Szepesv{\'a}ri]{abbasi2011improved}
+Yasin Abbasi-Yadkori, D{\'a}vid P{\'a}l, and Csaba Szepesv{\'a}ri.
+\newblock Improved algorithms for linear stochastic bandits.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~24, 2011.
+\newblock URL
+  \url{https://papers.nips.cc/paper_files/paper/2011/hash/e1d5be1c7f2f456670de3d53c7b54f4a-Abstract.html}.
+
+\bibitem[{\'A}lvarez et~al.(2012){\'A}lvarez, Rosasco, and
+  Lawrence]{alvarez2012kernels}
+Mauricio~A. {\'A}lvarez, Lorenzo Rosasco, and Neil~D. Lawrence.
+\newblock Kernels for vector-valued functions: A review.
+\newblock \emph{Foundations and Trends in Machine Learning}, 4\penalty0
+  (3):\penalty0 195--266, 2012.
+\newblock \doi{10.1561/2200000036}.
+\newblock URL \url{https://arxiv.org/abs/1106.6251}.
+
+\bibitem[Gibbs and Cand{\`e}s(2021)]{gibbs2021adaptive}
+Isaac Gibbs and Emmanuel Cand{\`e}s.
+\newblock Adaptive conformal inference under distribution shift.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~34, 2021.
+\newblock URL \url{https://arxiv.org/abs/2106.00170}.
+
+\bibitem[Krichevsky and Trofimov(1981)]{krichevsky1981performance}
+Raphail~E. Krichevsky and Victor~K. Trofimov.
+\newblock The performance of universal encoding.
+\newblock \emph{IEEE Transactions on Information Theory}, 27\penalty0
+  (2):\penalty0 199--207, 1981.
+\newblock \doi{10.1109/TIT.1981.1056331}.
+
+\bibitem[Nagabandi et~al.(2019)Nagabandi, Finn, and Levine]{nagabandi2019mole}
+Anusha Nagabandi, Chelsea Finn, and Sergey Levine.
+\newblock Deep online learning via meta-learning: Continual adaptation for
+  model-based {RL}.
+\newblock In \emph{International Conference on Learning Representations}, 2019.
+\newblock URL \url{https://arxiv.org/abs/1812.07671}.
+
+\bibitem[Soni et~al.(2026)Soni, Sehgal, Dave, and Rueckert]{soni2026sandwich}
+Krishnam Soni, Aditya Sehgal, Vedant Dave, and Elmar Rueckert.
+\newblock Sandwich-residuals: Parameter-efficient test-time adaptation of world
+  models, 2026.
+\newblock URL \url{https://arxiv.org/abs/2609.21740}.
+
+\bibitem[Wang et~al.(2026)Wang, Bounou, LeCun, and Ren]{wang2026adajepa}
+Ying Wang, Oumayma Bounou, Yann LeCun, and Mengye Ren.
+\newblock {AdaJEPA}: An adaptive latent world model, 2026.
+\newblock URL \url{https://arxiv.org/abs/2606.32026}.
+
+\bibitem[Zhou et~al.(2025)Zhou, Pan, LeCun, and Pinto]{zhou2025dinowm}
+Gaoyue Zhou, Hengkai Pan, Yann LeCun, and Lerrel Pinto.
+\newblock Dino-wm: World models on pre-trained visual features enable zero-shot
+  planning.
+\newblock In \emph{International Conference on Machine Learning}, volume 267 of
+  \emph{Proceedings of Machine Learning Research}, pages 79115--79135, 2025.
+\newblock URL \url{https://proceedings.mlr.press/v267/zhou25t.html}.
+
+\end{thebibliography}

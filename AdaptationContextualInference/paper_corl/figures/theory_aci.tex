@@ -1,0 +1,27 @@
+% Synthetic simulation of the margin update (see figures/data/aci_coords.tex).
+\input{figures/data/aci_coords}
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.95\linewidth, height=4.2cm,
+  xlabel={step}, ylabel={score / margin},
+  label style={font=\scriptsize}, tick label style={font=\tiny},
+  xmin=0, xmax=320, ymin=0, ymax=1.2, xtick={0,80,160,240,320},
+  legend style={font=\tiny, draw=none, fill=none, at={(0.5,-0.32)}, anchor=north, legend columns=3},
+]
+\fill[cCira!6] (axis cs:80,0) rectangle (axis cs:160,1.25);
+\fill[cCira!6] (axis cs:240,0) rectangle (axis cs:320,1.25);
+\node[font=\tiny, text=black!55, anchor=south] at (axis cs:40,0.06) {context A};
+\node[font=\tiny, text=black!55, anchor=south] at (axis cs:120,0.06) {context B};
+\node[font=\tiny, text=black!55, anchor=south] at (axis cs:200,0.06) {A returns};
+\node[font=\tiny, text=black!55, anchor=south] at (axis cs:280,0.06) {B returns};
+\addplot[only marks, mark=*, mark size=0.6pt, black!45] coordinates {\acipts}; \addlegendentry{score $s_t$}
+\addplot[cNoCue, thick, const plot] coordinates {\acishared}; \addlegendentry{one shared margin}
+\addplot[cCira, thick, const plot] coordinates {\acimem}; \addlegendentry{active per-memory margin $b_{c_t}$}
+\draw[cNoCue, {Stealth[length=3pt]}-{Stealth[length=3pt]}] (axis cs:176,0.36) -- (axis cs:176,0.88) node[midway, right, font=\tiny, align=left] {excess\\caution};
+\end{axis}
+\end{tikzpicture}
+\caption{\textbf{Margins are remembered with memories} (synthetic simulation of the update in \cref{sec:method}, $\gamma=0.02$, $\delta_s=0.1$). Scores are drawn from a low-noise context A and a high-noise context B that alternate every 80 steps. A single shared margin grows during B and then decays slowly after A returns, so the filter stays over-cautious. With one margin per memory, the margin of each context is restored as soon as the context is recognized, and neither stream loses its calibration, as \cref{prop:safety} requires.}
+\label{fig:theory-aci}
+\end{figure}

@@ -1,0 +1,54 @@
+\documentclass{article}
+
+\usepackage{xr-hyper}
+\usepackage{corl_2026} % Initial submission (anonymous, line numbers).
+% \usepackage[final]{corl_2026}
+% \usepackage[preprint]{corl_2026}
+
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs,multirow}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric,decorations.pathreplacing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots,fillbetween}
+\usepackage[capitalise,nameinlink]{cleveref}
+
+\input{macros}
+\externaldocument{supplement}
+
+\title{Adapting Before Contact:\\Contextual Memory for Frozen World Models}
+
+\author{
+  Anonymous Authors\\
+  Anonymous Institution\\
+  \texttt{anonymous@example.com}
+}
+
+\begin{document}
+\nolinenumbers
+\maketitle
+
+\input{sections/abstract}
+\keywords{World models, Online adaptation, Contextual inference, Safe control}
+
+\input{sections/introduction}
+\input{sections/related}
+\input{sections/problem}
+\input{sections/method}
+\input{sections/analysis}
+\input{sections/experiments}
+\input{sections/limitations}
+\input{sections/conclusion}
+
+\clearpage
+\acknowledgments{Omitted for anonymous review.}
+
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,25 @@
+\section{Problem Formulation}\label{sec:problem}
+
+\input{figures/teaser}
+
+We consider a frozen encoder and predictor that map an observation $o_{e,t}$ and action $a_{e,t}$ at step $t$ of episode $e$ to $z_{e,t}=E(o_{e,t})\in\R^d$ and $\hat z_{e,t+1}=f(z_{e,t},a_{e,t})$. Each episode is governed by an unobserved physical context $c_e$, such as ``acrylic mat, heavy puck,'' which remains fixed within the episode. The true latent dynamics are
+\begin{equation}\label{eq:dynamics}
+  z_{e,t+1}=f(z_{e,t},a_{e,t})+\mu_{c_e}(z_{e,t},a_{e,t})+\epsilon_{e,t},\qquad \E[\epsilon_{e,t}\mid z_{e,t},a_{e,t},c_e]=0,
+\end{equation}
+where $\mu_c$ denotes the mean residual of context $c$ relative to the frozen model, with $\mu_0\equiv0$ for the training condition, and the noise may depend on state and action. The robot observes episode boundaries but never context labels, and it may retain memories across episodes. Before its first informative interaction it extracts a visual cue $y_e$ from the scene. We write $D_{<e}$ for all data observed before episode $e$ and assume that the approach motion reveals nothing about $c_e$ beyond $y_e$ and $D_{<e}$.
+
+\begin{definition}[Single-contact task]\label{def:single}
+A task is \emph{single-contact} with respect to an outcome $J^{\mathrm{first}}_e$ if the action determining $J^{\mathrm{first}}_e$ is committed at a step $\tau_e$ before any feedback from its context-dependent transition is available, and no later action can change $J^{\mathrm{first}}_e$.
+\end{definition}
+
+In striking, $J^{\mathrm{first}}_e$ is the stopping error of the strike.
+
+\begin{observation}[First-contact initialization]\label{obs:first}
+Consider an adaptive predictor whose state changes only in response to current-episode prediction errors. If no such error is available before $a_{e,\tau_e}$ is committed, its prediction at $\tau_e$ equals its prediction at the start of the episode. In particular, a predictor reset to the frozen model at every episode satisfies $\hat z^{\mathrm{adapt}}_{e,\tau_e+1}(z,a)=f(z,a)$ and incurs first-contact bias $\|\mu_{c_e}\|$.
+\end{observation}
+
+This holds for any optimizer and adaptation speed, so improvement at the first contact must come from knowledge retained across episodes or from evidence in the scene. Our goal is therefore the pre-contact predictive distribution
+\begin{equation}\label{eq:mixture}
+  p(z'\mid z,a,y_e,D_{<e})=\textstyle\sum_{c}\pi_e(c)\,p(z'\mid z,a,c,D_{<e}),\qquad \pi_e(c)=p(c_e=c\mid y_e,D_{<e}),
+\end{equation}
+where the sum also includes a hypothesis for contexts not yet represented in memory.

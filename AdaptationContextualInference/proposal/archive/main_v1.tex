@@ -1,0 +1,533 @@
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{xcolor}
+
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\novel}{\star}
+\newcommand{\method}{\textsc{Cira}}
+
+\setlist{itemsep=1pt,topsep=3pt}
+
+\title{World Models That Remember:\\ Adaptation as Contextual Inference}
+\author{Research Proposal --- v1}
+\date{September 28, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Test-time adaptation of latent world models treats every distribution shift as new: a few gradient
+steps on a self-supervised prediction loss, then a reset at the next episode. A deployed robot does
+not face new shifts; it faces the same few surfaces, payloads and actuator conditions again and
+again, usually with something visible that correlates with them. This proposal treats deployment-time
+adaptation as \emph{contextual inference}: a single posterior over a growing set of dynamics
+contexts decides when a memory is created, which memory is updated, and how strongly each is
+expressed. It follows the COIN account of human motor learning~\cite{heald2021coin}, in which part of
+what looks like learning is not parameter change but a change in which existing memory is being
+expressed. We turn that distinction into a measurement: recovery after a shift splits exactly into
+\emph{apparent} learning (recall and re-expression) and \emph{proper} learning (parameter updates), and
+per-episode-reset methods forgo the first term by construction. The method, \method{}
+(Context-Indexed Residual Adapters), attaches closed-form Bayesian residual adapters to any frozen
+latent world model, runs a nonparametric multiple-model filter over them, and learns during deployment,
+without labels, which pre-contact visual features predict which context. The central, falsifiable
+prediction is that, on recurring conditions with an informative cue, prediction error is corrected
+\emph{before the first contact}, and that adaptation latency falls with each re-exposure by an amount a
+simple sequential-testing argument predicts in advance. Evaluation uses long regime-switching streams
+without oracle resets, built around four motor-adaptation paradigms, on a toy pusher, the AdaJEPA
+environments~\cite{wang2026adajepa}, and real-robot pushing.
+\end{abstract}
+
+%=====================================================================
+\section{Thesis and contributions}
+%=====================================================================
+
+Latent world models trained on large offline datasets now support zero-shot planning in manipulation
+and navigation~\cite{zhou2025dinowm,assran2025vjepa2,sobal2025pldm,hansen2024tdmpc2}. Their
+failure mode under deployment shift has been addressed very recently by self-supervised test-time
+adaptation: AdaJEPA takes gradient steps on recent latent prediction errors inside the MPC
+loop~\cite{wang2026adajepa}, and Sandwich-Residuals learns small residual modules around a frozen
+predictor~\cite{soni2026sandwich}. Both reset to the pretrained model at every episode. Both name
+persistence across episodes, or combination with continual and active learning, as future work.
+
+Resetting is not a design oversight; it is what keeps gradient-based test-time adaptation stable. On
+long streams, persistent updates drift and collapse, and periodic resets beat most continual TTA
+methods~\cite{press2023rdumb,hoang2024petta}. The price is that every recurrence of a known condition
+is paid for again, from scratch, with prediction error.
+
+\paragraph{Thesis.}
+Deployment-time adaptation of a world model should be treated as inference over \emph{which
+dynamics context is active}, not as optimisation of one set of adapter parameters. Replacing ``update
+the adapter'' with ``infer the context, then update only that context's adapter'' has three
+consequences that gradient-based adaptation cannot reproduce: recurring conditions are recalled rather
+than relearned (\emph{savings}), learning one condition does not overwrite another (\emph{no
+interference}), and a visual cue that has been associated with a context shifts the posterior before
+any prediction error arrives (\emph{anticipation}).
+
+\paragraph{Contributions.}
+\begin{enumerate}[label=\textbf{C\arabic*.},leftmargin=2.2em]
+  \item \textbf{A measurement.} An exact two-player Shapley decomposition of post-shift recovery into
+  apparent learning (changes in context expression) and proper learning (changes in adapter
+  parameters), computable for any method by counterfactual replay (Def.~\ref{def:decomp}). We report,
+  on realistic streams, how much of the recovery each term accounts for. The apparent term is
+  identically zero for every per-episode-reset method.
+  \item \textbf{A method.} \method{}: context-indexed Bayesian residual adapters in a low-dimensional
+  error subspace, one nonparametric context posterior that drives creation, recall, reversion and
+  change detection, a state-dependent noise model so that contact transients are not read as shifts,
+  and cue likelihoods learned during deployment from the context's own dynamics evidence. It plugs into
+  any frozen latent world model and has closed-form updates.
+  \item \textbf{A quantitative prediction.} A sequential-testing argument (Prop.~\ref{prop:latency})
+  predicts adaptation latency as a function of cue reliability, exposure count and the dynamics
+  divergence between contexts. The neuroscience paradigms are therefore tested against numbers
+  written down before the experiment, not against qualitative resemblance.
+  \item \textbf{A protocol.} Long, stochastic, regime-switching streams without oracle resets, with the
+  paradigms savings, anterograde interference, evoked recovery and cue conflict embedded as
+  sub-streams, and a cue-reliability sweep. Released with the toy and AdaJEPA-environment variants.
+  \item \textbf{A real-robot study.} Planar pushing on swapped surfaces whose texture correlates with
+  friction, and payloads in visually distinct containers, with cue reliability controlled by the
+  experimenter.
+\end{enumerate}
+
+\paragraph{Scope.}
+Dynamics shifts (friction, mass, payload, actuator gain) under a frozen encoder. Appearance enters only
+as evidence about the context, never as something to correct; appearance shifts that degrade the
+encoder itself are the subject of AdaJEPA and Sandwich-Residuals and are out of scope.
+
+%=====================================================================
+\section{Background and positioning}
+%=====================================================================
+
+\paragraph{Contextual inference in motor learning.}
+MOSAIC proposed a repertoire of paired forward and inverse models whose responsibilities are set by
+both prediction accuracy and contextual signals available before the movement
+starts~\cite{wolpert1998multiple,haruno2001mosaic}. COIN~\cite{heald2021coin} made this a
+generative model: an unbounded set of contexts with sticky Markov transitions under a hierarchical
+Dirichlet process, a linear-Gaussian memory per context, and context-dependent sensory cues, inverted
+by particle learning. COIN explains savings, anterograde interference and spontaneous recovery through
+changes in predicted context probabilities rather than changes in learning rate. It also predicted and
+confirmed \emph{evoked recovery}, which the two-state model~\cite{smith2006interacting} cannot
+produce, and showed that single-trial learning is graded by the combined evidence of cue and feedback.
+Reviews extend the framework across memory
+systems~\cite{heald2023tics,heald2023annurev,shivkumar2025curriculum}. The same logic appears in
+latent-cause models of conditioning, where gradual change updates an existing memory and abrupt change
+creates a new one~\cite{gershman2010context,gershman2014statistical}, and in error-driven memory
+switching~\cite{oh2019minimizing}. Human data also give a caution we take seriously: many static visual
+cues are weak at separating dynamics memories~\cite{howard2013contextual}, while cues tied to the
+movement plan are strong~\cite{sheahan2016planning}. A cue has to earn its association, which is why
+\method{} learns cue likelihoods from dynamics evidence and why we sweep cue reliability rather than
+assume it.
+
+\paragraph{Test-time adaptation of world models.}
+AdaJEPA~\cite{wang2026adajepa} and Sandwich-Residuals~\cite{soni2026sandwich} are the direct
+predecessors. AdaJEPA adapts the last encoder and selected predictor layers with about one gradient step
+per replan on the five most recent transitions, evaluated on PushT, PushObj and PointMaze under
+visual, shape, dynamics (mass, damping) and layout shifts. It states that adaptation is bounded by the
+coverage of the pretrained representation. Sandwich-Residuals reaches comparable gains with around
+1--3\% of the parameters by adapting only residual modules. Neither carries anything across episodes,
+represents uncertainty, or uses exteroceptive evidence proactively. General TTA
+methods~\cite{sun2020ttt,wang2021tent,wang2022cotta} share the same template, and their failure on
+long and recurring streams~\cite{press2023rdumb,hoang2024petta} is the empirical motivation for
+memory. Recent world-model work detects shifts and forgets stale data~\cite{yang2026cawm} or infers a
+continuous context reactively~\cite{roder2025dali,benad2026dmash}, but does not store and recall
+discrete contexts.
+
+\paragraph{Bayesian context machinery for dynamics.}
+The components of \method{} are individually established. Bayesian last layers with closed-form online
+updates~\cite{harrison2018alpaca,harrison2024vbll}; changepoint-driven switching of such
+models~\cite{harrison2020moca,adams2007bocpd}; CRP or DP mixtures of dynamics models learned
+online~\cite{nagabandi2019mole,xu2020taskagnostic,jerfel2019reconciling,lee2020cndpm}; switching
+linear dynamical systems with nonparametric priors~\cite{fox2011bnpslds,fox2011sticky,linderman2017rslds};
+and, in estimation, the interacting multiple-model filter~\cite{blom1988imm,mazor1998imm} with
+variable model sets~\cite{li1996vsmm}. MOLe~\cite{nagabandi2019mole} is the closest ML precedent: an
+EM-fitted CRP mixture of meta-learned dynamics models for model-based RL. It selects contexts purely
+by prediction error, so it cannot anticipate. MOCA~\cite{harrison2020moca} discards the old context at
+every changepoint, so it cannot recall. None of these operate on the latent space of a pretrained
+visual world model.
+
+\paragraph{Vision-informed proactive dynamics.}
+Vision-Conditioned VBLL~\cite{brunzema2026vcvbll} argues that reactive adaptation is too slow and
+conditions a Bayesian last-layer vehicle model on a hand-designed water score, driving through
+puddles that non-visual adaptive baselines could not handle. Terrain-aware
+dynamics~\cite{gibson2024visualterrain,cai2023probtrav} and vision-based
+locomotion~\cite{agarwal2022egocentric} make the same point. Closest in spirit to deployment-learned
+cues, cross-modal supervision trains vision online to predict proprioceptively inferred
+quantities~\cite{loquercio2022crossmodal,margolis2023activesensing,frey2023wvn}. These methods map
+appearance to a continuous physical quantity through a pretrained or pre-specified channel. \method{}
+instead maps appearance to a \emph{discrete, self-discovered} context, with no labels and no training
+on the shift, and lets the dynamics evidence override the cue.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+ & Latent visual & Persists across & Recalls & Calibrated & Pre-contact & Cue learned \\
+ & world model & episodes & contexts & uncertainty & anticipation & in deployment \\
+\midrule
+AdaJEPA~\cite{wang2026adajepa}, Sandwich-Res.~\cite{soni2026sandwich} & \checkmark & -- & -- & -- & -- & -- \\
+MOLe~\cite{nagabandi2019mole}, IMGP~\cite{xu2020taskagnostic} & -- & \checkmark & \checkmark & partial & -- & -- \\
+MOCA~\cite{harrison2020moca} & -- & \checkmark & -- & \checkmark & -- & -- \\
+VcVBLL~\cite{brunzema2026vcvbll} & -- & -- & -- & \checkmark & \checkmark & -- (hand-designed) \\
+Cross-modal vision~\cite{loquercio2022crossmodal} & -- & \checkmark & -- & -- & \checkmark & \checkmark (continuous) \\
+COIN~\cite{heald2021coin} (human model) & -- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\midrule
+\method{} (this proposal) & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}}
+\caption{Positioning. As of September 2026 we found no work combining a frozen latent visual world
+model, a nonparametric posterior over stored dynamics contexts, and cues learned during deployment.
+Each column is individually covered; the combination and the measurement (C1) are the contribution.}
+\label{tab:positioning}
+\end{table}
+
+%=====================================================================
+\section{Method: Context-Indexed Residual Adapters}
+%=====================================================================
+
+\paragraph{Setup.}
+A frozen encoder $E$ maps observations to latents $z_t=E(o_t)\in\mathbb{R}^d$, and a frozen predictor
+gives $\hat z_{t+1}=f(z_t,a_t)$. The world model is used by a sampling-based planner (CEM or
+MPPI)~\cite{rubinstein1999cem,chua2018pets}. Deployment is a single stream, with known episode
+boundaries but no regime labels and no reset of any adaptive state.
+
+\paragraph{Residual subspace.}
+On nominal (pretraining or pre-deployment) data, collect residuals $r_t=z_{t+1}-f(z_t,a_t)$ and let
+$U\in\mathbb{R}^{d\times k}$ hold their top-$k$ principal directions, $k\approx 4$--$16$. All adaptation
+happens in $e_t=U^\top r_t\in\mathbb{R}^k$. This is the hidden-parameter view of dynamics
+shifts~\cite{doshivelez2016hipmdp}: a few physical parameters move the dynamics along a few
+directions. The subspace is a bet that these directions coincide with where the nominal model already
+errs. Section~\ref{sec:risks} gives an online diagnostic for when the bet fails.
+
+\paragraph{Context-indexed Bayesian adapters (the memories).}
+Each context $c$ holds a Bayesian linear residual model on fixed features
+$\phi_t=\phi(U^\top z_t, a_t)\in\mathbb{R}^p$, for example $[a_t,\;U^\top z_t,\;1]$:
+\begin{equation}
+  e_t \mid c \;\sim\; \N\!\big(W_c\,\phi_t,\; \Sigma(z_t,a_t)\big),\qquad
+  W_c \sim \mathcal{MN}(M_c, \Sigma_{\text{row}}, V_c).
+  \label{eq:adapter}
+\end{equation}
+This departs from the working draft, which used a Gaussian bias. A friction or gain change produces a
+residual that scales with the action, so a bias cannot represent it; a linear-in-features residual can,
+and it keeps closed-form conjugate updates as in ALPaCA~\cite{harrison2018alpaca}. Within a context,
+$W_c$ follows a slow random walk (process noise $Q$). This gives each memory its own proper learning
+and mild forgetting, the analogue of COIN's per-context retention and drift. The \emph{base} context
+$c=0$ has $W_0\equiv 0$ and reproduces the frozen model. The \emph{novel} context $c=\novel$ carries
+the broad prior $\mathcal{MN}(0,\Sigma_{\text{row}},V_0)$.
+
+\paragraph{State-dependent noise.}
+$\Sigma(z,a)$ is a small heteroscedastic head fitted on nominal residuals by Gaussian negative
+log-likelihood~\cite{kersting2007hetgp}, shared across contexts. Contact onsets, stick--slip and
+impacts inflate $\Sigma$ exactly where nominal prediction is already poor, which shrinks the
+log-likelihood ratio between contexts there. Planar pushing is known to be heteroscedastic and
+friction-variable~\cite{bauza2017probpush,ma2018friction}. We found no prior work that makes the link
+between contact transients and false context creation explicit~\cite{haddadin2017collisions}; we
+expect it to be the most likely failure of a naive implementation, so the toy includes it deliberately.
+
+\paragraph{One posterior over contexts.}
+Let $\C_t=\{0,1,\dots,K_t\}\cup\{\novel\}$. The prior over the context of a new episode is a
+CRP-style predictive with a sticky continuation, and within an episode a sticky Markov
+chain~\cite{fox2011sticky}:
+\begin{equation}
+  p(c_t=j\mid c_{t-1}=i) \propto
+  \begin{cases}
+    \kappa+\alpha_{\text{sw}}\, n_j & j=i\\
+    \alpha_{\text{sw}}\, n_j & j\neq i,\; j\in\{0,\dots,K_t\}\\
+    \alpha_{\text{sw}}\,\gamma & j=\novel,
+  \end{cases}
+  \label{eq:prior}
+\end{equation}
+where $n_j$ is the soft occupancy count of context $j$, $\gamma$ the concentration, and $\kappa$ the
+self-transition bias. The filter is an IMM~\cite{blom1988imm} over the adapters in
+Eq.~\eqref{eq:adapter}. Each context's predictive for $e_t$ is Student-$t$ (or Gaussian after
+marginalising $W_c$), and the posterior $\pi_t(c)\propto p(e_t\mid c,\phi_t)\,p(y_t\mid c)\,
+\sum_i p(c\mid i)\,\pi_{t-1}(i)$ combines dynamics and cue evidence. Each adapter is then updated with
+weight $\pi_t(c)$, a responsibility-weighted conjugate update, not winner-take-all, as in
+COIN~\cite{heald2021coin}. The one posterior serves four roles, with no separate detector:
+\begin{itemize}
+  \item \emph{creation}: the novel slot dominates over a short window, so its posterior is cloned into
+  a new stored context and the slot is reset to the prior;
+  \item \emph{recall}: a stored context dominates;
+  \item \emph{reversion}: the base model dominates again;
+  \item \emph{change detection}: the entropy or MAP of $\pi_t$ changes.
+\end{itemize}
+Contexts whose parameter posteriors come within a small symmetric KL of each other are merged, which
+bounds $K_t$ and repairs duplicated contexts.
+
+\paragraph{Deployment-learned cues.}
+At the start of each episode, before first contact, the robot observes $y=P^\top E(o_{\text{pre}})$, a
+low-dimensional projection ($\le 8$ dims, principal components of nominal pre-contact latents) of the
+scene. Each context holds a conjugate Normal--Wishart cue likelihood $p(y\mid c)$. The design choice
+that matters is that \emph{cue likelihoods are updated with responsibilities computed from dynamics
+evidence only}, smoothed over the finished episode, never from the cue-augmented posterior. This
+prevents the self-confirming loop in which a cue assigns a context and that assignment then reinforces
+the cue. It also means a misleading cue can be unlearned, which H4 tests. Once associated, the cue term
+$p(y\mid c)$ shifts $\pi$ at $t=0$, and the planner uses the posterior-weighted adapter before any
+contact.
+
+\paragraph{Planning.}
+The planner rolls out $\hat z_{t+1}=f(z_t,a_t)+U\,\bar W\phi_t$ with $\bar W=\sum_c\pi_t(c)M_c$ (mixture
+mean), or samples contexts per CEM particle for risk-sensitive costs. All per-step filtering is
+$O(|\C_t|\,k\,p^2)$ with $k,p\lesssim 16$, negligible next to a single predictor call.
+
+\paragraph{Active disambiguation (stretch).}
+When $H(\pi_t)$ exceeds a threshold, CEM ranks elite candidates by
+$J(\mathbf a)=J_{\text{task}}(\mathbf a)-\beta\, I(c;\,e_{t+1:t+H}\mid \mathbf a)$. The mutual information
+is between the discrete context and a Gaussian mixture of predicted residuals, and we bound it in closed
+form with pairwise divergences between the per-context predictives. The task-cost bound is enforced by
+construction: only candidates with $J_{\text{task}}\le(1+\epsilon)\min J_{\text{task}}$ are eligible for
+the information term. This is active fault diagnosis~\cite{blackmore2006discrimination,
+blackmore2008active,simandl2009afd} and dual control~\cite{mesbah2018dual,heirung2019mpcdiscrimination}
+moved into latent planning. It differs from OPAX~\cite{sukhija2023opax} in targeting information about
+a discrete context rather than about model parameters.
+
+%=====================================================================
+\section{The measurement: apparent versus proper learning}
+%=====================================================================
+
+Every adaptive world model in this proposal, including the baselines, has an adaptive state that
+splits into an \emph{expression} part $\pi$ and a \emph{parameter} part $\Theta$. For \method{} these
+are the context posterior and the adapter posteriors. For MOLe they are the mixture weights and the
+network weights. For AdaJEPA and SGD-based adapters, $\pi$ is trivial and everything is $\Theta$. Let
+$L(\pi,\Theta)$ be the one-step latent prediction error of the resulting model on transitions from the
+current regime, evaluated by replay.
+
+\begin{definition}[Recovery decomposition]\label{def:decomp}
+For a shift at time $t_0$, the recovery by time $t$ is
+$R_t=L(\pi_{t_0},\Theta_{t_0})-L(\pi_t,\Theta_t)$. Its apparent and proper parts are the two-player
+Shapley values
+\begin{align*}
+  A_t &= \tfrac12\big[L(\pi_{t_0},\Theta_{t_0})-L(\pi_t,\Theta_{t_0})\big]
+        +\tfrac12\big[L(\pi_{t_0},\Theta_t)-L(\pi_t,\Theta_t)\big],\\
+  P_t &= R_t-A_t,
+\end{align*}
+with contexts created after $t_0$ given zero mass under $\pi_{t_0}$.
+\end{definition}
+
+The decomposition is exact ($A_t+P_t=R_t$) and order-invariant. It is cheap for \method{} because every
+counterfactual is a closed-form evaluation of stored posteriors. It makes the COIN distinction
+operational: on a first exposure recovery should be almost entirely proper; on a re-exposure it should
+be almost entirely apparent. For any method that resets at episode boundaries, or has no expression
+state, $A_t\equiv 0$. We report $A_t/R_t$ over realistic streams as a headline number, not only on the
+paradigm sub-streams.
+
+%=====================================================================
+\section{A quantitative prediction for latency, savings and cues}
+%=====================================================================
+
+The paradigms earn their place only if they separate methods quantitatively. The following
+argument turns them into numbers fixed before the experiment.
+
+\begin{proposition}[Latency as a first-passage time]\label{prop:latency}
+Consider an episode whose true context $c^\ast$ is stored, and treat the strongest alternative $c'$ as
+the competing hypothesis. Let the per-step dynamics log-likelihood ratios $\ell_s$ after first contact
+$t_c$ be i.i.d.\ with mean $D=\E_{c^\ast}[\mathrm{KL}]>0$, the expected divergence between the two
+contexts' residual predictives under the state-dependent noise $\Sigma$. Before contact,
+$\ell_s=0$. Let the episode-start log-odds be
+\[
+  \lambda_0 \;=\; \underbrace{\log\frac{n_{c^\ast}}{n_{c'}}}_{\text{prior (CRP counts)}}
+  \;+\;\underbrace{\log\frac{p(y\mid c^\ast)}{p(y\mid c')}}_{\text{cue, }\ell_y},
+\]
+and let latency $\tau$ be the number of post-contact steps until the log-odds first reach
+$\lambda^\ast$. Then $\tau=0$ if $\lambda_0\ge\lambda^\ast$, and otherwise, by Wald's identity,
+$\E[\tau]=(\lambda^\ast-\lambda_0+\E[\text{overshoot}])/D\ge(\lambda^\ast-\lambda_0)/D$.
+\end{proposition}
+
+The proposition is elementary. Its value is in what it commits us to.
+\begin{itemize}
+  \item \textbf{Anticipation (H1).} Latency is zero exactly when prior plus cue clear the threshold.
+  With soft expression, the fraction of the shift corrected before contact is $\pi_0(c^\ast)$, which
+  for a categorical cue of reliability $\rho$ over $K$ equiprobable contexts is $\rho$ once the cue is
+  learned. With the toy's $\rho=0.8$, about 80\% of the shift should be corrected at $t_c$.
+  \item \textbf{Savings (H2).} $\lambda_0$ grows like $\log n_{c^\ast}$, so latency falls with each
+  re-exposure by $\approx\log(n_{k+1}/n_k)/D$ steps, with diminishing returns. For reset-based SGD,
+  latency is constant in $k$.
+  \item \textbf{Cue conflict (H4).} Relative to a correct cue, a misleading cue of strength $\ell_y$ costs
+  $\approx 2\ell_y/D$ extra steps before the dynamics override it. The override is bounded, and it
+  scales inversely with how different the contexts' dynamics are.
+  \item \textbf{Noise (H5).} Heteroscedastic $\Sigma$ lowers $D$ at contact transients. That costs
+  latency but prevents the false contexts a homoscedastic model would create. We measure both sides of
+  this trade-off.
+\end{itemize}
+We will fit $D$ from nominal data, predict latency curves, and report prediction against observation.
+A large, systematic mismatch is itself a finding, most likely non-i.i.d.\ evidence around contact
+events.
+
+%=====================================================================
+\section{Hypotheses and kill criteria}
+%=====================================================================
+
+\begin{enumerate}[label=\textbf{H\arabic*},leftmargin=2.2em]
+  \item \textbf{Anticipation.} On recurring conditions with an informative cue, prediction error at
+  first contact is reduced by roughly the posterior mass on the true context, and latency is $\le 0$.
+  The cue-free bank needs $\approx(\lambda^\ast-\lambda_0)/D>0$ steps.
+  \item \textbf{Savings.} Recovery time drops with each re-exposure, following
+  Prop.~\ref{prop:latency}. For SGD and SGD with periodic reset it stays roughly constant.
+  \item \textbf{No interference.} Learning regime B leaves prediction and task performance on A
+  intact. Always-on SGD degrades A, as do continual-TTA baselines.
+  \item \textbf{Cue conflict.} With a misleading cue, dynamics evidence overrides the cue within the
+  bounded number of steps predicted above, and task cost stays below the frozen model's.
+  \item \textbf{Noise robustness.} Under stochastic, contact-rich dynamics, no single SGD learning rate
+  is best in both the noisy-nominal and post-shift phases, while \method{} is no worse than the best
+  one in either. \method{}'s false-context rate on nominal streams stays below a pre-registered bound.
+  \item \textbf{Decomposition.} On realistic streams with recurrence, a substantial share of recovery
+  (pre-registered: $A/R\ge 0.3$ at the median shift) is apparent learning.
+\end{enumerate}
+
+\paragraph{Kill criteria.}
+\begin{itemize}
+  \item If the cue-free filtered bank matches the full model on recurrence speed, we drop the
+  anticipation claim, and the paper becomes ``filtered bank plus protocol and measurement''.
+  \item If tuned SGD with periodic reset matches the filtered bank, the paper becomes the protocol, the
+  decomposition, and the negative finding.
+  \item If $A/R$ is small on realistic streams, the reframing is weaker than claimed and we say so. The
+  measurement remains a contribution.
+\end{itemize}
+
+%=====================================================================
+\section{Evaluation}
+%=====================================================================
+
+\paragraph{Streams.}
+A regime process over $\{$nominal, $R_1,\dots,R_M\}$ with geometric dwell times (in episodes) and
+occasional within-episode switches. Each regime is paired with an appearance, and the cue shows the
+paired appearance with probability $\rho$ and a random other one otherwise. We sweep
+$\rho\in\{0.5,0.65,0.8,0.95\}$, with $\rho=1/M$ as the uninformative control. Dynamics are stochastic
+throughout. Four paradigm sub-streams are embedded:
+\begin{itemize}
+  \item \textbf{Savings}: A--B--A--B blocks.
+  \item \textbf{Anterograde interference}: a long versus short A block before B.
+  \item \textbf{Evoked recovery}: after A then B, two A episodes are inserted into a nominal block; we
+  test whether the A memory re-expresses.
+  \item \textbf{Cue conflict}: cue pairings are swapped for one block.
+\end{itemize}
+
+\paragraph{Baselines.}
+\begin{itemize}
+  \item Frozen world model.
+  \item Always-on SGD adapter (AdaJEPA-style).
+  \item SGD with periodic reset (the RDumb lesson~\cite{press2023rdumb}).
+  \item SGD with oracle reset at regime changes.
+  \item Sandwich-Residuals~\cite{soni2026sandwich}.
+  \item A MOLe-style CRP mixture of SGD adapters~\cite{nagabandi2019mole}.
+  \item MOCA-style changepoint switching without recall~\cite{harrison2020moca}.
+  \item \method{} ablations: cue-free, homoscedastic noise, bias-only adapter, no merging, and
+  winner-take-all updates.
+  \item Oracle-context \method{} as an upper bound.
+\end{itemize}
+All baselines see the same subspace and planner, and learning rates and filter hyperparameters are tuned
+on nominal streams only.
+
+\paragraph{Metrics.}
+\begin{itemize}
+  \item Adaptation latency relative to first contact.
+  \item Excess prediction error integrated after each shift.
+  \item Task cost and success.
+  \item A savings ratio across exposures.
+  \item Retention of A after B.
+  \item The decomposition $A/R$.
+  \item False-context and missed-context rates.
+  \item Predicted-versus-observed latency (Prop.~\ref{prop:latency}).
+\end{itemize}
+Seeds and streams are pre-registered, and we report bootstrap confidence intervals.
+
+\paragraph{Environments.}
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Toy pusher.} A 2D pusher with contact-dependent noise, friction and mass regimes, and an
+  80\%-reliable surface-colour cue, run on one savings and one cue-conflict stream. This is the go/no-go
+  test for H1, H2, H4 and the noise risk, and it runs in minutes on a CPU.
+  \item \textbf{AdaJEPA environments}~\cite{wang2026adajepa}: PushT, PushObj and PointMaze with their
+  released JEPA and DINO-WM~\cite{zhou2025dinowm} checkpoints. PointMaze already has mass and damping
+  shifts. We repurpose the existing appearance changes (recolouring the agent or block) as cues by
+  pairing each with a dynamics shift, and add stochastic dynamics. This gives direct comparability with
+  AdaJEPA and Sandwich-Residuals.
+  \item \textbf{Real arm.} Planar pushing on swapped mats (e.g.\ felt, acrylic, rubber) whose texture
+  correlates with friction~\cite{yu2016million}, and payloads in visually distinct containers. Cue
+  reliability is controlled by occasionally covering mats with a neutral sheet or swapping container
+  contents. The world model is a DINO-WM-style model trained on nominal pushing data.
+\end{enumerate}
+
+%=====================================================================
+\section{Risks and mitigations}\label{sec:risks}
+%=====================================================================
+
+\begin{itemize}
+  \item \textbf{Contact transients read as shifts.} Most likely failure. Mitigated by the
+  heteroscedastic $\Sigma$ and a minimum dwell before creation, with the false-context rate reported
+  as a first-class metric.
+  \item \textbf{Weak cue--dynamics correlation.} Human data show many static visual cues are
+  weak~\cite{howard2013contextual}. We choose tasks where the correlation is natural and sweep $\rho$
+  rather than assume it. Prop.~\ref{prop:latency} says how much a weak cue should still help.
+  \item \textbf{Spurious contexts from irrelevant appearance.} The cue enters only as a likelihood on a
+  low-dimensional projection, trained on dynamics-only responsibilities, so appearance cannot
+  \emph{create} a context. The CRP concentration is tuned on nominal streams.
+  \item \textbf{Shift outside the error subspace.} Diagnosed online by the fraction of residual energy
+  outside $U$. If it rises persistently, the novel context gets an extended subspace (the top
+  directions of the unexplained residual). This is also where \method{} meets the coverage limit
+  AdaJEPA reports.
+  \item \textbf{Neuroscience window dressing.} Each paradigm is tied to a quantitative gap between
+  methods and to a prediction from Prop.~\ref{prop:latency}. A paradigm that does not separate methods
+  in the toy is dropped from the paper.
+  \item \textbf{Scooping.} AdaJEPA and Sandwich-Residuals both name persistence as next steps, so a
+  workshop version by spring matters. VcVBLL~\cite{brunzema2026vcvbll} already argues for proactive
+  exteroceptive adaptation. Our differentiators are memory creation and recall, deployment-learned
+  cues, the decomposition, and manipulation with latent world models.
+\end{itemize}
+
+%=====================================================================
+\section{Plan}
+%=====================================================================
+
+\begin{center}
+\small
+\begin{tabular}{lp{0.42\linewidth}p{0.3\linewidth}}
+\toprule
+When & Work & Exit condition \\
+\midrule
+Oct 2026 & Toy pusher, \method{} core, SGD/reset baselines & H1/H2/H4 visible; kill criteria checked \\
+Nov 2026 & Decomposition tooling; latency predictions vs.\ toy & Prop.~\ref{prop:latency} within error bars or understood \\
+Dec 2026--Jan 2027 & AdaJEPA environments, full baseline set & Paradigm streams in PushT/PointMaze \\
+Feb 2027 & Workshop paper (toy + AdaJEPA envs) & Submitted to a spring workshop \\
+Mar--Apr 2027 & Real-arm pushing and payload study; active disambiguation & H1--H5 on hardware \\
+May 2027 & Full paper & NeurIPS or CoRL 2027 submission \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{What changed from the working draft.}
+\begin{enumerate}
+  \item The Gaussian bias adapter became a Bayesian linear residual, because friction and gain shifts are
+  action-dependent.
+  \item Cue likelihoods are learned from dynamics-only responsibilities, to prevent self-confirming cue
+  loops.
+  \item Apparent-versus-proper learning became an exact Shapley decomposition (C1).
+  \item The paradigms are now tied to a sequential-testing latency prediction (C3), which answers the
+  window-dressing risk.
+  \item Evoked recovery and a decomposition hypothesis (H6) were added.
+  \item Sandwich-Residuals (September 2026), MOLe and MOCA were added as baselines, since they are the
+  nearest competitors found in the literature search.
+  \item The active-disambiguation task-cost bound is enforced by construction through elite-set
+  eligibility.
+\end{enumerate}
+
+\begingroup
+\small
+\setlength{\bibsep}{1pt}
+\bibliographystyle{plainnat}
+\bibliography{references}
+\endgroup
+
+\end{document}

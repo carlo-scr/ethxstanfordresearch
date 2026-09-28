@@ -1,0 +1,776 @@
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{xcolor}
+
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{observation}{Observation}
+\newtheorem{remark}{Remark}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\Pd}{\mathcal{P}_\delta}
+\newcommand{\novel}{\star}
+\newcommand{\method}{\textsc{Cira}}
+
+\setlist{itemsep=1pt,topsep=3pt}
+\emergencystretch=1.5em
+
+\title{Adapting Before Contact:\\
+Compositional Contextual Inference for Safe Control with Frozen World Models}
+\author{Research Proposal --- v3}
+\date{September 28, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Robots that plan with learned world models make mistakes when the physics changes, for example when
+the table surface becomes more slippery or the object becomes heavier. Current methods fix this by
+updating the model from its prediction errors. They can only do so after the robot has touched the
+object, and they discard what they learned when the next episode starts. For tasks that are decided at
+the moment of first contact, such as striking a puck toward a target or lifting an unknown load, these
+methods therefore give no benefit at all.
+
+We propose a different approach, based on a model of how humans learn motor skills~\cite{heald2021coin}.
+The robot keeps a growing set of small correction models, one for each physical condition it has
+encountered (``memories''). It continuously estimates which condition it is currently in. It also
+learns, without labels, which visual features predict each condition, for example that a grey felt mat
+means high friction. When a known condition returns, the robot can select the right memory from what
+it sees, before it touches anything.
+
+The method, \method{} (Context-Indexed Residual Adapters), adds these memories to any frozen world
+model. Memories for different factors, such as surface and load, can be combined, so a new combination
+of known factors can be predicted without new data. The same estimate of the current condition also
+drives a safety filter whose safety margins are tuned separately for each memory. The proposal contains two theoretical results and one measurement, each tested on simulated and
+real robot tasks:
+\begin{itemize}
+  \item the error at first contact grows with how unpredictable the sequence of conditions is, while
+  for existing methods it grows with the number of episodes in which the condition differs from
+  training;
+  \item a long-run bound on safety violations that holds whether or not the visual cues are reliable;
+  \item a method that splits the robot's recovery after a change into ``recalling an old memory'' and
+  ``learning something new'', which we measure over a long real-robot deployment.
+\end{itemize}
+\end{abstract}
+
+%=====================================================================
+\section{Motivation and contributions}
+%=====================================================================
+
+\paragraph{World models and their adaptation.}
+A latent world model encodes camera images into a compact vector (the \emph{latent state}) and
+predicts how that vector changes when the robot acts. Planners use these predictions to choose
+actions. Such models now plan manipulation tasks without task-specific
+training~\cite{zhou2025dinowm,assran2025vjepa2,sobal2025pldm,hansen2024tdmpc2}. When the physics at
+deployment differs from the training data, the predictions become wrong. Two recent methods address
+this. AdaJEPA updates part of the model with a few gradient steps on its recent prediction errors while
+the robot runs~\cite{wang2026adajepa}. Sandwich-Residuals keeps the model fixed and trains small
+correction modules around it~\cite{soni2026sandwich}. Both reset to the original model at the start of
+every episode, and both list keeping what was learned across episodes as future work. Keeping the
+gradient updates running indefinitely is not a good alternative. On long streams of data such updates
+gradually drift and degrade, and simply resetting from time to time works better~\cite{press2023rdumb,hoang2024petta}.
+
+\paragraph{Real deployments repeat themselves.}
+A robot in a lab, warehouse or kitchen rarely meets a completely new condition. It meets the same few
+surfaces, containers and tool states repeatedly, and these usually look different from each other.
+Humans make use of this. Research on human motor learning shows that people keep separate motor
+memories for different conditions. They recall a memory when a condition returns instead of
+relearning it (\emph{savings}). Learning a new condition does not erase the old one. Visual cues can
+select the right memory before the movement starts~\cite{heald2021coin,heald2023annurev,haruno2001mosaic}.
+
+\paragraph{Running example.}
+A robot arm strikes a puck toward a target on a table. The table is covered with one of three mats:
+felt (high friction), rubber (medium) or acrylic (low). The puck is sometimes empty and sometimes
+weighted. The mats and weights are swapped by people during the day. If the robot assumes the wrong
+friction, the puck stops short or slides off the table edge. The strike is a single contact, so the
+robot has no chance to correct its action after seeing the error.
+
+\paragraph{Main idea.}
+We treat adaptation as the question ``which of the conditions I know is active now, or is this a new
+one?'' rather than ``how should I change my model parameters?''. The robot answers this question with
+a probability distribution over its memories (the \emph{context posterior}). It updates only the
+memory that is likely to be active. This matters most at the first contact. At that point
+error-driven methods have received no error signal. The outcome of single-contact tasks is decided
+there, and so is much of the risk of unsafe behaviour.
+
+\paragraph{Contributions.}
+\begin{enumerate}[label=\textbf{C\arabic*.},leftmargin=2.2em]
+  \item \textbf{Single-contact tasks as a test.} We define a class of tasks in which methods that only
+  learn from prediction errors cannot outperform the unadapted model (Obs.~\ref{obs:reactive}).
+  Examples are striking an object toward a target, lifting an unknown load and pushing near a table
+  edge. On these tasks, only information available before contact can help.
+  \item \textbf{The method, \method{}.} A set of small probabilistic correction models (memories) on
+  top of a frozen world model, with closed-form updates. One probability distribution over memories
+  decides when a new memory is created, which memory is used and updated, and when the robot has
+  returned to normal conditions. A noise model that depends on the state prevents the short, noisy
+  moments at contact from being mistaken for a change of condition. Memories are organised by factor
+  (for example surface and load), each with its own visual cue. As a result, an unseen combination of
+  known factors can be predicted before contact.
+  \item \textbf{Theory.} Proposition~\ref{prop:separation} bounds the total error at first contact.
+  For our method the bound depends on how predictable the sequence of conditions is given the visual
+  cues. For reset-based methods it grows with every episode that differs from training.
+  Proposition~\ref{prop:latency} predicts how many steps the robot needs to identify a known
+  condition. We state these predictions before running the experiments.
+  \item \textbf{A safety filter that uses the memories.} The filter checks each planned action against
+  every memory that is still reasonably likely. Its safety margin is tuned online, separately for each
+  memory. When a known condition returns, the robot therefore also recovers the margin that was
+  appropriate for it. Proposition~\ref{prop:safety} bounds the long-run rate of safety violations for
+  any sequence of conditions, including when visual cues are misleading.
+  \item \textbf{A measurement and a long deployment.} We split the improvement after a change of
+  condition into two parts (Def.~\ref{def:decomp}): the part that comes from selecting an existing
+  memory, and the part that comes from changing a memory's parameters. Following the human motor
+  learning literature, we call these \emph{apparent} and \emph{proper} learning. We report this split
+  over a real-robot deployment of at least 1000 episodes, in which people swap surfaces and containers
+  on a schedule the robot does not know. We also release a benchmark of long sequences of changing
+  conditions, built around four classic motor-learning experiments.
+\end{enumerate}
+
+\paragraph{Scope.}
+We study changes in physics (friction, mass, load, motor strength) while the image encoder stays fixed.
+Appearance matters only as a clue about which condition is active. We do not try to correct for
+changes in appearance that confuse the encoder itself, which is what AdaJEPA and Sandwich-Residuals
+address. We also assume that a safety constraint expressed in the latent space matches the real
+constraint. Whether it does is a property of the encoder that we do not study here~\cite{lutkus2025latent}.
+
+%=====================================================================
+\section{Related work}
+%=====================================================================
+
+\paragraph{Contextual inference in human motor learning.}
+The MOSAIC model proposed that the brain holds several paired prediction and control models and
+chooses between them using both prediction accuracy and signals available before a
+movement~\cite{wolpert1998multiple,haruno2001mosaic}. The COIN model~\cite{heald2021coin} turned this
+into a full probabilistic model. It has the following parts:
+\begin{itemize}
+  \item a set of contexts that can grow without limit, which tend to persist over time;
+  \item one simple memory per context;
+  \item visual or other cues whose probability depends on the context.
+\end{itemize}
+COIN explains several well-known effects by changes in which memory is used, not by changes in
+learning speed. These are savings, interference between opposing tasks, and the spontaneous return of
+old behaviour. It also predicted two effects that the standard two-rate model~\cite{smith2006interacting}
+cannot produce, and experiments confirmed both. One is the return of an old memory triggered by a few
+reminder trials (\emph{evoked recovery}). The other is that the amount learned in one trial depends on
+the cue. Related models of animal learning make the same distinction between updating a memory and
+creating a new one~\cite{gershman2010context,gershman2014statistical,oh2019minimizing}. People also
+learn separate parts of a task independently and recombine them~\cite{franklin2018compositional}.
+
+One result is a warning for our design. Many purely visual cues do not help people separate motor
+memories~\cite{howard2013contextual}, while differences in the planned movement do~\cite{sheahan2016planning}.
+We therefore do not assume that a cue is useful. The robot learns how informative each cue is, and we
+vary cue reliability in the experiments.
+
+\paragraph{Adapting world models while they run.}
+AdaJEPA~\cite{wang2026adajepa} updates encoder and predictor layers with about one gradient step per
+planning cycle on the PushT, PushObj and PointMaze tasks, including changes in mass and damping. Its
+authors note that adaptation is limited by what the pretrained representation can express.
+Sandwich-Residuals~\cite{soni2026sandwich} reaches similar results while training only 1--3\% as many
+parameters. More general test-time adaptation methods~\cite{sun2020ttt,wang2021tent,wang2022cotta}
+degrade on long and repeating data streams~\cite{press2023rdumb,hoang2024petta}. Contextual world
+models estimate a continuous context vector from recent
+experience~\cite{roder2025dali,benad2026dmash,lee2020context}. Changepoint-aware world models
+discard outdated training data after a detected change~\cite{yang2026cawm}. None of these methods
+stores separate conditions and recalls them later, and none acts before contact.
+
+\paragraph{Probabilistic tools for switching dynamics.}
+Our method combines existing tools:
+\begin{itemize}
+  \item Bayesian last layers, which give fast closed-form updates of the final layer of a
+  network~\cite{harrison2018alpaca,harrison2024vbll};
+  \item methods that detect when the data-generating process
+  changes~\cite{harrison2020moca,adams2007bocpd};
+  \item mixtures of dynamics models whose number grows with the data, using a Chinese restaurant process
+  (CRP) prior~\cite{nagabandi2019mole,xu2020taskagnostic,jerfel2019reconciling,lee2020cndpm};
+  \item switching linear dynamical systems~\cite{fox2011bnpslds,fox2011sticky,linderman2017rslds};
+  \item the interacting multiple-model (IMM) filter from target
+  tracking~\cite{blom1988imm,mazor1998imm,li1996vsmm};
+  \item lifelong learning with factored or modular
+  models~\cite{feng2022factored,mendez2022modular,killian2017robust}.
+\end{itemize}
+The closest prior method is MOLe~\cite{nagabandi2019mole}, which keeps a CRP mixture of dynamics models
+for model-based reinforcement learning. It selects a model only from prediction errors, so it cannot
+act before contact. In online learning theory, ``mixing past posteriors''~\cite{bousquet2002tracking}
+handles a small set of recurring experts. Our first-contact result builds on the same intuition.
+
+\paragraph{Using vision to predict dynamics in advance.}
+VcVBLL~\cite{brunzema2026vcvbll} adjusts a vehicle dynamics model using a hand-designed score for
+standing water in the camera image. Terrain-aware models use pretrained image features in a similar
+way~\cite{gibson2024visualterrain,cai2023probtrav,agarwal2022egocentric}. Other methods train an image
+model online to predict physical properties measured by the robot's own
+sensors~\cite{loquercio2022crossmodal,margolis2023activesensing,frey2023wvn}. Vision-language models
+can also provide prior estimates of physical properties~\cite{gao2024physically,wang2026phys2real}. All
+of these map an image to a continuous physical quantity through a channel chosen in advance. \method{}
+instead maps the image to one of the robot's own discovered conditions, and lets the observed dynamics
+overrule the image when they disagree.
+
+\paragraph{Safety in latent space.}
+Several methods compute safety filters directly in the latent space of a world model, using
+reachability analysis or control barrier functions
+(CBFs)~\cite{nakamura2025latent,nakamura2026latentcbf,anand2025safety,lutkus2025latent,wu2026points}.
+A CBF is a function $h$ that is positive in safe states. A controller stays safe if it keeps $h$ from
+decreasing too quickly. Seo et al.~\cite{seo2025uncertainty} treat states outside the training data as
+unsafe and steer away from them. AnySafe changes the safety constraint at runtime but not the
+dynamics~\cite{agrawal2025anysafe}. Conformal prediction gives error bounds for learned predictors,
+and adaptive conformal inference (ACI) keeps these bounds valid when the data change over
+time~\cite{gibbs2021adaptive,lindemann2023safe,dixit2023adaptive,huriot2026safe,nath2026pixels,srinivasan2026safety}.
+Adaptive and robust CBFs narrow down a single set of unknown parameters
+online~\cite{taylor2020adaptive,lopez2021robust,taylor2020learning,castaneda2025recursively}.
+Multi-stage model predictive control is robust against a fixed set of candidate
+models~\cite{lucia2013multistage}. What is missing is a filter whose set of candidate models is the
+set of remembered conditions that are currently likely. Such a filter can be cautious in new
+conditions, less cautious in recognised ones, and can store its calibration with each memory.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccccc}
+\toprule
+ & Latent visual & Keeps / & Acts before & Cue learned & Combines & Safety uses & Calibrated \\
+ & world model & recalls memories & contact & during use & factors & memories & under change \\
+\midrule
+AdaJEPA~\cite{wang2026adajepa}, Sandwich-Res.~\cite{soni2026sandwich} & \checkmark & -- & -- & -- & -- & -- & -- \\
+MOLe~\cite{nagabandi2019mole}, IMGP~\cite{xu2020taskagnostic} & -- & \checkmark & -- & -- & -- & -- & -- \\
+MOCA~\cite{harrison2020moca} & -- & keeps only & -- & -- & -- & -- & partly \\
+VcVBLL~\cite{brunzema2026vcvbll}, Phys2Real~\cite{wang2026phys2real} & -- & -- & \checkmark & -- (fixed in advance) & -- & -- & \checkmark \\
+Uncertainty-aware latent filter~\cite{seo2025uncertainty} & \checkmark & -- & -- & -- & -- & avoids unknown & \checkmark \\
+Latent world model + ACI filters~\cite{huriot2026safe,nath2026pixels} & \checkmark & -- & -- & -- & -- & one model & \checkmark \\
+COIN~\cite{heald2021coin} (model of humans) & -- & \checkmark & \checkmark & \checkmark & -- & -- & -- \\
+\midrule
+\method{} (this proposal) & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}}
+\caption{Comparison with the closest work, based on literature searches in September 2026. Each
+column is covered by some prior work. Our contribution is the combination, the single-contact task
+class and the first-contact result.}
+\label{tab:positioning}
+\end{table}
+
+%=====================================================================
+\section{Problem setting}
+%=====================================================================
+
+A frozen encoder maps an image $o_t$ to a latent state $z_t=E(o_t)\in\mathbb{R}^d$. A frozen predictor
+gives the next latent state $\hat z_{t+1}=f(z_t,a_t)$ for action $a_t$. The robot runs one long
+sequence of episodes. It knows when an episode starts and ends, but it is never told which condition
+is active, and its memories are never reset.
+
+In episode $e$ an unknown \emph{context} $c^\ast_e$ is active. A context is a physical condition, such
+as ``acrylic mat, weighted puck''. Under context $c$, the true next state differs from the frozen
+prediction by an average amount $\mu_c(z,a)$, which we call the \emph{residual}. The training
+condition has zero residual, $\mu_0\equiv 0$. Before the first contact, at time $t_c$, the robot sees
+the scene and extracts a visual \emph{cue} $y_e$. Before contact, the robot's own motion reveals
+nothing about the context.
+
+\begin{definition}[Single-contact task]
+A task is \emph{single-contact} if its success, or a violation of its safety constraint, is decided by
+the prediction the model makes at the first contact $t_c$ and the action chosen from it. Examples are
+striking a puck toward a target, tossing an object~\cite{zeng2020tossingbot}, other fast
+non-grasping motions~\cite{lynch1999dynamic}, lifting an unknown load without jerking or slipping, and
+pushing an object near a table edge on an unknown surface.
+\end{definition}
+
+\begin{observation}[Error-driven adaptation cannot help at first contact]\label{obs:reactive}
+Suppose a method changes its model only in response to prediction errors. Since there are no errors
+before contact, its prediction at $t_c$ is the same as at the start of the episode. Methods that reset
+every episode (AdaJEPA, Sandwich-Residuals, gradient updates with reset) therefore make the frozen
+model's prediction at first contact. Their error there is $\|\mu_{c^\ast_e}\|$. On single-contact tasks
+they cannot do better than the unadapted model.
+\end{observation}
+
+The observation follows directly from the definitions. Its purpose is to make clear that on these
+tasks only two sources of information remain: what the robot has seen in past episodes, and what it
+sees in the scene before contact.
+
+%=====================================================================
+\section{Method: Context-Indexed Residual Adapters}
+%=====================================================================
+
+\paragraph{Overview.}
+\method{} has four parts:
+\begin{itemize}
+  \item a small set of directions in the latent space where corrections are made;
+  \item one correction model (memory) per known context;
+  \item a probability distribution over which memory is active, updated at every step;
+  \item a learned link between visual cues and memories.
+\end{itemize}
+The world model itself is never changed.
+
+\paragraph{Where corrections are made.}
+We collect the prediction errors $r_t=z_{t+1}-f(z_t,a_t)$ of the frozen model on training-condition
+data. We keep the $k$ directions along which these errors vary most (principal components, with
+$k$ between 4 and 16), stored as a matrix $U\in\mathbb{R}^{d\times k}$. All corrections are made in
+these $k$ directions, using the projected error $e_t=U^\top r_t$. The reasoning is that a few physical
+parameters, such as friction and mass, change the dynamics along only a few
+directions~\cite{doshivelez2016hipmdp,killian2017robust}.
+
+\paragraph{Memories.}
+Each context $c$ has a memory: a linear model that predicts the projected error from a small feature
+vector $\phi_t=\phi(U^\top z_t,a_t)$, for example $\phi_t=[a_t,\,U^\top z_t,\,1]$. The weights $W_c$ are
+uncertain, and we keep a Gaussian distribution over them:
+\begin{equation}
+  e_t\mid c\;\sim\;\N\big(W_c\phi_t,\;\Sigma(z_t,a_t)\big),\qquad
+  W_c\sim\mathcal{MN}(M_c,\Sigma_{\text{row}},V_c).
+  \label{eq:adapter}
+\end{equation}
+Here $\mathcal{MN}$ is a matrix normal distribution. It is the matrix version of a Gaussian, so the
+memory can be updated in closed form after every step~\cite{harrison2018alpaca}. The model includes
+the action, because a change in friction or motor strength produces an error that grows with the
+action. A constant offset could not describe this. The correction is also linear in the action, which
+the safety filter in Section~\ref{sec:safety} uses. The weights $W_c$ are allowed to drift slowly over
+time, so each memory can keep learning while it is in use. The memory for the training condition is
+fixed at $W_0=0$. One extra ``new context'' slot, written $\novel$, starts from a broad prior and is
+used when no stored memory fits.
+
+\paragraph{Noise that depends on the state.}
+The noise covariance $\Sigma(z,a)$ comes from a small network trained on training-condition
+errors~\cite{kersting2007hetgp}. Around contact the frozen model is already less accurate, for
+example at the moment of impact or during stick--slip motion, and $\Sigma$ is larger there. Large
+errors at those moments are then treated as expected noise rather than as evidence of a new condition.
+Pushing is known to have this kind of state-dependent noise and variable
+friction~\cite{bauza2017probpush,ma2018friction}. We found no prior work that links contact noise to
+the false creation of new contexts. We expect it to be the most common failure of a simple
+implementation, and our simulated tasks include it on purpose.
+
+\paragraph{Combining factors.}
+A context can consist of several independent factors, such as the surface and the load:
+$c=(c^1,\dots,c^F)$. Each factor has its own set of memories $W^f_{c^f}$, and the corrections add up:
+$e_t\mid c\sim\N\big(\sum_f W^f_{c^f}\phi_t,\Sigma\big)$. Two things let the robot separate the factors
+without labels:
+\begin{itemize}
+  \item \emph{Each factor has its own image region.} The surface cue comes from the table area around
+  the object. The load cue comes from a crop of the object or container.
+  \item \emph{Factors change at different times.} People swap mats and containers independently, so
+  the robot sees one factor change while the other stays the same.
+\end{itemize}
+Adding the corrections is an approximation. Friction force grows with the normal force, so mass and
+friction interact. We therefore also keep a memory for each combination the robot has actually seen.
+For a combination it has not seen, it starts from the sum of the factor memories and refines this
+memory as data arrive. Our claim about new combinations concerns the prediction at their first
+contact.
+
+\paragraph{Estimating the active context.}
+At every step the robot updates a probability distribution $\pi_t$ over the stored memories, the
+training condition and the ``new context'' slot. Three sources of evidence are combined:
+\begin{itemize}
+  \item \emph{How often each context has occurred.} Before an episode, a context that has been seen
+  often is considered more likely. This is the Chinese restaurant process
+  prior~\cite{neal2000dpm}. It gives each known context a probability proportional to how often it
+  has occurred, and gives a new context a small fixed probability.
+  \item \emph{The visual cue}, through the cue model described below.
+  \item \emph{How well each memory predicts the latest step}, through Eq.~\eqref{eq:adapter}.
+\end{itemize}
+Within an episode, contexts are assumed to persist, with a small chance of
+switching~\cite{fox2011sticky}. The update
+follows the interacting multiple-model filter~\cite{blom1988imm}:
+\[
+  \pi_t(c)\;\propto\;p(e_t\mid c,\phi_t)\;\prod_f p(y^f\mid c^f)\;\sum_{c'}p(c\mid c')\,\pi_{t-1}(c').
+\]
+This one distribution answers four questions, so no separate change detector is needed:
+\begin{itemize}
+  \item if the ``new context'' slot stays most likely for several steps, a new memory is created;
+  \item if a stored memory is most likely, it is recalled;
+  \item if the training condition is most likely, the robot has returned to normal;
+  \item if the distribution shifts, the condition has changed.
+\end{itemize}
+Each memory is updated in proportion to its probability, as in COIN~\cite{heald2021coin}, rather than
+only the most likely one. Two memories that become nearly identical are merged.
+
+\paragraph{Learning what cues mean.}
+For each factor value, the robot keeps a Gaussian model $p(y^f\mid c^f)$ of what the cue looks like
+under that context. After each episode, this model is updated using context probabilities computed
+\emph{from the dynamics only}, without the cue. If the cue model were instead trained on decisions that the cue itself had
+influenced, a wrong cue could reinforce itself. With this rule, a misleading cue is gradually
+unlearned.
+
+\paragraph{Optional: priors from vision-language models.}
+A vision-language model that estimates physical properties~\cite{gao2024physically,wang2026phys2real}
+could set the starting guess for a new context from the image. This would help even the first time a
+condition is seen. We treat this as an extension and keep it separate from the main claims.
+
+%=====================================================================
+\section{Planning and safety in latent space}\label{sec:safety}
+%=====================================================================
+
+\paragraph{Planning.}
+We use a sampling-based planner, the cross-entropy method (CEM) or MPPI~\cite{rubinstein1999cem,chua2018pets}.
+Each sampled action sequence is simulated with the frozen model plus a correction,
+$\hat z_{t+1}=f(z_t,a_t)+UW\phi_t$. The weights $W$ come from a context drawn from $\pi_t$. The planner
+can minimise the average cost over contexts, or a risk-averse version (CVaR) that focuses on the worst
+outcomes~\cite{yin2023risk,lew2024risk}. Updating $\pi_t$ and the memories costs much less than one
+call of the world model.
+
+\paragraph{Which contexts the safety filter considers.}
+The planner uses the full distribution $\pi_t$. The safety filter uses only the contexts with
+probability at least $\delta$, the \emph{plausible set} $\Pd=\{c:\pi_t(c)\ge\delta\}$. This set includes
+the ``new context'' slot whenever that slot's probability exceeds $\delta$. When the robot recognises
+a known condition, $\Pd$ contains a single memory. When it is unsure, or the condition looks new, $\Pd$
+contains several, and the filter becomes more cautious. As a baseline we also consider a filter that
+guards against \emph{all} stored memories at once, as in multi-stage model predictive
+control~\cite{lucia2013multistage}. We expect that baseline to be much more cautious.
+
+\paragraph{The safety condition.}
+We assume a latent safety function $h(z)$ is given, for example a latent CBF or reachability value
+trained with existing methods~\cite{nakamura2025latent,nakamura2026latentcbf}. States with $h(z)\ge 0$
+are safe. The filter accepts an action $a$ only if the discrete-time CBF
+condition~\cite{agrawal2017discrete} holds for every plausible memory:
+\begin{equation}
+  h\big(f(z_t,a)+UW_c\phi(z_t,a)\big)\;-\;L_h\,q^{c}_t\;\ge\;(1-\alpha)\,h(z_t)
+  \qquad\text{for all } c\in\Pd .
+  \label{eq:cbf}
+\end{equation}
+In words, $h$ must not drop by more than a fraction $\alpha$ in one step under any plausible memory,
+with an extra safety margin $L_h q^c_t$. Here $L_h$ bounds how fast $h$ can change, and $q^c_t$ is an
+estimate of how wrong memory $c$ can be, explained below. Because the correction is linear in the
+action, linearising $f$ and $h$ around a planned action turns the condition into one linear constraint
+per plausible memory. The filter is then a small quadratic program. Over the planning horizon we
+apply the same condition by discarding sampled action sequences that violate it. If no action
+satisfies it, the robot stops or retracts.
+
+\paragraph{Safety margins stored with each memory.}
+After each step we measure how far the actual latent state was from the nearest plausible prediction:
+$s_t=\min_{c\in\Pd}\|r_t-UW_c\phi_t\|$. This distance includes ordinary noise, errors outside the $k$
+correction directions and mistakes in identifying the context. The margin $q^c_t$ is set by adaptive
+conformal inference (ACI)~\cite{gibbs2021adaptive}. ACI raises the margin after each step where the
+distance exceeded it and lowers it slightly otherwise, so that in the long run the margin is exceeded
+on a chosen fraction $\delta_{\mathrm s}$ of steps. We run a separate ACI for each memory and update it
+only on steps attributed to that memory. When a known condition returns, its margin is therefore
+already tuned and does not have to be learned again.
+
+\paragraph{What happens when the cue is wrong.}
+The cue affects $\pi_t$ and therefore $\Pd$. A reliable cue shrinks the plausible set before contact,
+so the robot can act less cautiously from the start. A misleading cue can leave the true context out
+of $\Pd$. In that case the measured distances grow and ACI raises the margin. The long-run bound in
+Proposition~\ref{prop:safety} still holds. A wrong cue therefore costs extra caution and a limited
+number of extra violations. We measure this cost against a filter that ignores cues.
+
+\paragraph{Optional: safe probing.}
+When the robot is unsure which context is active, it can prefer actions that help tell contexts
+apart. Among the candidate actions that satisfy Eq.~\eqref{eq:cbf} and whose task cost is within a
+factor $(1+\epsilon)$ of the best, CEM favours those with the highest expected information about the
+context, $I(c;e_{t+1:t+H}\mid\mathbf a)$. This idea comes from active fault
+diagnosis~\cite{blackmore2006discrimination,blackmore2008active,simandl2009afd} and dual
+control~\cite{mesbah2018dual,heirung2019mpcdiscrimination}, combined with safe
+exploration~\cite{koller2018learning,berkenkamp2017safe}. In a single-contact task this means the robot
+gives the puck a small nudge first, but only when the cue and its past experience leave the context
+unclear. How often it chooses to probe is itself a result we report.
+
+%=====================================================================
+\section{Theory}
+%=====================================================================
+
+\begin{proposition}[Error at first contact]\label{prop:separation}
+Consider $N$ episodes whose contexts come from a finite set of $K$ contexts, visual cues that take
+values in a finite set $\mathcal{Y}$, and memories whose mean predictions are accurate to within
+$\varepsilon$. Let $\Delta_{\max}=\max_{c,c'}\|\mu_c-\mu_{c'}\|$ be the largest difference between two
+contexts, and $\Delta_{\min}=\min_{c\ne0}\|\mu_c\|$ the smallest difference between any context and the
+training condition.
+\begin{enumerate}[label=(\roman*)]
+  \item Any method that resets every episode has total first-contact error
+  $\sum_e\|\mu_{c^\ast_e}\|\ge N_{\mathrm{shift}}\Delta_{\min}$. Here $N_{\mathrm{shift}}$ is the number
+  of episodes whose context differs from training.
+  \item In episode $e$, \method{} has first-contact error at most
+  $\varepsilon+(1-\pi_0^e(c^\ast_e))\Delta_{\max}$, where $\pi_0^e(c^\ast_e)$ is the probability it
+  assigns to the true context before contact. Summed over episodes,
+  $\sum_e(1-\pi_0^e(c^\ast_e))\le\sum_e-\log\pi_0^e(c^\ast_e)$. The right-hand side is the total
+  log-loss of predicting each episode's context from its cue. For any sequence of contexts it is at
+  most $N\hat H(C\mid Y)+O(K|\mathcal{Y}|\log N)$~\cite{krichevsky1981performance}, where
+  $\hat H(C\mid Y)$ is the empirical conditional entropy of the context given the cue.
+\end{enumerate}
+\method{} therefore has lower total first-contact error than any reset-based method whenever
+$\varepsilon+\Delta_{\max}\hat H(C\mid Y)<\Delta_{\min}N_{\mathrm{shift}}/N$ (entropy in nats). This
+ignores lower-order terms and the $O(K)$ episodes in which memories are first learned. It holds for
+any order of contexts, including adversarial ones.
+\end{proposition}
+
+\noindent\emph{Proof sketch.} Part (i) follows from Observation~\ref{obs:reactive}. For (ii), the
+error of the probability-weighted prediction is
+$\|\sum_{c\ne c^\ast}\pi(c)(\mu_c-\mu_{c^\ast})\|\le(1-\pi(c^\ast))\Delta_{\max}$, and $1-x\le-\log x$
+for $x\in(0,1]$. The log-loss bound is the standard bound for sequential prediction with a Dirichlet
+mixture, applied separately to each cue value. Creating new contexts adds $O(K\log N)$.
+
+\paragraph{Interpretation.}
+The conditional entropy $\hat H(C\mid Y)$ measures how hard it is to guess the context of an episode
+from its cue and from past frequencies. If conditions repeat and the cue identifies them, it is close
+to zero and \method{} makes almost no first-contact error. If every episode brings a new condition,
+memory cannot help and the bound says so. The benefit of the cue is the reduction
+$\hat H(C)-\hat H(C\mid Y)$, which is the information the cue carries about the context. The same
+quantity therefore explains three effects: savings, correct action before contact, and the lack of
+benefit from an uninformative cue.
+
+\begin{proposition}[Steps needed to recognise a known context]\label{prop:latency}
+Consider an episode whose true context $c^\ast$ is stored in memory, and let $c'$ be the most likely
+alternative. Suppose that after contact each step adds, on average, $D>0$ to the log-odds in favour of
+$c^\ast$, where $D$ is the KL divergence between the two memories' predictions, and that the step
+contributions are independent. Before contact they are zero. The starting log-odds combine past
+frequency and cue:
+$\lambda_0=\log\frac{n_{c^\ast}}{n_{c'}}+\log\frac{p(y\mid c^\ast)}{p(y\mid c')}$, where $n_c$ counts
+past occurrences of $c$. If $\lambda_0$ already exceeds the decision threshold $\lambda^\ast$, the
+number of steps needed is zero. Otherwise, by Wald's identity, the expected number of steps is at least
+$(\lambda^\ast-\lambda_0)/D$, with equality apart from the final overshoot.
+\end{proposition}
+
+This gives predictions we can write down before running experiments:
+\begin{itemize}
+  \item \textbf{Acting before contact.} A learned cue that is correct with probability $\rho$ lets
+  the robot correct about a fraction $\rho$ of the error before contact.
+  \item \textbf{Savings.} Each further occurrence of a context shortens recognition by
+  $\log(n_{k+1}/n_k)/D$ steps, so the gains shrink over time. For gradient updates with reset, the time
+  stays the same.
+  \item \textbf{Misleading cues.} A misleading cue of strength $\ell_y$ (its log-likelihood ratio)
+  costs about $2\ell_y/D$ extra steps compared with a correct cue.
+  \item \textbf{Noise.} The state-dependent noise model lowers $D$ around contact. This makes
+  recognition slower but prevents false new contexts. We measure both effects. For the case without
+  cues, classical results on detection delay~\cite{lorden1971procedures,lai1998information} serve as
+  a reference.
+\end{itemize}
+
+\begin{proposition}[Long-run safety for any cue quality]\label{prop:safety}
+Suppose Eq.~\eqref{eq:cbf} is enforced exactly whenever some action satisfies it (for example by
+rejecting sampled actions), and the fallback action is safe otherwise. Suppose ACI runs separately
+for each memory with target rate $\delta_{\mathrm{s}}$ and step size $\gamma$. Then, for any sequence
+of contexts and cues, the one-step condition $h(z_{t+1})\ge(1-\alpha)h(z_t)$ fails on at most a
+fraction $\delta_{\mathrm{s}}+O\big(K/(\gamma T)\big)$ of the first $T$ steps.
+\end{proposition}
+
+\noindent\emph{Proof sketch.} If the measured distance $s_t$ is within the margin $q^c_t$, the true
+next state lies within $q^c_t$ of the prediction of some plausible memory. Eq.~\eqref{eq:cbf} and the
+bound $L_h$ on how fast $h$ changes then give the one-step condition. So the condition can fail only on
+steps where the margin was exceeded. For each memory, ACI guarantees that the long-run fraction of
+such steps is at most $\delta_{\mathrm{s}}+O(1/(\gamma T_c))$, without assumptions on the data
+distribution~\cite{gibbs2021adaptive}. Summing over the $K$ memories gives the result.
+
+The bound applies to the safety condition in latent space. Whether this implies physical safety
+depends on whether $h$ correctly represents the real constraint, which we treat as a property of the
+encoder~\cite{lutkus2025latent}. In single-contact tasks it is natural to count episodes instead of
+steps, and the bound becomes a long-run rate of unsafe episodes.
+
+%=====================================================================
+\section{Measuring recall versus learning}
+%=====================================================================
+
+For every adaptive method in this proposal, we separate its adaptive state into two parts:
+\begin{itemize}
+  \item \emph{which memories it uses}, $\pi$: for \method{} this is the context distribution;
+  \item \emph{what the memories contain}, $\Theta$: the weights.
+\end{itemize}
+Methods that reset every episode have only $\Theta$. Let $L(\pi,\Theta)$ be the prediction error on
+data from the current condition, computed by replaying recorded transitions.
+
+\begin{definition}[Splitting recovery into recall and learning]\label{def:decomp}
+After a change at time $t_0$, the improvement by time $t$ is
+$R_t=L(\pi_{t_0},\Theta_{t_0})-L(\pi_t,\Theta_t)$. The part due to changing which memories are used is
+\[
+  A_t=\tfrac12\big[L(\pi_{t_0},\Theta_{t_0})-L(\pi_t,\Theta_{t_0})\big]
+     +\tfrac12\big[L(\pi_{t_0},\Theta_t)-L(\pi_t,\Theta_t)\big],
+\]
+the average effect of switching $\pi$ with $\Theta$ held at its old and at its new value (a Shapley
+value with two players). We call $A_t$ \emph{apparent learning}. The remainder $P_t=R_t-A_t$ is
+\emph{proper learning}.
+\end{definition}
+
+The two parts always add up to the total, and the result does not depend on which part is computed
+first. For \method{} every term can be computed in closed form from stored distributions. For methods
+that reset every episode, $A_t$ is always zero. We apply the same split to the safety margin. This
+shows how much of the reduction in caution after a change comes from recalling a memory and how much
+from recalibration.
+
+%=====================================================================
+\section{Hypotheses and stopping criteria}
+%=====================================================================
+
+\begin{enumerate}[label=\textbf{H\arabic*},leftmargin=2.2em]
+  \item \textbf{First contact.} On single-contact tasks with recurring conditions and an informative
+  cue, \method{} succeeds more often than the frozen model and all error-driven baselines. Its
+  first-contact error follows Proposition~\ref{prop:separation}.
+  \item \textbf{Savings.} Recognition time falls with each further occurrence, as predicted by
+  Proposition~\ref{prop:latency}. For gradient updates with reset it does not change.
+  \item \textbf{No interference.} Learning condition B does not reduce performance on condition A.
+  Continuously running gradient updates and continual test-time adaptation do reduce it.
+  \item \textbf{Misleading cues.} The observed dynamics overrule a misleading cue within the predicted
+  number of steps. Task cost stays below that of the frozen model, and the safety bound holds.
+  \item \textbf{New combinations.} For a combination of factors never seen together (for example the
+  acrylic mat with the weighted puck), the combined factor memories give lower first-contact error than
+  both the version without cues and the version without factors.
+  \item \textbf{Safety.} The long-run rate of violations of the latent safety condition stays within
+  $\delta_{\mathrm s}$ plus the predicted slack, also with misleading cues. At the same violation rate,
+  our filter intervenes less than a filter that guards against all memories and less than a filter
+  with one shared margin. Its caution decreases as conditions recur.
+  \item \textbf{Noise.} With noisy contacts, no single learning rate for gradient updates is best both
+  in normal conditions and after a change. \method{} matches the best rate in each phase. Its rate of
+  falsely created contexts stays below a limit fixed in advance.
+  \item \textbf{Recall versus learning.} In the long real deployment, recall accounts for a substantial
+  share of recovery. Fixed in advance: the median of $A/R$ is at least 0.3.
+\end{enumerate}
+
+\paragraph{When we change the plan.}
+\begin{itemize}
+  \item If the version without cues is as good as the full method at first contact, we drop the claim
+  about acting before contact. The paper then focuses on memory, the benchmark and the recall/learning
+  measurement.
+  \item If well-tuned gradient updates with reset are as good as the version without cues on recurring
+  conditions, the method offers no advantage. The paper then reports the benchmark and this negative
+  result.
+  \item If combining factors fails on unseen combinations, we report whole-context memories only and
+  drop the claim about new combinations.
+  \item If our safety filter is not less cautious than the all-memories filter at the same violation
+  rate, we present the safety part as a supporting result rather than a main contribution.
+\end{itemize}
+
+%=====================================================================
+\section{Experiments}
+%=====================================================================
+
+\paragraph{Sequences of conditions.}
+Each condition lasts for a random number of episodes (geometric distribution), and it occasionally
+changes within an episode. Each condition has a matching appearance. The cue shows that appearance
+with probability $\rho$ and a different one otherwise. We test $\rho\in\{1/M,0.5,0.65,0.8,0.95\}$,
+where $M$ is the number of conditions and $\rho=1/M$ means the cue carries no information. The
+sequences contain four patterns taken from motor-learning experiments:
+\begin{itemize}
+  \item \emph{savings}: conditions A, B, A, B in blocks;
+  \item \emph{interference}: a long or a short block of A before B;
+  \item \emph{evoked recovery}: two episodes of A inserted into a block of normal conditions;
+  \item \emph{misleading cues}: the pairing between cue and condition swapped for one block.
+\end{itemize}
+Each pattern is linked to one of the predictions above. A pattern that does not separate the methods
+in simulation is removed.
+
+\paragraph{Environments.}
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Simulation.} A 2D pushing task and a 2D puck strike with a table edge. Contacts are
+  noisy, and surface and load vary. Cues are correct 80\% of the time. These tasks run on a laptop
+  and decide whether H1, H2, H4, H5 and H6 hold before we invest in hardware.
+  \item \textbf{AdaJEPA tasks}~\cite{wang2026adajepa}. PushT, PushObj and PointMaze with the released
+  JEPA and DINO-WM~\cite{zhou2025dinowm} models. We pair the existing colour changes of the agent or
+  block with changes in dynamics, so that colour becomes a cue, and we add random noise to the
+  dynamics. This allows a direct comparison with AdaJEPA and Sandwich-Residuals.
+  \item \textbf{Real robot, single-contact tasks.}
+  \begin{itemize}
+    \item \emph{Strike:} strike a puck to a target on felt, rubber or acrylic mats, without it
+    sliding off the table edge~\cite{yu2016million}.
+    \item \emph{Lift and place:} lift loads in visually distinct containers without exceeding a limit
+    on jerk or tilt.
+  \end{itemize}
+  The world model is a frozen V-JEPA~2-AC~\cite{assran2025vjepa2} or a DINO-WM-style model trained on
+  training-condition data. The memories add only a few kilobytes on top of a large pretrained model
+  that stays unchanged.
+  \item \textbf{Real robot, long deployment.} At least 1000 episodes over several days. People swap
+  mats and containers according to a schedule the robot does not know, and sometimes cover the mats
+  with a neutral sheet to make cues less reliable. We report the recall/learning split, predicted
+  versus observed first-contact error, and the violation rate.
+\end{enumerate}
+
+\paragraph{Baselines.}
+\begin{itemize}
+  \item Adaptation:
+  \begin{itemize}
+    \item the frozen model;
+    \item continuously running gradient updates (as in AdaJEPA);
+    \item gradient updates with periodic reset~\cite{press2023rdumb};
+    \item gradient updates reset exactly at each change (an idealised version);
+    \item Sandwich-Residuals~\cite{soni2026sandwich};
+    \item a MOLe-style mixture of models~\cite{nagabandi2019mole};
+    \item MOCA-style change detection without recall~\cite{harrison2020moca}.
+  \end{itemize}
+  \item Safety:
+  \begin{itemize}
+    \item the uncertainty-aware latent filter~\cite{seo2025uncertainty};
+    \item a latent filter with one shared ACI margin~\cite{huriot2026safe};
+    \item a filter that guards against all memories~\cite{lucia2013multistage}.
+  \end{itemize}
+  \item Ablations of \method{}:
+  \begin{itemize}
+    \item without cues;
+    \item without factors;
+    \item with constant noise;
+    \item with a constant-offset memory;
+    \item updating only the most likely memory;
+    \item with one shared margin instead of one per memory.
+  \end{itemize}
+  \item Upper bound: \method{} told the true context.
+\end{itemize}
+All settings are tuned on training-condition data only. Random seeds and sequences are fixed and
+published before the main experiments.
+
+\paragraph{Metrics.}
+\begin{itemize}
+  \item Error at first contact, and success on single-contact tasks.
+  \item Number of steps after contact needed to recognise the condition.
+  \item Total extra prediction error after each change.
+  \item Savings: recognition time for the $k$-th occurrence relative to the first.
+  \item Performance on condition A after learning condition B.
+  \item Error on unseen combinations of factors.
+  \item Violation rate, and how much the safety filter changes the planned action or raises task cost.
+  \item The recall share $A/R$, for prediction error and for the safety margin.
+  \item Rates of falsely created and missed contexts.
+  \item Predicted versus observed values for Propositions~\ref{prop:separation} and~\ref{prop:latency}.
+\end{itemize}
+
+%=====================================================================
+\section{Risks}
+%=====================================================================
+
+\begin{itemize}
+  \item \textbf{Contact noise creates false contexts.} This is the most likely problem. The
+  state-dependent noise model and a minimum number of steps before a new memory is created address it.
+  We report the rate of false contexts as a main metric.
+  \item \textbf{Cues are weak.} We vary cue reliability. Proposition~\ref{prop:separation} predicts how
+  much a weak cue should still help, so weak cues yield a result rather than a failure.
+  \item \textbf{Factors interact.} Mass and friction are expected to interact. Keeping memories for
+  seen combinations limits the damage, and the test on unseen combinations measures how large the
+  problem is.
+  \item \textbf{A change falls outside the correction directions.} The safety margin is measured in the
+  full latent space, so safety does not depend on the chosen directions. For prediction, we monitor the
+  error outside these directions and add directions for a new memory when this error grows.
+  \item \textbf{Latent safety differs from physical safety.} Proposition~\ref{prop:safety} concerns the
+  latent condition. We report physical violations separately. Whether $h$ matches the real constraint
+  is outside the scope of this proposal~\cite{lutkus2025latent}.
+  \item \textbf{Competing work.} AdaJEPA and Sandwich-Residuals name persistence as future work, and
+  the latent ACI filters~\cite{huriot2026safe,nath2026pixels} appeared this year. Our distinguishing
+  points are acting before contact, combining factors, the first-contact analysis and margins stored
+  per memory. A workshop paper by February 2027 establishes priority.
+  \item \textbf{The motor-learning patterns add nothing.} Each pattern is tied to a numerical
+  prediction and is removed if it does not separate the methods.
+\end{itemize}
+
+%=====================================================================
+\section{Timeline}
+%=====================================================================
+
+\begin{center}
+\small
+\begin{tabular}{lp{0.45\linewidth}p{0.3\linewidth}}
+\toprule
+When & Work & Done when \\
+\midrule
+Oct 2026 & Simulated pushing and puck strike; core of \method{}; gradient baselines & H1, H2 and H4 visible; stopping criteria checked \\
+Nov 2026 & Factor memories; safety filter with per-memory margins; recall/learning measurement & H5 and H6 in simulation; Propositions 1--3 compared with simulation \\
+Dec 2026--Jan 2027 & AdaJEPA tasks with all baselines; real-robot setup (mats, containers, puck, edge) & Condition sequences running in PushT and PointMaze \\
+Feb 2027 & Workshop paper: simulation, AdaJEPA tasks, theory & Submitted \\
+Mar--Apr 2027 & Real-robot single-contact tasks; long deployment ($\ge$1000 episodes); safe probing & H1--H8 tested on hardware \\
+Spring 2027 & Full paper for CoRL 2027 (deadline to be confirmed when announced) & Submitted \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begingroup
+\small
+\setlength{\bibsep}{1pt}
+\bibliographystyle{plainnat}
+\bibliography{references}
+\endgroup
+
+\end{document}

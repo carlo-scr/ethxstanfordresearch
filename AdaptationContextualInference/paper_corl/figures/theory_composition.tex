@@ -1,0 +1,49 @@
+% Proof illustration for Proposition (composition).
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  sv/.style={circle, draw=cCira, fill=cMem, inner sep=1pt, minimum size=6mm},
+  lv/.style={rectangle, draw=cNoCue, fill=cNoCue!15, inner sep=1pt, minimum size=5.5mm},
+  seen/.style={thick, cCira},
+  held/.style={thick, dashed, cReset},
+  sign/.style={font=\tiny\bfseries, fill=white, inner sep=1pt},
+]
+% ---------------------------------------------------------------- (a) path cancellation
+\node[font=\scriptsize\bfseries, anchor=west] at (-0.4,2.55) {(a) connected: a path writes $\psi(q)$};
+\node[sv] (x0) at (0,1.8) {$x_0$};
+\node[sv] (x1) at (0,0.9) {$x_1$};
+\node[sv] (x2) at (0,0.0) {$x_2$};
+\node[lv] (y0) at (2.4,1.8) {$y_0$};
+\node[lv] (y1) at (2.4,0.9) {$y_1$};
+\node[lv] (y2) at (2.4,0.0) {$y_2$};
+\draw[seen] (x0) -- node[sign, pos=0.5, text=cCira] {$+$} (y0);
+\draw[seen] (x1) -- node[sign, pos=0.3, text=cReset] {$-$} (y0);
+\draw[seen] (x1) -- node[sign, pos=0.5, text=cCira] {$+$} (y1);
+\draw[seen] (x2) -- node[sign, pos=0.3, text=cReset] {$-$} (y1);
+\draw[seen] (x2) -- node[sign, pos=0.5, text=cCira] {$+$} (y2);
+\draw[held] (x0) to[out=-25, in=150] node[sign, pos=0.35, text=cReset] {$q$} (y2);
+\node[align=left, font=\tiny, anchor=north west] at (-0.4,-0.45) {$\psi(x_0,y_2)=\psi(x_0,y_0)-\psi(x_1,y_0)+\psi(x_1,y_1)$\\$\qquad\qquad\ \,-\psi(x_2,y_1)+\psi(x_2,y_2)$};
+
+% ---------------------------------------------------------------- (b) cut certificate
+\begin{scope}[xshift=5.6cm]
+\node[font=\scriptsize\bfseries, anchor=west] at (-0.4,2.55) {(b) disconnected: a cut certifies $\psi(q)\notin\mathrm{row}(\Psi)$};
+\fill[cCira!8, rounded corners] (-0.55,0.5) rectangle (2.95,2.3);
+\node[font=\tiny, text=cCira, anchor=north west] at (0.35,2.22) {component $C$};
+\node[sv] (a0) at (0,1.8) {$x_0$};
+\node[sv] (a1) at (0,0.9) {$x_1$};
+\node[sv] (a2) at (0,0.0) {$x_2$};
+\node[lv] (b0) at (2.4,1.8) {$y_0$};
+\node[lv] (b1) at (2.4,0.9) {$y_1$};
+\node[lv] (b2) at (2.4,0.0) {$y_2$};
+\draw[seen] (a0) -- (b0); \draw[seen] (a1) -- (b0); \draw[seen] (a1) -- (b1); \draw[seen] (a2) -- (b2);
+\draw[held] (a0) to[out=-25, in=150] node[sign, pos=0.35, text=cReset] {$q$} (b2);
+\foreach \n in {a0,a1} \node[font=\tiny, text=cCira, left=1pt of \n] {$+1$};
+\foreach \n in {b0,b1} \node[font=\tiny, text=cCira, right=1pt of \n] {$-1$};
+\node[font=\tiny, left=1pt of a2] {$0$}; \node[font=\tiny, right=1pt of b2] {$0$};
+\node[align=left, font=\tiny, anchor=north west] at (-0.4,-0.45) {every seen edge scores $(+1)+(-1)=0$ or $0+0=0$;\\the held-out edge $q$ scores $+1+0=1$};
+\end{scope}
+\end{tikzpicture}
+\caption{\textbf{Why connectivity decides additive transfer} (proof of \cref{prop:composition}). Circles are surface values and squares are load values; solid edges are seen combinations and the dashed edge is the query $q$. (a)~If a path of seen edges joins $q$'s two values, alternating signs along the path cancel every interior indicator, so $\psi(q)$ is a combination of seen rows and its additive part is determined. (b)~If no path exists, assigning $+1$ to surfaces and $-1$ to loads inside one component gives a vector orthogonal to every seen row but not to $\psi(q)$. The additive part of $q$ therefore remains uncertain.}
+\label{fig:theory-composition}
+\end{figure}

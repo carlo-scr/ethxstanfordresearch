@@ -1,0 +1,330 @@
+% Restatement environment for results proved in the appendix
+\newenvironment{restated}[1]{\par\smallskip\noindent\textbf{#1 (restated).}\ \itshape}{\par\smallskip}
+\newcommand{\idea}{\par\noindent\textbf{Idea.}\ }
+\newcommand{\step}[1]{\par\noindent\emph{Step #1.}\ }
+
+\section{Overview of the Formal Results}\label[appendix]{app:summary}
+
+\Cref{tab:results} lists every formal result, where it is stated, and what it assumes. Each proof in \cref{app:proofs} first restates the result, then gives the idea in a few sentences, and then proceeds in short numbered steps. \Cref{tab:notation} collects the notation.
+
+\begin{table}[h]
+\centering\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{0.27\linewidth}p{0.45\linewidth}p{0.2\linewidth}@{}}
+\toprule
+Result & Statement in one line & Key assumptions \\
+\midrule
+\Cref{obs:first} (first-contact initialization) & Error-driven, episode-reset adapters predict with the frozen model at the first contact. & No feedback before commitment \\
+\Cref{thm:confidence} (memory error) & Memory error $\le$ noise $+$ prior mismatch $+$ contamination; contamination is bounded by the filter's log loss. & \Cref{ass:main}; predictive weights \\
+\Cref{rem:bias} (filtered weights) & Posterior-weighted updates converge to a biased value with shrinking intervals. & Fixed scoring models \\
+\Cref{prop:first} (first-contact separation) & Cumulative first-contact bias $\le\sum\epsilon_e+\Delta_{\max}\times$ episode log loss; reset methods pay $\ge N_{\mathrm{shift}}\Delta_{\min}$. & Closed library \\
+\Cref{cor:novel} (novel branch) & Extends \cref{prop:first} to a mixture that includes the new-context hypothesis. & Bound on novel-branch error \\
+\Cref{cor:entropy} (entropy reference) & A KT predictor has log loss $\le N\widehat H(C\mid Y)+O(K|\mathcal Y|\log N)$. & Revealed labels \\
+\Cref{lem:simulation}, \cref{cor:decision} (decision gap) & Prediction error along candidate rollouts bounds the committed-action gap. & Lipschitz dynamics, costs \\
+\Cref{prop:composition} (composition) & Additive transfer to an unseen pair iff the observed-combination graph connects it; interactions leave a variance floor. & Exact stored means \\
+\Cref{prop:voi} (value of information) & $\VOI\ge0$, and $\VOI=0$ when one action is optimal for all plausible states. & Fixed state and action set \\
+\Cref{prop:safety} (latent safety) & Violations $\le\delta_sT+K_T(\bar S+2\gamma)/\gamma$ for any context and cue sequence. & Bounded scores, exact filter \\
+\Cref{prop:recognition} (recognition time) & Expected steps to recognition $=(\ell_\star-\ell_0+\E[O_T])/D$. & i.i.d.\ increments \\
+\bottomrule
+\end{tabular}
+\caption{Formal results and their assumptions.}
+\label{tab:results}
+\end{table}
+
+\begin{table}[h]
+\centering\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}ll@{\hspace{14pt}}ll@{}}
+\toprule
+Symbol & Meaning & Symbol & Meaning \\
+\midrule
+$z_t,\,a_t$ & latent state, action & $f$ & frozen predictor \\
+$c_e,\ c_t$ & true context (episode, step) & $\mu_c$ & mean residual of context $c$ \\
+$U,\ \phi$ & correction subspace, features & $v_t=U^\top r_t$ & projected residual \\
+$w_{c,i}$, $\widehat w_{c,i,t}$ & true / estimated weights (row $i$) & $m_c$ & latent correction of memory $c$ \\
+$q_t(c)$ & belief \emph{before} observing $v_t$ & $\pi_t^+(c)$ & belief \emph{after} observing $v_t$ \\
+$\pi_e(c)$ & pre-contact belief in episode $e$ & $y_e$ & visual cue \\
+$\omega_{c,i,t}$ & update weight $q_t(c)/\sigma_i^2$ & $V_{c,i,t}$ & weighted design matrix \\
+$P_{c,i},\ \nu_{c,i,t}$ & prior precision, prior mean & $\Delta_{\max}$ & largest residual difference \\
+$h,\ L_h$ & latent safety function, Lipschitz constant & $b_{c,t}$ & safety margin of memory $c$ \\
+$s_{c,t}$ & calibration score of memory $c$ & $\delta_s,\ \gamma$ & target miss rate, step size \\
+\bottomrule
+\end{tabular}
+\caption{Notation used in the proofs. We write $\|x\|_A=\sqrt{x^\top Ax}$, and $\mathcal F_{t-1}$ for the history up to and including $(z_t,a_t)$, the cue and the true context $c_t$.}
+\label{tab:notation}
+\end{table}
+
+\section{Proofs}\label[appendix]{app:proofs}
+
+\subsection{First-contact initialization (\cref{obs:first})}\label[subappendix]{app:obs}
+\idea A method that only reacts to errors cannot change before the first error arrives.
+
+\begin{proof}
+Let $S_{e,t}$ be the adaptive state and suppose $S_{e,t+1}=S_{e,t}$ whenever no prediction-error feedback is received at step $t$. By assumption no such feedback is available before $\tau_e$, so by induction $S_{e,t}=S_{e,0}$ for all $t\le\tau_e$. The prediction is a function of the state and the input $(z,a)$ only, hence the prediction at $\tau_e$ equals the prediction at the start of the episode. If $S_{e,0}$ is the frozen model, this prediction is $f(z,a)$, and its bias is $\|f+\mu_{c_e}-f\|=\|\mu_{c_e}\|$.
+\end{proof}
+
+\subsection{Uniform memory error (\cref{thm:confidence})}\label[subappendix]{app:thm}
+\begin{restated}{\Cref{thm:confidence}}
+Under \cref{ass:main}, with predictive weights and with probability at least $1-\delta_c$, simultaneously for all $t$, $\phi$ and $i$, $|\phi^\top(\widehat w_{c,i,t}-w_{c,i})|\le\beta_{c,i,t}\|\phi\|_{V_{c,i,t}^{-1}}$ with $\beta_{c,i,t}$ the sum of a noise, a prior-mismatch and a contamination term, and the total contamination is bounded by the log loss of the context filter.
+\end{restated}
+
+\idea The estimate $\widehat w$ is a weighted ridge regression. Its error splits into three parts: noise from the current context, bias from data that actually came from other contexts, and bias from the prior mean. Each part is bounded separately in the norm induced by $V_t$. Only the noise part needs probability, and it can be bounded with a martingale inequality because the weights are chosen before the noise is drawn.
+
+\begin{proof}
+Fix $c$ and a row $i$ and drop both from the notation. Let $\omega_s=q_s(c)/\sigma^2(z_s,a_s)$ and define
+\[
+  x_s=\sqrt{\omega_s}\,\phi_s,\qquad \eta_s=\sqrt{\omega_s}\,\xi_s,\qquad d_s=\sqrt{\omega_s}\,\phi_s^\top(w_{c_s}-w_c),
+\]
+so that, by \cref{ass:main}, $\sqrt{\omega_s}\,v_s=x_s^\top w_c+d_s+\eta_s$.
+
+\step{1 (decomposition)} Substituting this into \cref{eq:update} and using $V_t=P+\sum_{s<t}x_sx_s^\top$ gives
+\[
+  \widehat w_t-w_c=\underbrace{V_t^{-1}\textstyle\sum_{s<t}x_s\eta_s}_{\text{noise}}+\underbrace{V_t^{-1}\textstyle\sum_{s<t}x_sd_s}_{\text{contamination}}+\underbrace{V_t^{-1}P(\nu_t-w_c)}_{\text{prior}}.
+\]
+For any $\phi$ and $u$, the Cauchy--Schwarz inequality in the $V_t^{-1}$ inner product gives $|\phi^\top V_t^{-1}u|\le\|\phi\|_{V_t^{-1}}\|u\|_{V_t^{-1}}$. It remains to bound $\|u\|_{V_t^{-1}}$ for the three vectors $u=\sum_s x_s\eta_s$, $\sum_s x_sd_s$ and $P(\nu_t-w_c)$.
+
+\step{2 (noise)} The vector $x_s$ is $\mathcal F_{s-1}$-measurable: $\phi_s$ and $\sigma(z_s,a_s)$ depend only on $(z_s,a_s)$, and $q_s(c)$ depends only on data before $v_s$ and on the cue. Given $\mathcal F_{s-1}$, $\eta_s$ is $\sqrt{q_s(c)}$-sub-Gaussian and therefore $1$-sub-Gaussian. The self-normalized bound for vector-valued martingales~\citep[Thm.~1]{abbasi2011improved}, with regularizer $P$ and confidence $\delta_c/k$, yields simultaneously for all $t$
+\[
+  \Big\|\textstyle\sum_{s<t}x_s\eta_s\Big\|^2_{V_t^{-1}}\le2\log\frac{k}{\delta_c}+\log\frac{\det V_t}{\det P}.
+\]
+This is the only step that uses predictability. With the filtered weight $\pi^+_s(c)$, $x_s$ would depend on $\xi_s$, the sum would no longer be a martingale transform, and the inequality would not apply.
+
+\step{3 (contamination)} Let $X$ be the matrix with rows $x_s^\top$ and $d=(d_s)_{s<t}$. Since $V_t\succeq X^\top X$, the matrix $XV_t^{-1}X^\top$ has eigenvalues at most one, so $\|X^\top d\|^2_{V_t^{-1}}=d^\top XV_t^{-1}X^\top d\le\|d\|^2=B_t^2$. This holds for every realization and every choice of weights. Since $d_s=0$ when $c_s=c$ and $|d_s|\le\sqrt{\omega_s}\Delta_{\max}$ otherwise, $B_t^2\le\Delta_{\max}^2M_t$.
+
+\step{4 (prior)} Since $V_t\succeq P$, we have $PV_t^{-1}P\preceq P$ and hence $\|P(\nu_t-w_c)\|^2_{V_t^{-1}}\le\|\nu_t-w_c\|_P^2$. This also holds for every realization, so the prior mean may be recomputed from past data.
+
+\step{5 (combination)} Adding the three bounds and taking a union bound over the $k$ rows proves the first claim. For \cref{eq:contam-logloss}, $\sum_cM_{c,T}=\sum_{t<T}\sum_{c\ne c_t}q_t(c)/\sigma^2_t\le\sigma_{\min}^{-2}\sum_{t<T}(1-q_t(c_t))$, and $1-x\le-\log x$ for $x\in(0,1]$.
+\end{proof}
+
+\begin{remark}[Filtered weights bias the memory]\label{rem:bias}
+Let the residuals of context $0$ be $v\sim\mathcal N(0,\sigma^2)$, and let two fixed models with means $0$ and $\Delta>0$ have equal prior probability. If each residual is assigned to the model with the larger filtered probability, model $0$ receives it exactly when $v<\Delta/2$. Its estimate converges to $\E[v\mid v<\Delta/2]=-\sigma\,\varphi(\Delta/2\sigma)/\Phi(\Delta/2\sigma)$, which is about $-0.29\sigma$ at $\Delta=2\sigma$, while its interval shrinks as $\sigma/\sqrt n$ and eventually excludes the true value $0$.
+\end{remark}
+
+\noindent\emph{Derivation.} With equal priors and variances, the filtered probability of model $0$ is larger exactly when $|v|<|v-\Delta|$, that is, when $v<\Delta/2$. The mean of a standard normal truncated above at $a$ is $-\varphi(a)/\Phi(a)$; with $a=\Delta/2\sigma=1$ this gives $-\sigma\varphi(1)/\Phi(1)\approx-0.288\sigma$. By the law of large numbers the sample mean of the selected residuals converges to this value, while its standard error is $O(\sigma/\sqrt n)$. Predictive weights do not depend on $v$ and avoid the selection (\cref{fig:theory-bias-voi}a).
+
+\input{figures/theory_bias_voi}
+
+\subsection{First-contact separation (\cref{prop:first}) and its extensions}\label[subappendix]{app:first}
+\begin{restated}{\Cref{prop:first}}
+If the library contains every occurring context and $\|m_c-\mu_c\|\le\epsilon_e$ on the support of $\pi_e$, then $b_e\le\epsilon_e+(1-\pi_e(c_e))\Delta_{\max}$ and $\sum_eb_e\le\sum_e\epsilon_e+\Delta_{\max}\sum_e-\log\pi_e(c_e)$.
+\end{restated}
+
+\idea The mixture prediction is correct up to $\epsilon_e$ on the true memory, and every unit of belief placed on a wrong memory costs at most $\Delta_{\max}$.
+
+\begin{proof}
+\step{1} Write the mixture prediction as $\sum_c\pi(c)m_c$ and add and subtract $\sum_c\pi(c)\mu_c$:
+\[
+  \Big\|\sum_c\pi(c)m_c-\mu_{c_e}\Big\|\le\sum_c\pi(c)\|m_c-\mu_c\|+\Big\|\sum_{c\ne c_e}\pi(c)(\mu_c-\mu_{c_e})\Big\|.
+\]
+\step{2} The first term is at most $\epsilon_e$ because the weights sum to one. The second is at most $\sum_{c\ne c_e}\pi(c)\Delta_{\max}=(1-\pi(c_e))\Delta_{\max}$.
+\step{3} Summing over episodes and using $1-x\le-\log x$ gives the cumulative bound. The lower bound for reset methods follows directly from \cref{obs:first}.
+\end{proof}
+
+\begin{corollary}[Mixture with a novel-context branch]\label{cor:novel}
+Suppose the true context $c_e$ is stored, the stored memories satisfy $\|m_c-\mu_c\|\le\epsilon_e$, and the new-context hypothesis carries belief $p_\star$ with conditional mean $m_\star$. Then
+\[
+  b_e\ \le\ (1-p_\star)\,\epsilon_e+\big(1-p_\star-\pi_e(c_e)\big)\Delta_{\max}+p_\star\,\|m_\star(x_e)-\mu_{c_e}(x_e)\|.
+\]
+\end{corollary}
+\begin{proof}
+Split the mixture into the stored memories, with total mass $1-p_\star$, and the new-context branch. On the stored part, the argument above applies with the wrong memories carrying mass $1-p_\star-\pi_e(c_e)$. The new-context branch contributes at most $p_\star\|m_\star-\mu_{c_e}\|$ by the triangle inequality.
+\end{proof}
+Without a bound on $\|m_\star-\mu_{c_e}\|$, the closed-library guarantee does not cover the full mixture. A genuinely new condition requires an acquisition phase or a valid transferred prior.
+
+\begin{corollary}[Finite-alphabet entropy reference]\label{cor:entropy}
+Suppose there are $K$ contexts and a finite cue alphabet $\mathcal Y$, and each episode's context is revealed after its prediction. For each cue value, predict with the Krichevsky--Trofimov estimator $\pi^{\mathrm{KT}}_e(c\mid y)=(n_{<e}(c,y)+\tfrac12)/(n_{<e}(y)+\tfrac K2)$. Then for every context--cue sequence, $\sum_e-\log\pi^{\mathrm{KT}}_e(c_e\mid y_e)\le N\widehat H(C\mid Y)+O(K|\mathcal Y|\log(N+1))$.
+\end{corollary}
+\begin{proof}
+Split the sequence by cue value. For the $N_y$ episodes with cue $y$, the Krichevsky--Trofimov estimator has log loss at most $N_y\widehat H(C\mid Y=y)+\tfrac{K-1}{2}\log N_y+O(K)$~\citep{krichevsky1981performance}. Summing over $y$ gives $\sum_yN_y\widehat H(C\mid Y=y)=N\widehat H(C\mid Y)$ plus at most $|\mathcal Y|\big(\tfrac{K-1}{2}\log(N+1)+O(K)\big)$.
+\end{proof}
+\method does not receive labels, so its inferred beliefs do not automatically inherit this bound. We therefore report the measured log loss of \method's beliefs alongside $\widehat H(C\mid Y)$.
+
+\subsection{From prediction error to the committed decision}\label[subappendix]{app:decision}
+\begin{lemma}[Simulation bound]\label{lem:simulation}
+Fix an action sequence $a$, and let $z_t$ and $\hat z_t$ be the noise-free trajectories of the true map $F$ and a model $\widehat F$ from the same initial state. If $F$ is $L$-Lipschitz in the state and the stage and terminal costs are $L_\ell$-Lipschitz, then $|J(a)-\widehat J(a)|\le L_\ell C_H\sum_{t<H}\|F(\hat z_t,a_t)-\widehat F(\hat z_t,a_t)\|$ with $C_H=\sum_{j<H}L^j$.
+\end{lemma}
+\idea Errors made at one step are propagated, and at most amplified by $L$, at each later step.
+\begin{proof}
+Let $E_t=\|z_t-\hat z_t\|$ and $\mathrm{err}_t=\|F(\hat z_t,a_t)-\widehat F(\hat z_t,a_t)\|$. Adding and subtracting $F(\hat z_t,a_t)$ gives $E_{t+1}\le LE_t+\mathrm{err}_t$. Unrolling from $E_0=0$ yields $E_t\le\sum_{s<t}L^{t-1-s}\mathrm{err}_s$. The cost difference is at most $L_\ell\sum_tE_t$, and exchanging the order of summation gives the claim.
+\end{proof}
+
+\begin{corollary}[First-contact decision gap]\label{cor:decision}
+Let $\mathcal A_e$ be a finite candidate set, $\widehat J_e(a)=\sum_c\pi_e(c)\widehat J_{e,c}(a)$ with $\widehat J_{e,c}$ rolling out $f+m_c$, and let $\widehat a_e$ minimize $\widehat J_e$ up to $\eta_e$. If $\|m_c(x)-\mu_c(x)\|\le\bar\epsilon_e$ for every supported context along every candidate rollout, then
+\[
+  J_e(\widehat a_e)-\min_{a\in\mathcal A_e}J_e(a)\le2L_\ell C_HH\big[\bar\epsilon_e+(1-\pi_e(c_e))\Delta_{\max}\big]+\eta_e,
+\]
+and summing over episodes replaces $1-\pi_e(c_e)$ by $-\log\pi_e(c_e)$ as in \cref{prop:first}.
+\end{corollary}
+\begin{proof}
+\step{1} By \cref{lem:simulation} applied to each memory, and because $U$ has orthonormal columns, the per-step model error of memory $c$ is at most $\bar\epsilon_e+\ind[c\ne c_e]\Delta_{\max}$. Averaging over the belief gives $|\widehat J_e(a)-J_e(a)|\le L_\ell C_HH(\bar\epsilon_e+(1-\pi_e(c_e))\Delta_{\max})$ for every candidate $a$.
+\step{2} Let $a^\star$ minimize $J_e$ over $\mathcal A_e$. Then $J_e(\widehat a_e)-J_e(a^\star)\le[J_e(\widehat a_e)-\widehat J_e(\widehat a_e)]+[\widehat J_e(a^\star)-J_e(a^\star)]+\eta_e$, and both brackets are bounded by Step~1.
+\end{proof}
+The second bracket is evaluated on the rollout of the unknown best action, which is why the memory error must be bounded uniformly over the candidate set; \cref{thm:confidence} provides such a uniform bound.
+
+\subsection{Identifiability of unseen combinations (\cref{prop:composition})}\label[subappendix]{app:composition}
+\begin{restated}{\Cref{prop:composition}}
+Under the factored prior with exact observations on $\Omega$: (i) if $\kappa_\times=0$, the conditional variance of $g(q)$ vanishes if and only if the indicators of $q$ lie in the span of those of $\Omega$, which for two factors means that $q$'s values are connected in the observation graph; (ii) if $\kappa_\times>0$, the conditional variance is at least $\kappa_\times^2\phi^\top\Sigma_0\phi$.
+\end{restated}
+
+\idea Without interactions, $g(q)$ is a linear function of per-factor effects. It is determined by the observations exactly when its indicator vector can be written as a signed combination of observed indicator vectors, which in the bipartite graph corresponds to a path. An interaction specific to $q$ is independent of everything observed and can never be learned from other combinations. \Cref{fig:theory-composition} illustrates both directions of the argument.
+
+\input{figures/theory_composition}
+
+\begin{proof}
+Under \cref{eq:kernel}, $g(c)=\psi(c)^\top\beta+\xi_c$, where $\psi(c)$ stacks a constant and the one-hot indicators of $c^1,\dots,c^F$, $\beta$ is Gaussian with positive definite diagonal covariance $D$, and the $\xi_c\sim\mathcal N(0,\kappa_\times^2\phi^\top\Sigma_0\phi)$ are independent of $\beta$ and of each other. Let $\Psi$ have rows $\psi(\omega)^\top$ for $\omega\in\Omega$.
+
+\step{1 (span criterion)} With $\kappa_\times=0$ the observations are $\Psi\beta$. For Gaussian $\beta$, the conditional variance of $\psi(q)^\top\beta$ equals the squared distance from $D^{1/2}\psi(q)$ to the range of $D^{1/2}\Psi^\top$, which is zero exactly when $\psi(q)$ lies in the row space of $\Psi$.
+
+\step{2 (path $\Rightarrow$ span)} For two factors, suppose a path $q^1=x_0,y_0,x_1,y_1,\dots,x_m,y_m=q^2$ alternates between factor values along observed edges $(x_j,y_j)$ and $(x_{j+1},y_j)$. Then
+\[
+  \psi(q)=\textstyle\sum_{j=0}^{m}\psi(x_j,y_j)-\sum_{j=0}^{m-1}\psi(x_{j+1},y_j),
+\]
+because the constant appears $m+1$ times with a plus sign and $m$ times with a minus sign, and every interior indicator appears once with each sign (\cref{fig:theory-composition}a).
+
+\step{3 (no path $\Rightarrow$ no span)} If $q^1$ and $q^2$ lie in different components, let $C$ be the component of $q^1$ and define $u$ with constant entry $0$, entry $+1$ for factor-1 values in $C$, entry $-1$ for factor-2 values in $C$, and $0$ elsewhere. Every observed edge lies entirely inside or entirely outside $C$, so $u^\top\psi(\omega)=0$ for all $\omega\in\Omega$, while $u^\top\psi(q)=1$. Hence $\psi(q)$ is not in the row space (\cref{fig:theory-composition}b).
+
+\step{4 (interaction floor)} If $\kappa_\times>0$, the term $\xi_q$ is independent of $\beta$ and of all observations, so the conditional variance of $\psi(q)^\top\beta+\xi_q$ is the sum of the conditional variance of $\psi(q)^\top\beta$ and $\kappa_\times^2\phi^\top\Sigma_0\phi$.
+\end{proof}
+
+\noindent\emph{Exact conditional variance.} With $\chi=\phi^\top\Sigma_0\phi$ and the Gram matrix $K_\Omega=[k_{\mathcal C}(c,c')]_{c,c'\in\Omega}$, Gaussian conditioning gives $\operatorname{Var}(g(q)\mid g(\Omega))=\chi s_q$ with $s_q=k_{\mathcal C}(q,q)-k_{\mathcal C}(q,\Omega)K_\Omega^{\dagger}k_{\mathcal C}(\Omega,q)$, where $\dagger$ denotes the Moore--Penrose inverse. The pseudoinverse is needed because the additive kernel can be singular even when all variance parameters are positive. We compute $s_q$ for every held-out combination before evaluation and use it as the predicted first-contact uncertainty.
+
+\subsection{Value of information (\cref{prop:voi})}\label[subappendix]{app:voi}
+\begin{proposition}[Value of information under action agreement]\label{prop:voi}
+For a fixed state and a finite action set, $\VOI(p)\ge0$ for every probe. If a single action minimizes $J_\theta$ for almost every $\theta$ under $b$, then $\VOI(p)=0$ for every probe, even though the mutual information $I(\theta;o\mid p)$ may be positive.
+\end{proposition}
+\idea The optimal expected cost $V(b)$ is concave in the belief, so splitting the belief by a probe outcome can only lower it on average; if the best action never changes, $V$ is linear on the relevant beliefs and the split gains nothing (\cref{fig:theory-bias-voi}b,c).
+\begin{proof}
+\step{1} $V(b)=\min_a\E_b[J_\theta(a)]$ is a minimum of functions that are linear in $b$ and is therefore concave. Since $\E_o[b_o]=b$, Jensen's inequality gives $\E_o[V(b_o)]\le V(b)$, so $\VOI(p)\ge0$.
+\step{2} If $a^\dagger$ minimizes $J_\theta$ for $b$-almost every $\theta$, every posterior $b_o$ is supported on the same set, so $a^\dagger$ also minimizes $\E_{b_o}[J_\theta(\cdot)]$. Hence $\E_o[V(b_o)]=\E_o\E_{b_o}[J_\theta(a^\dagger)]=\E_b[J_\theta(a^\dagger)]=V(b)$.
+\step{3} The mutual information $I(\theta;o\mid p)$ is positive whenever two values of $\theta$ with positive probability induce different outcome distributions, which is compatible with Step~2.
+\end{proof}
+Consequently, information-maximizing probing probes whenever plausible contexts predict different outcomes, whereas value-of-information probing requires that they also prescribe different actions. When one memory dominates the uncertainty, we use a cheaper local criterion: for a single row with covariance $\Sigma$, gradient $g$ of the cost difference between the two best actions, and probe features $\phi_p$, a probe reduces the variance of that difference by $\Delta_p=(g^\top\Sigma\phi_p)^2/(\phi_p^\top\Sigma\phi_p+\sigma_i^2(z_p,a_p))$. This linearized score is not the exact value of information, and we evaluate both.
+
+\subsection{Long-run latent safety (\cref{prop:safety})}\label[subappendix]{app:safety}
+\begin{proposition}[Long-run latent barrier violations]\label{prop:safety}
+Assume \cref{eq:cbf} is enforced exactly whenever it is feasible and that a fallback action otherwise satisfies the one-step barrier condition. Let scores lie in $[0,\bar S]$, margins be initialized in $[0,\bar S]$, $\gamma>0$ and $0<\delta_s<1$, and let $K_T$ count the memories created in the first $T$ steps. Then for every sequence of contexts and cues,
+\begin{equation}\label{eq:safety-bound}
+  \textstyle\sum_{t<T}\ind\{h(z_{t+1})<(1-\alpha)h(z_t)\}\ \le\ \delta_sT+K_T(\bar S+2\gamma)/\gamma .
+\end{equation}
+\end{proposition}
+\idea A violation can only happen on a step where the attributed memory's margin was too small (a ``miss''). Each margin follows the adaptive conformal update, which by a deterministic counting argument cannot miss much more than a fraction $\delta_s$ of its steps.
+\begin{proof}
+\step{1 (violations are misses)} Suppose some plausible memory $c$ covers step $t$, i.e.\ $s_{c,t}\le b_{c,t}$, and \cref{eq:cbf} was enforced. By Lipschitz continuity of $h$,
+\[
+  h(z_{t+1})\ge h(\bar z'_{c,t})-L_hs_{c,t}\ge h(\bar z'_{c,t})-L_hb_{c,t}\ge(1-\alpha)h(z_t).
+\]
+If no action satisfied \cref{eq:cbf}, the fallback gives the same conclusion. A violation can therefore only occur when no plausible memory covers the step, and by the attribution rule this step counts as a miss for its attributed memory.
+
+\step{2 (margins stay bounded)} Fix memory $c$. If $b_c>\bar S$, no miss is possible because scores are at most $\bar S$, so the update decreases $b_c$. Starting from $b_c\le\bar S$, one update increases $b_c$ by at most $\gamma$, hence $b_c\le\bar S+\gamma$ at all times. Symmetrically, if $b_c<0$ every step is a miss and $b_c$ increases, so $b_c\ge-\gamma\delta_s$.
+
+\step{3 (counting misses)} Let memory $c$ have $T_c$ attributed steps and $n_c$ misses. Summing the updates gives $b_{c,\mathrm{end}}-b_{c,\mathrm{start}}=\gamma(n_c-\delta_sT_c)$. By Step~2 the left side is at most $\bar S+\gamma+\gamma\delta_s$, so $n_c\le\delta_sT_c+(\bar S+2\gamma)/\gamma$.
+
+\step{4} Summing over the $K_T$ memories and using $\sum_cT_c=T$ together with Step~1 gives \cref{eq:safety-bound}.
+\end{proof}
+The argument makes no assumption on the data, which is why it holds under misleading cues. A long-run violation rate of $\delta_s$ requires $K_T/T\to0$, and resetting a margin costs as much as creating a new memory. \Cref{fig:theory-aci} contrasts per-memory margins with a single shared margin on a synthetic stream. Physical safety additionally requires that $h$ represents the physical constraint~\citep{lutkus2025latent}.
+
+\input{figures/theory_aci}
+
+\subsection{Recognition time}\label[subappendix]{app:recognition}
+For a stored true context $c$ and one alternative $c'$, let $\ell_0=\log\frac{p(c\mid D_{<e})}{p(c'\mid D_{<e})}+\log\frac{p_\eta(y_e\mid c)}{p_\eta(y_e\mid c')}$ be the pre-contact log odds.
+
+\begin{proposition}[Two-context recognition time]\label{prop:recognition}
+Assume fixed likelihoods and i.i.d.\ diagnostic observations under $c$ whose log-likelihood-ratio increments $X_s$ have mean $D>0$. Let $T$ be the first time the log odds $\ell_0+\sum_{s\le t}X_s$ reach $\ell_\star$, with $\E[T]<\infty$ and integrable overshoot $O_T\ge0$. If $\ell_0\ge\ell_\star$ then $T=0$; otherwise $\E[T]=(\ell_\star-\ell_0+\E[O_T])/D\ge(\ell_\star-\ell_0)/D$.
+\end{proposition}
+\idea The log odds form a random walk with drift $D$ that starts at the cue-informed value $\ell_0$; the expected time to climb the remaining distance $\ell_\star-\ell_0$ is that distance divided by the drift.
+\begin{proof}
+If $\ell_0\ge\ell_\star$, the threshold is met before any observation and $T=0$. Otherwise, by definition of $T$ and the overshoot, $\sum_{s\le T}X_s=\ell_\star-\ell_0+O_T$. Since $T$ is a stopping time with $\E[T]<\infty$ and the $X_s$ are i.i.d.\ with mean $D$, Wald's identity gives $\E[\sum_{s\le T}X_s]=D\,\E[T]$. Combining the two expressions and using $O_T\ge0$ proves the claim.
+\end{proof}
+A stronger cue raises $\ell_0$ and shortens recognition, and better-separated memories raise $D$. Repeated exposure can improve both, but occurrence counts alone need not produce savings when competing contexts recur equally often. In a controlled two-context test with fixed memories, observed recognition times match \cref{prop:recognition} within \ph{XX\%} (\cref{fig:recognition}).
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.5\linewidth, height=4cm,
+  xlabel={initial log odds $\ell_0$}, ylabel={steps to recognition},
+  label style={font=\scriptsize}, tick label style={font=\tiny},
+  xmin=-4, xmax=4, ymin=0, ymax=14,
+  legend style={font=\tiny, draw=none, at={(0.97,0.97)}, anchor=north east},
+]
+\addplot[cCira, dashed, domain=-4:3, samples=30, thick] {max(0,(3-x)/0.55)}; \addlegendentry{$(\ell_\star-\ell_0)/D$}
+\addplot[cCira, only marks, mark=*, mark size=1.3pt, error bars/.cd, y dir=both, y explicit]
+  coordinates {(-3.5,12.1) +- (0,1.2) (-2,9.4) +- (0,1.0) (-1,7.6) +- (0,0.9) (0,5.8) +- (0,0.8) (1,4.1) +- (0,0.7) (2,2.3) +- (0,0.6) (3,0.4) +- (0,0.3) (3.5,0) +- (0,0)};
+\addlegendentry{observed}
+\node[anchor=north west, font=\tiny, text=red!70!black] at (rel axis cs:0.02,0.2) {placeholder};
+\end{axis}
+\end{tikzpicture}
+\caption{Recognition time against initial log odds in a controlled two-context test with fixed memories (placeholder data). The dashed line is the Wald prediction with the measured increment mean $D$ and threshold $\ell_\star=3$; observed times include overshoot.}
+\label{fig:recognition}
+\end{figure}
+
+\section{Additional Results}\label[appendix]{app:additional}
+
+\input{figures/composition}
+
+\Cref{fig:composition} shows the factorial holdout design and the held-out error of all compositional baselines, including a continuous-context model with a state--action kernel multiplied by a context-descriptor kernel.
+
+\input{figures/safety}
+
+With predictive weights, the intervals of \cref{thm:confidence} retain their nominal coverage as contexts become harder to distinguish, whereas coverage drops to \ph{XX\%} with filtered weights and further with hard assignments (\cref{fig:safety}a), consistent with \cref{rem:bias}. At a matched latent violation rate of \ph{2\%}, per-memory margins intervene \ph{XX\%} less often than a single adaptive margin and \ph{XX\%} less often than a filter that guards against all memories (\cref{fig:safety}b). Cumulative violations remained within \cref{eq:safety-bound} in every run that satisfied its assumptions, including runs with misleading cues. Finally, value-of-information probing matches the success rate of information-maximizing probing with \ph{XX\%} fewer probes, because it abstains whenever all plausible contexts prescribe the same strike (\cref{fig:safety}c).
+
+\section{Implementation Details}\label[appendix]{app:impl}
+
+\input{figures/method}
+
+\begin{table}[h]
+\centering\scriptsize
+\begin{tabular}{@{}lll@{}}
+\toprule
+Component & Setting & Value \\
+\midrule
+Correction subspace & principal directions of training residuals & $k=\ph{8}$ \\
+Features & $\phi(z,a)=[a,\,U^\top z,\,1]$ & $p=\ph{15}$ \\
+Noise model & MLP on $(z,a)$, Gaussian NLL on training residuals & \ph{2}$\times$\ph{128} \\
+Context prior & sticky CRP: concentration, self-transition & \ph{0.5}, \ph{0.95} \\
+Factor kernel & $\kappa_0,\ \kappa_{\mathrm{surf}},\ \kappa_{\mathrm{load}},\ \kappa_\times$ & \ph{0.3, 1.0, 0.8, 0.4} \\
+Memory creation & new-context hypothesis most probable for & \ph{5} steps \\
+Cue model & Gaussian on PCA of region features & \ph{4} dims per factor \\
+Planner & CEM: samples, elites, iterations, horizon & \ph{300, 30, 5, 10} \\
+Safety & $\alpha$, $\delta$, $\delta_s$, $\gamma$ & \ph{0.2, 0.05, 0.02, 0.01} \\
+\bottomrule
+\end{tabular}
+\caption{Hyperparameters (placeholder values), fixed on development streams.}
+\end{table}
+
+\paragraph{Streams.} Development and evaluation streams use disjoint seeds and schedules. The cue channel, dwell-time distribution and held-out combinations are fixed before evaluation. Oracle methods receive true context labels only for selection, never extra transitions or perfect memory parameters.
+
+\paragraph{Decomposition.} Memory slots are aligned across snapshots by identity. A slot created after the pre-cue snapshot enters $\Theta^{(0)}$ with its data-independent creation prior and zero belief. Returns are analyzed only when the library membership is fixed, and creation windows are reported separately.
+
+
+
+\section{Deployment Timeline}\label[appendix]{app:deployment}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[x=0.0092cm, y=1cm, font=\tiny]
+% placeholder schedule: (start, end, context index)
+\def\sched{0/60/0,60/140/4,140/210/1,210/300/0,300/340/7,340/420/4,420/500/2,500/570/1,570/640/8,640/700/4,700/780/0,780/850/5,850/930/1,930/1000/7,1000/1070/4,1070/1130/3,1130/1200/0}
+\def\infer{0/60/0,60/146/4,146/210/1,210/303/0,303/346/7,346/420/4,420/509/2,509/570/1,570/652/8,652/700/4,700/783/0,783/858/5,858/930/1,930/1004/7,1004/1070/4,1070/1141/3,1141/1200/0}
+\node[anchor=east] at (-10,1.2) {true context};
+\node[anchor=east] at (-10,0.6) {inferred (MAP)};
+\foreach \a/\b/\c in \sched {
+  \pgfmathsetmacro{\hue}{\c/9}
+  \definecolor{tmp}{hsb}{\hue,0.55,0.9}
+  \fill[tmp] (\a,1.05) rectangle (\b,1.35);
+}
+\foreach \a/\b/\c in \infer {
+  \pgfmathsetmacro{\hue}{\c/9}
+  \definecolor{tmp}{hsb}{\hue,0.55,0.9}
+  \fill[tmp] (\a,0.45) rectangle (\b,0.75);
+}
+\draw[->] (0,0.25) -- (1230,0.25) node[right] {episode};
+\foreach \x in {0,300,600,900,1200} \node[below] at (\x,0.25) {\x};
+\foreach \x in {240,480,720,960} \draw[black!40, dashed] (\x,0.25) -- (\x,1.45);
+\node[text=black!55, anchor=south] at (120,1.4) {day 1};
+\node[text=black!55, anchor=south] at (1080,1.62) {day 5};
+\node[anchor=south east, text=red!70!black] at (1200,1.4) {placeholder};
+\end{tikzpicture}
+\caption{True and inferred contexts over the hardware deployment (placeholder schedule). Colours index the nine surface--load conditions; dashed lines mark day boundaries. Inferred switches lag true switches by the recognition time after contact, except where the cue alone identified the new condition.}
+\label{fig:deployment}
+\end{figure}

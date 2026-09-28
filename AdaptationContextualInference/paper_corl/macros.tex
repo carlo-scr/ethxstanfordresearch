@@ -1,0 +1,36 @@
+% ---------------------------------------------------------------- macros
+\newcommand{\method}{\textsc{Cira}\xspace}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\novel}{\star}
+\newcommand{\Pd}{\mathcal{C}^{\delta}_t}
+\newcommand{\ind}{\mathbf{1}}
+\DeclareMathOperator{\VOI}{VOI}
+
+% Placeholder numbers: every unmeasured value is marked with \ph{...}
+% so it can be found with `grep -n '\\ph{' sections/*.tex figures/*.tex`.
+\newcommand{\ph}[1]{\textcolor{red!70!black}{#1}}
+\newcommand{\phnote}{\textcolor{red!70!black}{\scriptsize placeholder data}}
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{observation}{Observation}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% Colours shared by all figures
+\definecolor{cCira}{HTML}{1F6FB2}
+\definecolor{cReset}{HTML}{D1495B}
+\definecolor{cFrozen}{HTML}{7A7A7A}
+\definecolor{cNoCue}{HTML}{E3A33B}
+\definecolor{cOracle}{HTML}{2E8B57}
+\definecolor{cCont}{HTML}{8E6CB8}
+\definecolor{cMem}{HTML}{DCE9F5}
+
+\setlist{itemsep=1pt,topsep=2pt,leftmargin=*}

@@ -1,0 +1,79 @@
+% PLACEHOLDER DATA: every coordinate in this file is illustrative and must be
+% replaced by measured values before submission.
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[
+  group style={group size=4 by 1, horizontal sep=0.95cm},
+  width=0.29\linewidth, height=3.3cm,
+  tick label style={font=\tiny}, label style={font=\scriptsize}, title style={font=\scriptsize, yshift=-3pt},
+  ylabel style={yshift=-3pt},
+  legend style={font=\tiny, draw=none, fill=none},
+  every axis plot/.append style={thick, mark size=1.2pt},
+]
+% ---------------------------------------------------------------- (a) error vs cue reliability
+\nextgroupplot[
+  title={(a) first-contact error},
+  xlabel={cue reliability $\rho$}, ylabel={error / frozen},
+  xmin=0.08, xmax=1.0, ymin=0, ymax=1.12,
+  xtick={0.11,0.5,0.8,0.95}, xticklabels={$\frac1K$,.5,.8,.95},
+  legend to name=leg:results, legend columns=6,
+]
+\addplot[cFrozen, dashed] coordinates {(0.11,1.0) (0.95,1.0)}; \addlegendentry{Frozen}
+\addplot[cReset, mark=x, only marks] coordinates {(0.11,1.0) (0.35,1.0) (0.65,1.0) (0.8,1.0) (0.95,1.0)}; \addlegendentry{Reset-SGD / Residual}
+\addplot[cCont, mark=diamond*] coordinates {(0.11,0.86) (0.35,0.85) (0.65,0.87) (0.8,0.85) (0.95,0.86)}; \addlegendentry{Continual-SGD}
+\addplot[cNoCue, mark=square*] coordinates {(0.11,0.63) (0.35,0.62) (0.65,0.63) (0.8,0.62) (0.95,0.62)}; \addlegendentry{Mixture / \method-NoCue}
+\addplot[name path=up, draw=none, forget plot] coordinates {(0.11,0.68) (0.35,0.55) (0.65,0.39) (0.8,0.29) (0.95,0.18)};
+\addplot[name path=lo, draw=none, forget plot] coordinates {(0.11,0.58) (0.35,0.46) (0.65,0.31) (0.8,0.21) (0.95,0.12)};
+\addplot[cCira!25, forget plot] fill between[of=up and lo];
+\addplot[cCira, mark=*] coordinates {(0.11,0.63) (0.35,0.50) (0.65,0.35) (0.8,0.25) (0.95,0.15)}; \addlegendentry{\method}
+\addplot[cOracle, densely dotted] coordinates {(0.11,0.09) (0.95,0.09)}; \addlegendentry{Oracle}
+\node[anchor=east, font=\tiny, text=red!70!black] at (rel axis cs:0.98,0.36) {placeholder};
+
+% ---------------------------------------------------------------- (b) recall vs learning
+\nextgroupplot[
+  title={(b) recall vs.\ learning},
+  ybar stacked, bar width=6pt,
+  xlabel={occurrence}, ylabel={gain / initial loss},
+  ymin=0, ymax=1.35, ytick={0,0.4,0.8}, xtick={1,2,3,4}, xticklabels={1st,2nd,3rd,4th+},
+  enlarge x limits=0.18,
+  legend style={at={(0.5,0.98)}, anchor=north, font=\tiny, legend columns=2},
+]
+\addplot[fill=cCira, draw=cCira] coordinates {(1,0.04) (2,0.52) (3,0.63) (4,0.70)}; \addlegendentry{recall $R$}
+\addplot[fill=cCira!30, draw=cCira] coordinates {(1,0.78) (2,0.26) (3,0.17) (4,0.12)}; \addlegendentry{learning $P$}
+\node[anchor=north, font=\tiny, text=red!70!black] at (rel axis cs:0.5,0.84) {placeholder};
+
+% ---------------------------------------------------------------- (c) cumulative first-contact error
+\nextgroupplot[
+  title={(c) cumulative first-contact bias},
+  xlabel={episode}, ylabel={$\sum_e b_e$ (norm.)},
+  xmin=0, xmax=500, ymin=0, ymax=330,
+  scaled x ticks=false, xtick={0,250,500},
+  legend style={at={(0.02,0.98)}, anchor=north west, font=\tiny, fill=white, fill opacity=0.8, text opacity=1, row sep=-2pt},
+]
+\addplot[cReset, domain=0:500, samples=20] {0.62*x}; \addlegendentry{reset}
+\addplot[cNoCue, domain=0:500, samples=40] {0.42*x - 10*ln(1+x/40)}; \addlegendentry{no cue}
+\addplot[cCira, domain=0:500, samples=40] {35*ln(1+x/12) + 0.03*x}; \addlegendentry{\method}
+\addplot[cCira, dashed, domain=0:500, samples=40] {52*ln(1+x/12) + 0.08*x}; \addlegendentry{bound}
+\node[anchor=south east, font=\tiny, text=red!70!black] at (rel axis cs:0.98,0.03) {placeholder};
+
+% ---------------------------------------------------------------- (d) unseen combinations
+\nextgroupplot[
+  title={(d) unseen combinations},
+  ybar, bar width=4pt, ymin=0, ymax=1.45, ytick={0,0.5,1},
+  ylabel={held-out error / frozen},
+  symbolic x coords={conn,disc}, xtick=data, xticklabels={connected,disconn.},
+  enlarge x limits=0.5,
+  legend style={at={(0.5,0.99)}, anchor=north, font=\tiny, legend columns=2, /tikz/every even column/.append style={column sep=2pt}},
+]
+\addplot[fill=cFrozen!50, draw=cFrozen] coordinates {(conn,0.92) (disc,0.93)}; \addlegendentry{indep.}
+\addplot[fill=cNoCue!60, draw=cNoCue] coordinates {(conn,0.41) (disc,0.88)}; \addlegendentry{$\kappa_\times{=}0$}
+\addplot[fill=cCira, draw=cCira] coordinates {(conn,0.33) (disc,0.84)}; \addlegendentry{\method}
+\addplot[fill=cOracle!60, draw=cOracle] coordinates {(conn,0.24) (disc,0.26)}; \addlegendentry{oracle}
+\end{groupplot}
+\end{tikzpicture}
+\\[1pt]
+\pgfplotslegendfromname{leg:results}
+\caption{\textbf{Main results in simulation} (placeholder data; bands and error bars are 95\% intervals over \ph{10} streams). (a)~First-contact prediction error relative to the frozen model. Reset methods coincide with the frozen model at every cue reliability, whereas \method improves as cues become informative. (b)~Decomposition of the improvement into recall $R$ and learning $P$ (\cref{eq:decomp}) by how often a context has occurred. (c)~Cumulative first-contact bias grows linearly for reset methods and sublinearly for \method, below the bound of \cref{prop:first}. (d)~Error at the first contact with held-out surface--load combinations; the factored prior transfers only when the observed combinations are connected (\cref{prop:composition}, design in \cref{fig:composition}).}
+\label{fig:results}
+\end{figure}

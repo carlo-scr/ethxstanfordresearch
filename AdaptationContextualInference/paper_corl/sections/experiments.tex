@@ -1,0 +1,31 @@
+\section{Experiments}\label{sec:experiments}
+
+\subsection{Experimental Setup}
+
+\paragraph{Tasks.}
+In \emph{simulation} (MuJoCo), a robot strikes a puck toward a target near a table edge or pushes a box close to an edge, with three surfaces (friction \ph{0.60}, \ph{0.35}, \ph{0.12}) and three loads (\ph{0.2}, \ph{0.6}, \ph{1.0}\,kg); the world model is a DINO-WM-style predictor on frozen DINOv2 features~\citep{zhou2025dinowm} trained on a single condition. On the \emph{benchmarks}, we use PushT and PointMaze with the released AdaJEPA checkpoints~\citep{wang2026adajepa} and pair the existing agent and block recolourings with changes in mass and damping, so that colour becomes an imperfect cue. On \emph{hardware}, a Franka Panda strikes a puck on interchangeable mats and lifts containers of unknown mass using a frozen V-JEPA~2-AC predictor~\citep{assran2025vjepa2}. During a \ph{1{,}200}-episode deployment, lab members exchanged mats and containers on a schedule unknown to the robot.
+
+\paragraph{Protocol and baselines.}
+Each stream has $N=\ph{500}$ episodes over $K=9$ surface--load contexts with geometric dwell times. The cue shows the true context's appearance with probability $\rho$ and each other appearance with probability $(1-\rho)/(K-1)$, so $\rho=1/K$ is uninformative. We report 95\% bootstrap intervals over \ph{10} streams shared by all methods, and compare against the \emph{Frozen} world model; \emph{Reset-SGD}, which takes AdaJEPA-style gradient steps and resets every episode~\citep{wang2026adajepa}; \emph{Reset-Residual}, a Sandwich-Residuals-style adapter that also resets~\citep{soni2026sandwich}; \emph{Continual-SGD}, the same updates without resets; \emph{Mixture}, a persistent mixture of dynamics models selected from prediction error alone~\citep{nagabandi2019mole}; \emph{\method-NoCue}, our method without cues; and \emph{Oracle}, which uses \method's memories with the true context. All methods share backbone, planner, candidates and action budget; hyperparameters are tuned on separate development streams.
+
+\input{figures/results}
+
+\subsection{Results}
+
+\paragraph{\method improves the first contact when contexts recur.}
+\Cref{fig:results}a shows first-contact prediction error in simulated striking as a function of cue reliability. As predicted by \cref{obs:first}, Reset-SGD and Reset-Residual coincide with the frozen model. History alone (Mixture, \method-NoCue) reduces the error by \ph{XX\%}, and informative cues reduce it to \ph{XX\%} below the best reset method at $\rho=0.8$, close to the oracle at $\rho=0.95$. Uninformative cues do no harm. The cumulative first-contact bias in \cref{fig:results}c grows linearly for reset methods and sublinearly for \method, and it stays below the bound of \cref{prop:first} evaluated with the recorded beliefs. Without recurrence, \method provides no benefit (\ph{$\pm$X\%}), as the bound predicts. The gains carry over to task success on all platforms (\cref{tab:main}); on hardware, strike success rises from \ph{38\%} to \ph{74\%}.
+
+\input{tables/main}
+
+\paragraph{The gain on recurring contexts is recall.}\label{sec:decomp}
+To attribute improvements, we record the adaptive state $(\pi,\Theta)$ before the episode's cue (index $0$) and after $s$ post-contact observations (index $1$), and evaluate all four combinations $L_{ij}=L(\pi^{(i)},\Theta^{(j)})$ on held-out transitions of the current context. The total gain $G=L_{00}-L_{11}$ then decomposes into the two-player Shapley values
+\begin{equation}\label{eq:decomp}
+  R=\tfrac12\big[(L_{00}-L_{10})+(L_{01}-L_{11})\big],\qquad P=\tfrac12\big[(L_{00}-L_{01})+(L_{10}-L_{11})\big],
+\end{equation}
+where $R$ corresponds to apparent learning, or recall, and $P$ to proper learning~\citep{heald2021coin}; reset methods have $R=0$ by construction. On the first occurrence of a context, nearly all of \method's gain is learning, whereas from the second occurrence onward recall accounts for \ph{XX\%} (\cref{fig:results}b). Freezing all memory parameters after calibration raises the error on returns by only \ph{XX\%}.
+
+\paragraph{The factored prior transfers only along connected combinations.}
+We train on six of the nine surface--load combinations and evaluate the first contact with each of the remaining three (design in \cref{fig:composition}, \cref{app:additional}). When the observed combinations connect all factor values, the factored prior reduces held-out error by \ph{XX\%} relative to independent memories and improves on the purely additive prior ($\kappa_\times=0$) when surface and load interact. In the disconnected control, the additive prior cannot determine the held-out combination and performs close to independent memories (\cref{fig:results}d), as \cref{prop:composition} predicts.
+
+\paragraph{Calibration, safety, probing and hardware deployment.}
+Predictive weights keep the intervals of \cref{thm:confidence} calibrated, unlike filtered weights. At a matched latent violation rate of \ph{2\%}, per-memory margins intervene \ph{XX\%} less often than a single adaptive margin, and value-of-information probing needs \ph{XX\%} fewer probes (\cref{app:additional}). On hardware, \method created \ph{11} memories for \ph{9} conditions, and recall accounted for \ph{XX\%} of the improvement on returns (\cref{app:deployment}).

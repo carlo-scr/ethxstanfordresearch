@@ -1,0 +1,60 @@
+% Analytic illustrations (not experimental data).
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[
+  group style={group size=3 by 1, horizontal sep=1.1cm},
+  width=0.36\linewidth, height=4.4cm,
+  tick label style={font=\tiny}, label style={font=\scriptsize}, title style={font=\scriptsize, yshift=-3pt},
+]
+% ---------------------------------------------------------------- (a) selection bias
+\nextgroupplot[
+  title={(a) filtered weights select the noise},
+  xlabel={residual $v/\sigma$}, ylabel={density},
+  xmin=-3.2, xmax=3.2, ymin=0, ymax=0.5, ytick=\empty,
+  xtick={-2,0,1,2}, xticklabels={$-2$,$0$,$\frac{\Delta}{2\sigma}$,$\frac{\Delta}{\sigma}$},
+]
+\addplot[draw=none, fill=cCira!25, domain=-3.2:1, samples=60] {exp(-x^2/2)/sqrt(2*pi)} \closedcycle;
+\addplot[cCira, thick, domain=-3.2:3.2, samples=80] {exp(-x^2/2)/sqrt(2*pi)};
+\addplot[cReset, thick, dashed, domain=-1.2:3.2, samples=60] {exp(-(x-2)^2/2)/sqrt(2*pi)};
+\draw[black!60, densely dotted] (axis cs:1,0) -- (axis cs:1,0.46);
+\draw[cOracle, thick] (axis cs:0,0) -- (axis cs:0,0.40);
+\node[font=\tiny, text=cOracle, anchor=west] at (axis cs:0.05,0.46) {true mean $0$};
+\draw[cCira, thick, -{Stealth[length=3pt]}] (axis cs:-0.29,0.2) -- (axis cs:-0.29,0.03);
+\node[font=\tiny, text=cCira, align=left, anchor=north west] at (axis cs:-3.1,0.47) {kept by\\model 0,\\mean\\$-0.29\sigma$};
+\node[font=\tiny, text=cReset] at (axis cs:2.6,0.36) {model $\Delta$};
+
+% ---------------------------------------------------------------- (b) VOI > 0
+\nextgroupplot[
+  title={(b) actions disagree: $\VOI>0$},
+  xlabel={belief $b=P(c_2)$}, ylabel={expected cost},
+  xmin=0, xmax=1, ymin=0.2, ymax=1.25, xtick={0,0.5,1}, ytick=\empty,
+]
+\addplot[black!35, domain=0:1] {0.2+1.2*x};
+\addplot[black!35, domain=0:1] {1.1-0.9*x};
+\addplot[black!35, domain=0:1] {0.55+0.1*x};
+\addplot[cCira, very thick, domain=0:1, samples=101] {min(0.2+1.2*x, min(1.1-0.9*x, 0.55+0.1*x))};
+\addplot[cNoCue, thick, mark=*, mark size=1.3pt] coordinates {(0.15,0.38) (0.85,0.335)};
+\draw[cReset, thick, {Stealth[length=3pt]}-{Stealth[length=3pt]}] (axis cs:0.5,0.3575) -- (axis cs:0.5,0.6) node[midway, right, font=\tiny] {$\VOI$};
+\node[font=\tiny, text=cCira] at (axis cs:0.3,0.47) {$V(b)$};
+\node[font=\tiny, text=cNoCue, anchor=south] at (axis cs:0.1,0.42) {$b_{o_1}$};
+\node[font=\tiny, text=cNoCue, anchor=north] at (axis cs:0.85,0.3) {$b_{o_2}$};
+\node[font=\tiny, text=cReset, anchor=west] at (axis cs:0.53,0.48) {};
+
+% ---------------------------------------------------------------- (c) VOI = 0
+\nextgroupplot[
+  title={(c) actions agree: $\VOI=0$},
+  xlabel={belief $b=P(c_2)$},
+  xmin=0, xmax=1, ymin=0.15, ymax=1.25, xtick={0,0.5,1}, ytick=\empty,
+]
+\addplot[black!35, domain=0:1] {0.5+0.7*x};
+\addplot[black!35, domain=0:1] {1.2-0.6*x};
+\addplot[cCira, very thick, domain=0:1] {0.3+0.1*x};
+\addplot[cNoCue, thick, mark=*, mark size=1.3pt] coordinates {(0.15,0.315) (0.85,0.385)};
+\node[font=\tiny, text=cCira, anchor=north] at (axis cs:0.5,0.29) {$V(b)$ linear: chord lies on it};
+\node[font=\tiny, align=center, fill=white, inner sep=1pt] at (axis cs:0.5,1.12) {informative probe,\\same best action $a^\dagger$};
+\end{groupplot}
+\end{tikzpicture}
+\caption{\textbf{Two mechanisms behind the analysis} (analytic illustrations). (a)~\Cref{rem:bias}: when each residual is assigned by the filtered posterior, model $0$ keeps only residuals left of $\Delta/2$ (shaded). Its mean converges to $-0.29\sigma$ instead of $0$. (b,c)~\Cref{prop:voi}: $V(b)$ is the lower envelope of the action costs and is concave. A probe splits the belief into $b_{o_1}$ and $b_{o_2}$. The value of information is the gap between $V(b)$ and the chord. When one action is best for every plausible context (c), $V$ is linear and the gap vanishes, although the probe is informative.}
+\label{fig:theory-bias-voi}
+\end{figure}

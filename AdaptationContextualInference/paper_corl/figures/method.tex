@@ -1,0 +1,50 @@
+\begin{figure}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  >={Stealth[length=4pt]},
+  frozen/.style={draw=cFrozen, fill=cFrozen!10, rounded corners=2pt, minimum height=8mm, minimum width=17mm, align=center},
+  comp/.style={draw=cCira, fill=cCira!7, rounded corners=2pt, minimum height=8mm, minimum width=19mm, align=center, inner sep=2pt},
+  mem/.style={draw=cCira, fill=cMem, rounded corners=1pt, minimum width=7mm, minimum height=6mm, inner sep=1pt},
+  flow/.style={->, thick, black!70},
+  cflow/.style={->, thick, cCira},
+  lbl/.style={font=\tiny, fill=white, inner sep=1pt},
+]
+% ---- row 1: frozen world model
+\node[draw, fill=black!3, minimum width=13mm, minimum height=8mm, align=center] (img) at (0,0) {image $o_t$};
+\node[frozen] (enc) at (2.4,0) {frozen\\encoder $E$};
+\node[frozen] (pred) at (4.8,0) {frozen\\predictor $f$};
+\node[circle, draw, thick, inner sep=1pt] (plus) at (6.9,0) {$+$};
+\node[align=center] (out) at (9.0,0) {$\hat z_{t+1}$ to planner\\and safety filter};
+\draw[flow] (img) -- (enc);
+\draw[flow] (enc) -- node[lbl, above=1pt] {$z_t$} (pred);
+\draw[flow] (pred) -- (plus);
+\draw[flow] (plus) -- (out);
+
+% ---- row 2: cue -> belief -> library -> update
+\node[comp] (cue) at (0,-1.45) {cue models\\$p_\eta(y^j\mid c^j)$};
+\node[comp] (bel) at (3.4,-1.45) {context belief\\$q_t(c)$};
+\node[mem] (m1) at (5.95,-1.45) {$m_1$};
+\node[mem] (m2) at (6.65,-1.45) {$m_2$};
+\node[mem] (m3) at (7.35,-1.45) {$m_3$};
+\node[mem, dashed, fill=white] (mn) at (8.05,-1.45) {$m_\novel$};
+\node[fit=(m1)(mn), draw=cCira, thick, rounded corners=3pt, inner sep=3pt] (lib) {};
+\node[font=\tiny\bfseries, text=cCira, anchor=north] (liblbl) at (lib.south) {memories $m_c$ with margins $b_c$};
+\node[comp] (upd) at (10.7,-1.45) {update memories\\weight $q_t(c)$, Eq.~\eqref{eq:update}};
+
+\draw[cflow] (img.south) -- node[lbl, right=1pt] {cue regions $y_e$} (cue.north);
+\draw[cflow] (cue) -- (bel);
+\draw[cflow] (bel) -- node[lbl, above=1pt] {select} (lib.west);
+\draw[cflow] (lib.north -| plus) -- node[lbl, right=1pt] {$\sum_c q_t(c)\,m_c$} (plus.south);
+\draw[cflow] (out.east) -| node[lbl, pos=0.75, right=1pt] {residual $r_t$} (upd.north);
+\draw[cflow] (upd) -- (lib.east);
+
+% ---- row 3: shared prior and belief revision
+\node[comp] (prior) at (7.0,-2.75) {shared factor prior $k_{\mathcal C}$\\predicts unseen tuples};
+\draw[cflow, <->] (prior.north) -- (prior.north |- liblbl.south);
+\draw[cflow, dashed] (upd.south) |- (10.7,-3.55) -| node[lbl, pos=0.25, below=1pt] {likelihood $p(v_t\mid c)$ revises the belief} (bel.south);
+\end{tikzpicture}}
+\caption{\textbf{\method overview.} A frozen world model predicts the next latent state, and a library of residual memories adds a correction weighted by the context belief. Before contact the belief comes from deployment history and learned cue models; after contact, dynamics likelihoods revise it. Each memory learns with the probability it had \emph{before} the current error ($q_t$), stores its own safety margin, and shares a factor prior that predicts unseen combinations.}
+\label{fig:method}
+\end{figure}

@@ -1,0 +1,108 @@
+\subsection{When unseen combinations are identifiable}
+\label{sec:composition-theory}
+
+The context kernel separates two questions: whether the observed combinations identify the additive contribution of a new combination, and whether that combination has an interaction that no other context reveals. The following result makes this distinction exact in the limit in which the relevant stored predictions are known without error.
+
+\begin{proposition}[Identifiability of an unseen combination]
+\label{prop:composition}
+Fix one output coordinate and one feature vector $\phi$, and let $g(c)=\phi^\top w_c$ and $\chi=\phi^\top\Sigma_0\phi>0$. Assume $\kappa_0^2>0$ and $\kappa_j^2>0$ for every factor. Under the context prior,
+\[
+g(c)=\psi(c)^\top b+\xi_c,
+\]
+where $\psi(c)$ contains an intercept and the one-hot indicators of each factor value, $b$ has a positive definite diagonal Gaussian covariance, and the $\xi_c\sim\mathcal N(0,\kappa_\times^2\chi)$ are independent of $b$ and one another. Let $\Omega$ be a set of contexts with exactly observed $g(\Omega)$, including the training context, and let $q\notin\Omega$ use factor values represented in $\Omega$. With $K_\Omega=[k_{\mathcal C}(c,c')]_{c,c'\in\Omega}$,
+\begin{align}
+\operatorname{Var}\bigl(g(q)\mid g(\Omega)\bigr)&=\chi s_q,\label{eq:composition-variance}\\
+s_q&=k_{\mathcal C}(q,q)-k_{\mathcal C}(q,\Omega)K_\Omega^\dagger k_{\mathcal C}(\Omega,q),\nonumber
+\end{align}
+where $\dagger$ denotes the Moore--Penrose inverse.
+\begin{enumerate}[label=(\roman*)]
+\item If $\kappa_\times^2=0$, the conditional variance is zero if and only if
+\[
+\psi(q)\in\operatorname{span}\{\psi(c):c\in\Omega\}.
+\]
+For two factors, this holds if and only if the two factor values of $q$ belong to the same connected component of the bipartite graph whose observed combinations are edges.
+\item If $\kappa_\times^2>0$, then
+\begin{align*}
+\operatorname{Var}\bigl(g(q)\mid g(\Omega)\bigr)
+&=\kappa_\times^2\chi
++\operatorname{Var}\bigl(\psi(q)^\top b\mid g(\Omega)\bigr)\\
+&\geq\kappa_\times^2\chi.
+\end{align*}
+\end{enumerate}
+\end{proposition}
+
+Connectivity is the relevant requirement for two-factor transfer. Observing each factor value somewhere is insufficient: observations in disconnected components do not determine their relative additive contributions. A connected chain of combinations supplies those missing relations. More observations can resolve uncertainty about the additive terms, but cannot reveal an independent interaction at a combination that has never occurred.
+
+Equation~\eqref{eq:composition-variance} is a conditional variance, not a realized prediction error. Under the specified Gaussian model it equals the conditional mean-squared error of the conditional-mean predictor at the chosen input. A particular error may be larger or smaller. Exact recovery additionally requires an additive model and exact stored observations; finite memory uncertainty leaves additional uncertainty. The pseudoinverse is necessary because the purely additive kernel can be singular even when all its additive variance parameters are positive. If $\chi=0$, the scalar prediction is deterministic under this prior and the span criterion is unnecessary. Fitted kernel parameters and approximate conditioning on uncertain memories provide operational estimates of this variance; they do not, by themselves, certify calibration of the fitted prior.
+
+\subsection{Memory accuracy with uncertain context assignments}
+\label{sec:confidence-theory}
+
+Predictable assignment weights preserve the conditional zero-mean property of observation noise. They do not ensure that a sample comes from the memory being updated. The next result separates the resulting cross-context contamination from estimation noise and prior mismatch. It applies to an instantiated memory representing a stationary context; an unresolved new-value hypothesis that aggregates several contexts need not satisfy this condition.
+
+For memory $c$, choose a positive definite row precision $P_{c,i}$ at creation and keep it fixed. It may depend on the information available at creation, but the sufficient statistics below contain only subsequent observations. In particular, the result does not cover selecting and replaying earlier residuals using their observed values. Write
+\begin{align}
+\omega_{c,i,s}&=\frac{q_s(c)}{\sigma_{i,s}^2},\qquad
+V_{c,i,t}=P_{c,i}+\sum_{s<t}\omega_{c,i,s}\phi_s\phi_s^\top,\label{eq:weighted-design}\\
+\widehat w_{c,i,t}&=V_{c,i,t}^{-1}\left(P_{c,i}\nu_{c,i,t}
++\sum_{s<t}\omega_{c,i,s}\phi_s v_{s,i}\right),\label{eq:weighted-estimate}\\
+u_{c,i,t}(\phi)&=\sqrt{\phi^\top V_{c,i,t}^{-1}\phi}.\nonumber
+\end{align}
+Weights are zero before creation. The predictive probability $q_s(c)$ includes the available episode cue but excludes the current residual $v_s$. The prior centre $\nu_{c,i,t}$ may be recomputed from the observation history; this flexibility does not extend to changing $P_{c,i}$ while retaining these sufficient statistics.
+
+\begin{theorem}[Uniform memory error under context uncertainty]
+\label{thm:confidence}
+Under the stationary realizability and conditional sub-Gaussian noise assumptions, fix a memory $c$ and a failure probability $\delta_c\in(0,1)$. Conditional on the information at its creation, with probability at least $1-\delta_c$, simultaneously for every subsequent $t$, every $\phi\in\mathbb R^p$, and every output coordinate $i\in\{1,\ldots,k\}$,
+\begin{equation}
+\left|\phi^\top(\widehat w_{c,i,t}-w_{c,i})\right|
+\leq \beta_{c,i,t}\,u_{c,i,t}(\phi),\label{eq:memory-confidence}
+\end{equation}
+where
+\begin{align}
+\beta_{c,i,t}
+&=\sqrt{2\log\frac{k}{\delta_c}
++\log\frac{\det V_{c,i,t}}{\det P_{c,i}}}
++\|\nu_{c,i,t}-w_{c,i}\|_{P_{c,i}}+B_{c,i,t},\label{eq:memory-radius}\\
+B_{c,i,t}^2
+&=\sum_{s<t}\omega_{c,i,s}
+\left[\phi_s^\top(w_{c_s,i}-w_{c,i})\right]^2.\label{eq:contamination}
+\end{align}
+Here $c_s$ is the true context. Assigning failure probabilities with $\sum_c\delta_c\leq\delta$ makes these inequalities simultaneous over all instantiated memories with probability at least $1-\delta$.
+\end{theorem}
+
+If all observations lie in the domain defining $\Delta_{\max}$, the contamination is bounded by
+\[
+B_{c,i,t}^2\leq\Delta_{\max}^2 M_{c,i,t},\qquad
+M_{c,i,t}=\sum_{s<t:c_s\ne c}\omega_{c,i,s}.
+\]
+
+The noise term follows the self-normalized martingale bound for predictable linear regression~\citep{abbasi2011improved}. Predictability is the essential requirement: the feature, noise scale, and assignment weight must be fixed before the current noise is observed. Neither independence between context assignments and earlier observations nor independent output coordinates is required. The simultaneous statement over inputs permits evaluation on the candidate trajectories considered by the planner. Fixed feature maps, fixed correction directions, and fixed per-memory precisions are part of the scope of this result.
+
+The contamination term connects memory accuracy to context prediction. If every noise scale is at least $\sigma_{\min}>0$, then, for each output coordinate,
+\begin{equation}
+\sum_c M_{c,i,T}
+\leq\frac{1}{\sigma_{\min}^2}\sum_{t<T}\bigl[1-q_t(c_t)\bigr]
+\leq\frac{1}{\sigma_{\min}^2}\sum_{t<T}\ell_t^{\mathrm{dyn}},
+\qquad \ell_t^{\mathrm{dyn}}=-\log q_t(c_t).
+\label{eq:contamination-logloss}
+\end{equation}
+The sum on the left includes only instantiated memories. If the true context has no represented slot, set its probability to zero; the log-loss bound is then infinite and supplies no finite claim for that step. Unresolved new-value slots are not stationary memories covered by the theorem. Once contexts are represented, accurate predictions reduce both the error of selecting a memory and the contamination of memories updated with uncertain assignments.
+
+Theorem~\ref{thm:confidence} is an error bound, not a claim that an uninflated Gaussian posterior interval has nominal coverage. Both the prior-mismatch norm and the contamination term involve unknown quantities. A computable certified radius requires valid upper bounds on these terms and on the noise scale; substituting fitted estimates does not preserve the coverage guarantee automatically. Known parameter ranges in state-based simulations can supply conservative envelopes. Empirical coverage evaluates fitted intervals when certified envelopes are unavailable. Negative transfer appears explicitly as a large prior-mismatch term. Additional data reduce $u_{c,i,t}(\phi)$ only in directions sufficiently explored by the weighted features, and persistent contamination need not vanish with sample size.
+
+For use in the first-contact bound, on the simultaneous event a valid vector error envelope is
+\[
+\epsilon_t=\sup_{c,\,(z,a)\in\mathcal Z_A}
+\left(\sum_{i=1}^k\beta_{c,i,t}^2
+u_{c,i,t}\bigl(\phi(z,a)\bigr)^2\right)^{1/2},
+\]
+with the supremum restricted to the memories under consideration. Orthonormality of $U$ transfers this projected bound to the latent correction. A finite, useful envelope requires bounded prior mismatch, controlled contamination, and adequate feature coverage.
+
+\paragraph{Why filtered weights can introduce bias.}
+Consider scalar observations $v\sim\mathcal N(0,\sigma^2)$ and two fixed scoring models with means $0$ and $\Delta>0$, equal variances, and equal predictive probabilities. Hard assignment by the filtered probability sends an observation to the first model exactly when $v<\Delta/2$. A separate sample-mean estimator trained on those selected observations converges to
+\[
+\mathbb E[v\mid v<\Delta/2]
+=-\sigma\frac{\varphi_{\mathrm N}(\Delta/(2\sigma))}
+{\Phi_{\mathrm N}(\Delta/(2\sigma))}<0,
+\]
+where $\varphi_{\mathrm N}$ and $\Phi_{\mathrm N}$ are the standard normal density and distribution function. At $\Delta=2\sigma$, the bias is approximately $-0.29\sigma$. An interval that shrinks around this selected-sample mean eventually excludes zero. This counterexample keeps the scoring models fixed; it does not assert the same limiting value when those scoring models are learned online. Predictable weights remove this dependence on the current noise, while the contamination term accounts for samples generated by other contexts.

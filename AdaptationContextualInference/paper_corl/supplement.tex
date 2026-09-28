@@ -1,0 +1,52 @@
+\documentclass{article}
+
+\usepackage{xr-hyper}
+\usepackage{corl_2026} % Initial submission (anonymous, line numbers).
+
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs,multirow}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric,decorations.pathreplacing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots,fillbetween}
+\usepackage[capitalise,nameinlink]{cleveref}
+
+\input{macros}
+\externaldocument{main}
+
+% Continue the numbering of the main paper and mark supplementary floats and equations.
+\setcounter{theorem}{1}
+\setcounter{proposition}{2}
+\setcounter{observation}{1}
+\setcounter{definition}{1}
+\setcounter{assumption}{1}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\theequation}{S\arabic{equation}}
+
+\title{Supplementary Material for\\``Adapting Before Contact: Contextual Memory for Frozen World Models''}
+
+\author{
+  Anonymous Authors\\
+  Anonymous Institution\\
+  \texttt{anonymous@example.com}
+}
+
+\begin{document}
+\nolinenumbers
+\maketitle
+
+\noindent This supplement contains the proofs of all formal results, additional experimental results, implementation details, and the timeline of the hardware deployment. Equations, figures and tables numbered without the prefix ``S'' refer to the main paper.
+
+\appendix
+\input{sections/appendix}
+
+\bibliography{references}
+
+\end{document}

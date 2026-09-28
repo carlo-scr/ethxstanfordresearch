@@ -1,0 +1,177 @@
+\section{Evaluation protocol}\label{sec:experiments}
+
+The evaluation tests when information available before interaction changes the first consequential prediction, whether this improvement comes from recalling physical knowledge, and how context uncertainty affects confidence and control. Composition, cue reliability, and recurrence are controlled independently. Numerical outcomes are unmeasured and denoted \placeholder{}; the protocols below specify the comparisons and endpoints.
+
+\subsection{Tasks, information, and evaluation protocol}
+
+\paragraph{Task families.}
+Controlled simulation uses puck striking and pushing near an edge, with independently manipulated surface, load, and actuator conditions. Visual-world-model benchmarks provide broader model and task coverage; tasks permitting repeated correction are identified separately from strict single-contact tasks. The hardware protocol prioritizes puck striking and may include initial load lifting, evaluating the force or motion committed before load-dependent feedback can affect it. The protocol first verifies that each physical manipulation changes the chosen interaction observably: for example, ideal Coulomb sliding deceleration alone does not identify mass. Backbones, adapter features, and hyperparameters are fixed using development conditions and streams disjoint from evaluation.
+
+\paragraph{The first-contact endpoint.}
+Let $\tau_e$ mark action commitment before the first informative interaction in episode $e$. The primary prediction metric is the mean squared residual error per latent dimension,
+\begin{equation}
+ \mathcal{E}_{\mathrm{first}}^e
+ =\frac{1}{d}\left\|r_{e,\tau_e}
+ -\widehat\mu_{e,\tau_e}(z_{e,\tau_e},a_{e,\tau_e})\right\|_2^2,
+ \qquad r_{e,t}=z_{e,t+1}-f(z_{e,t},a_{e,t}),
+\end{equation}
+where $\widehat\mu$ is the predicted mean residual and the prediction is recorded before observing the resulting transition. Because a contact transition can be a poor proxy for the decision that matters, we also predefine a rollout endpoint, such as puck stopping position, and measure its prediction error, task cost, and success under the committed action. Probe actions are excluded from these tests. Prediction comparisons use shared held-out state--action replay; separate closed-loop trials measure each controller's realized outcomes. The replay set never updates memories. Latent errors are only compared within a common fixed representation. Native methods that change their encoder are also evaluated through physical endpoint error and task outcomes, with explicitly labeled predictor-only variants used for matched latent-error analyses.
+
+Proposition~\ref{prop:firstbound} concerns the norm of the conditional mean error, rather than the realized squared error above. State-based simulation therefore also records $\|\widehat\mu_e(x)-\mu_{c_e}(x)\|_2$ using the simulator's known mean dynamics. This diagnostic separates noise from prediction bias and permits direct comparison with the theoretical bound. Decision-gap measurements use the same finite action set for the learned planner and the true-model optimizer; the noise-free, fixed-horizon analysis of Corollary~\ref{cor:decision} is evaluated separately from stochastic task performance.
+
+\paragraph{Information and replication.}
+Methods share sensory inputs, episode boundaries, backbone initialization where compatible, action budgets, and planning budgets. Simulator parameters, context labels, future schedules, and identifying metadata are unavailable except to declared oracles and evaluation. Streams contain $N$ episodes and are replicated over $n_{\mathrm{seed}}$ independent schedules/seeds, paired across methods. Confidence intervals use independent streams as the sampling unit; hardware analyses account for session dependence. We report paired effects, uncertainty, and all predefined conditions rather than select favorable stream segments. Runtime and total stored state accompany accuracy comparisons.
+
+\paragraph{Cue and history controls.}
+For balanced $K$-context tests, a symmetric channel emits the matching cue with probability $\rho$ and each other cue with probability $(1-\rho)/(K-1)$; chance is $1/K$. We include the $\rho=0.8$ condition and report empirical $H(C\mid Y)$ alongside cue and posterior log loss. Balanced randomized episode contexts isolate cues from history; persistent schedules separately test informative recurrence priors. A fixed episode cue is assimilated once. Cue associations are learned from dynamics-based assignments, without physical labels. All-novel conditions and repeated known conditions are reported separately. A separate finite-alphabet oracle diagnostic supplies past episode labels only to the sequential predictor in Corollary~\ref{cor:entropy}; its entropy comparison is not treated as a guarantee for inferred labels or growing libraries.
+
+\subsection{Baselines organized by retained information}
+
+Table~\ref{tab:baseline-access} specifies the information each family can retain. Only comparisons relevant to an experiment are run. Episode-reset gradient and residual baselines use AdaJEPA-style and Sandwich-Residuals-style updates where technically compatible~\cite{wang2026adajepa,soni2026sandwich}; implementation differences and reset policies are explicit. A dynamics-only mixture follows the persistent-mixture setting~\cite{nagabandi2019mole}. A persistent cue-conditioned encoder and a continuous-context Gaussian process with a state--action kernel multiplied by an environment-descriptor kernel test whether benefits require discrete memories. The continuous descriptor combines the cue with the same recent transition window available to Cira.
+
+\begin{table}[t]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}*{3}{>{\raggedright\arraybackslash}X}@{}}
+\toprule
+Family & Across-episode state & Pre-contact evidence & Role \\
+\midrule
+Frozen & Fixed backbone & Common observation & No adaptation \\
+Episode adaptation & None after reset & Common observation & Reactive updates \\
+Continual adaptation & Shared parameters; replay if declared & History and common observation & Persistence without separate memories \\
+Changepoint or continuous context & Declared retained state & History; cues for cue-enabled variant & Alternative contextual adaptation \\
+Dynamics-only mixture & Separate dynamics memories & History prior & Memory without cue association \\
+Cira ablations/full & Memories and learned associations & History; cues when enabled & Isolate cues, persistence, factors, noise, assignment \\
+Oracle retrieval & Same learned memories & True context or factor IDs & Isolate inference error \\
+\bottomrule
+\end{tabularx}
+\caption{Baseline information access. Common observations may already contain appearance information; a dynamics-only method disables the additional learned cue-to-memory association. Oracle retrieval receives neither perfect residual parameters nor extra transitions.}
+\label{tab:baseline-access}
+\end{table}
+
+\subsection{Controlled experiments}
+
+\subsubsection{Experiment 1: The first-contact gap}
+\paragraph{Hypothesis.}
+Informative cues improve first-contact prediction when they retrieve previously learned dynamics, whereas a reset method receiving no current-episode update before commitment retains its initialization's prediction.
+
+\paragraph{Manipulation and methods.}
+After a common calibration stream, we randomize balanced recurring contexts and sweep $\rho$. Comparisons include frozen, reset gradient and residual adaptation, continual adaptation, a dynamics-only mixture, Cira without cues, a persistent cue-conditioned encoder, full Cira, and oracle-context Cira. Identical initialization and planning support an explicit numerical equality check between frozen and reset predictions before feedback. No-cue memory methods may still benefit from a useful prior; the balanced schedule controls the contribution of predictive temporal order and unequal frequencies.
+
+\paragraph{Readout and falsification.}
+Figure~2 plots first-contact residual and committed-endpoint error against cue reliability, with an information-axis companion and success estimates. The first-contact effect at $\rho=0.8$ is \placeholder{} relative to the strongest relevant baseline. The simulator-based mean-error diagnostic overlays the bound from Proposition~\ref{prop:firstbound} using the recorded pre-contact posterior and independently assessed memory error. No improvement over cue-free inference under informative cues would weaken pre-contact retrieval. A discrepancy in the reset equality check triggers an information or initialization audit, not a claim against the timing observation.
+
+\subsubsection{Experiment 2: Recurrence is the resource}
+\paragraph{Hypothesis.}
+Persistent memories become useful as previously learned contexts recur; no comparable advantage is assumed when every condition is novel and lacks transferable structure.
+
+\paragraph{Manipulation and methods.}
+We vary realized reuse frequency from all-novel streams to frequent returns while holding total transition budget, physical range, task difficulty, and cue channel fixed. Return lag is varied separately. Cira, cue-free Cira, continual adaptation, and reset residual adaptation are compared. Cold-start streams quantify the cost of acquiring memories; an additional matched-calibration experiment isolates reuse from differences in training data per context. Repertoire size and exposure counts are reported.
+
+\paragraph{Readout and falsification.}
+A Figure~2 inset shows cumulative first-contact regret or error against reuse, with novel and returning episodes separated. Success and memory acquisition cost accompany the curves. Failure to gain on returns after adequate calibration would weaken recurrence as the mechanism. Benefits in the all-novel regime would require an explanation through shared structure or other adaptation effects, rather than being attributed to recall.
+
+\subsubsection{Experiment 3: Savings curves}
+\paragraph{Hypothesis.}
+Repeated exposure can reduce recovery time by improving memories and cue associations; strong initial evidence can permit recognition before contact.
+
+\paragraph{Manipulation and methods.}
+Sequences $A\rightarrow B\rightarrow A\rightarrow B\rightarrow A$ vary cue strength with balanced exposure and common post-contact diagnostic actions. Reset gradient, continual gradient, dynamics-only contextual inference, and full Cira are compared. Contextual recognition requires posterior probability at least $1-\delta_{\mathrm{rec}}$ under a predefined persistence criterion. A shared held-out prediction-loss recovery threshold permits comparison with gradient methods that have no discrete context identity.
+
+\paragraph{Readout and falsification.}
+Figure~3 shows recognition/recovery delay against occurrence, including zero-delay cases and censored failures, and delay against initial cue log odds. Proposition~\ref{prop:recognition} is assessed in a controlled two-context test with fixed memories and independent stationary diagnostic observations. We estimate the mean log-likelihood increment $D$, record threshold overshoot, and compare observed stopping times with the corresponding hitting-time prediction. The separate persistence-based recognition endpoint tests robustness in closed-loop trajectories, where the idealized increment assumptions need not hold. Increasing occurrence does not necessarily increase prior odds when competing counts grow together; no unconditional occurrence law is assumed. No improvement after memories or cue associations improve, or failure of initial evidence to explain delay under these controls, would weaken the savings account.
+
+\subsubsection{Experiment 4: Memory versus optimization}
+\paragraph{Hypothesis.}
+Later returns derive more of their prediction improvement from retrieval than first exposures do.
+
+\paragraph{Manipulation and methods.}
+We snapshot $(\pi,\Theta)$ immediately before the current cue and again after $s$ observations. The four replay losses $L_{ij}(s)$ evaluate old/new posterior and old/new memory parameters on one fixed held-out transition set. Their signed Shapley contributions yield recall $R(s)$ and parameter learning $P(s)$ with $G(s)=R(s)+P(s)$. Memory slots are aligned across snapshots, using declared pre-creation priors for new slots. Full Cira is compared with a post-calibration intervention that freezes all memory weights and shared prior centers, and with reset adaptation whose recall term is zero.
+
+\paragraph{Readout and falsification.}
+Figure~3 plots signed contributions for first, second, and later occurrences. Ratios are omitted when total gain is near zero or negative. These quantities attribute snapshot changes; they do not independently prove a causal training mechanism. Little return-episode gain with frozen weights, or continuing dominance of parameter changes, would weaken the claim that retrieval changes adaptation's mechanism.
+
+\subsubsection{Experiment 5: Composition by factorial holdout}
+\paragraph{Hypothesis.}
+The shared factor kernel supports first-contact prediction for an unobserved combination when seen combinations identify its additive effects and interaction uncertainty is represented adequately.
+
+\paragraph{Manipulation and methods.}
+We observe $A1,A2,B1,B3,C2,C3$ and hold out $A3,B2,C1$. Every factor value is therefore experienced, and the observation graph is connected. Factor-local cue regions, independent interventions, and sufficient excitation provide structure for discovering factor values without labels. A disconnected control observes $A1,A2,B1,B2,C3$ and holds out a cross-component pair such as $A3$; factor exposure and transition budgets are matched where possible. Held-out combinations are excluded from learning and tuning; each test restarts from the same pretest checkpoint.
+
+Comparisons include independent whole-context memories, the additive shared kernel with $\kappa_\times=0$, the full shared kernel with $\kappa_\times>0$, the continuous-context baseline, and oracle factor selection. Every method receives the same observed combinations. Before evaluation, each shared model records its conditional variance for every held-out tuple using only the training combinations and fixed hyperparameters. A controlled interaction-strength sweep $\lambda$ complements realistic nonadditive physics. A separate prior-matched simulation checks Proposition~\ref{prop:composition} in the limit of accurately observed context means.
+
+\paragraph{Readout and falsification.}
+Figure~4 shows the observation graph, first-ever-contact prediction and task outcomes for each held-out cell, and error against $\lambda$. The model's conditional variance is a predicted uncertainty, not a deterministic bound on an individual squared error. Under the prior-matched simulator, repeated draws compare this variance with mean squared error of the true residual mean; noisy outcome error is reported separately. The connected/disconnected contrast tests additive identifiability, while nonzero $\kappa_\times$ tests the irreducible uncertainty of an unseen interaction. Post-contact adaptation requirements are secondary. Gains appearing only after observing the held-out combination would not support zero-shot composition; overconfidence or negative transfer under strong interactions would qualify the shared-prior claim.
+
+\subsubsection{Experiment 6: Cue corruption and causal conflict}
+\paragraph{Hypothesis.}
+Cues act as revisable probabilistic evidence, with informative dynamics able to override misleading appearance.
+
+\paragraph{Manipulation and methods.}
+We test independent cue shuffling, partial reliability, learned cue reversal, novel appearance with known physics, and familiar appearance with novel physics. Digital or camera-side masking hides appearance without changing the contact surface. Full Cira, cue-free inference, and hard cue/MAP assignment share memory initialization. Cue updates use dynamics-derived assignments; one fixed cue is not counted repeatedly.
+
+\paragraph{Readout and falsification.}
+A posterior timeline around conflict displays pre-contact beliefs and their revision. Metrics include first-contact error, cue override samples, posterior log loss, false memory creation, memory contamination, and task/safety cost. Wrong cues may worsen the committed first action; no universal immunity is claimed. Persistent confidence in the wrong memory despite diagnostic transitions, or systematic contamination that prevents later recall, would weaken probabilistic cue integration. Incorrectly creating new memories for appearance-only changes would reveal another distinct failure.
+
+\subsubsection{Experiment 7: Context boundary stress test}
+\paragraph{Hypothesis.}
+State-dependent uncertainty distinguishes transient contact noise from persistent dynamics changes more effectively than a constant-noise likelihood.
+
+\paragraph{Manipulation and methods.}
+We cross true context separation with noise magnitude at impact, stick--slip, and transient acceleration. Unchanged-context noisy trials and true-switch trials are both included. Constant-noise Cira, heteroscedastic Cira, and an explicit changepoint baseline use matched development data and independently tuned detection thresholds.
+
+\paragraph{Readout and falsification.}
+Heat maps show false creation and missed-change rates across separation and noise. Detection delay, predictive coverage, and sensitivity tradeoff curves prevent a method from appearing better merely by refusing to create memories. False creations are normalized by unchanged-context exposure. A reduction in false splits obtained only by missing true changes or greatly delaying detection would not support the uncertainty-model claim. Similar performance at matched sensitivity and delay would make heteroscedasticity an implementation choice rather than a scientific result.
+
+\subsubsection{Experiment 8: Continual interference}
+\paragraph{Hypothesis.}
+Separately retained memories preserve useful predictions for A as intervening B experience grows.
+
+\paragraph{Manipulation and methods.}
+After matched calibration on A, we vary B duration across logarithmically spaced transition budgets before returning to identical A test states. Continual gradients, periodic resets, a replay baseline where feasible, and Cira are compared. Both full retrieval and oracle selection of the stored A memory are evaluated, separating retrieval-prior decay from parameter corruption. Soft memory updates remain active unless explicitly ablated.
+
+\paragraph{Readout and falsification.}
+A small Figure~3 panel plots immediate A-return error against B exposure, with endpoint success as a companion result. Deterioration under oracle A selection would indicate interference in stored knowledge; deterioration only under inferred selection would indicate retrieval failure. Either would qualify the preservation claim. We do not infer noninterference solely from the existence of separate parameter arrays.
+
+\subsubsection{Experiment 9: Safety as contextual reuse}
+\paragraph{Hypothesis.}
+Recalling context-specific calibration can reduce unnecessary intervention on familiar returns at comparable observed violation rates.
+
+\paragraph{Manipulation and methods.}
+Filters use a fixed/global margin, an adapted shared margin, all stored memories, Cira's posterior-selected models with per-memory margins, or oracle context. Dynamics memories and candidate actions are otherwise matched. Evaluation includes familiar returns, ambiguity, novel physics, and misleading cues. Each memory's score is the full latent distance from its own prediction, and only the attributed memory receives the ACI margin update. Operating points are selected on development streams, not adjusted retrospectively on test outcomes. The simulator records the score bound $\bar S$, the number of created slots $K_T$, and every fallback event needed to assess Proposition~\ref{prop:safety}.
+
+\paragraph{Readout and falsification.}
+Figure~5 shows violation--intervention and violation--cost tradeoffs, action modification, fallback frequency, and margin recovery after switches. Confidence intervals accompany rare-event rates. The cumulative number of violations of the one-step latent condition is compared with $\delta_s T+K_T(\bar S+2\gamma)/\gamma$ only where the bounded-score, exact-filter, and safe-fallback assumptions hold. This diagnostic includes misleading cues even when the plausible set excludes the true context; the guarantee concerns calibration of the actual attributed prediction error. Failure of an assumption is reported separately from violation of the bound. Latent-condition violations and independently observed physical violations remain separate endpoints. No reduction in conservatism at comparable supported risk would weaken the contextual-calibration claim; an average violation bound does not establish physical safety or a bound on every individual episode.
+
+\subsubsection{Experiment 10: Long-stream deployment}
+\paragraph{Hypothesis.}
+An uninterrupted deployment develops a reusable repertoire whose benefits remain visible at individual context returns.
+
+\paragraph{Manipulation and methods.}
+The hardware protocol targets at least $1000$ episodes if hardware permits, with contexts recurring on a schedule hidden from the robot. The stream includes novel conditions and controlled cue changes. Memories persist throughout; resets, maintenance, failures, and day boundaries are logged. Independent simulation streams support paired baseline comparisons; available hardware sessions determine the scope of hardware uncertainty estimates.
+
+\paragraph{Readout and falsification.}
+A complete temporal visualization aligns true conditions, inferred contexts, memory count, first-contact error, cue calibration, recall/learning contributions, success, and margins/violations. The main text summarizes return-event trajectories and occurrence-conditioned performance, not only an average; the full timeline remains inspectable. Duplicate-memory growth, declining return performance, or repeated relearning despite familiar conditions would weaken the repertoire claim. An isolated hardware stream is presented as a deployment demonstration rather than independent replication of every comparison.
+
+\subsubsection{Experiment 11: Confidence under uncertain assignments}
+\paragraph{Hypothesis.}
+Predictable pre-error weights support the confidence guarantee in Theorem~\ref{thm:confidence}; posterior weights that depend on the current residual can introduce selection bias. Context contamination and prior mismatch remain separate sources of error under either update rule.
+
+\paragraph{Manipulation and methods.}
+Controlled linear simulations vary context separation relative to noise, cue reliability, switch frequency, and shared-prior misspecification. The principal comparison uses predictive weights $q_t(c)$ and filtered weights $\pi_t^+(c)$ with identical features, noise scales, and memory initializations. Hard filtered assignment and oracle context assignment provide additional controls. Noise scales are known in the guarantee check; learned and deliberately underestimated scales constitute separate stress tests. New memory slots begin the confidence analysis after their creation, without retroactively using the residual that triggered creation as a predictably assigned observation.
+
+The diagnostic records each coordinate's total weight $n_{c,i,T}=\sum_{t<T}\omega_{c,i,t}$, contaminated weight $M_{c,i,T}=\sum_{t<T:c_t\ne c}\omega_{c,i,t}$, and prior mismatch. Simulator labels and true weights are used only to calculate these diagnostics. Oracle confidence radii use the true contamination and prior terms, or valid predetermined upper bounds; plug-in radii based on learned separation estimates are labeled empirical intervals and evaluated separately. The scalar fixed-gating example accompanying Theorem~\ref{thm:confidence} isolates residual-dependent selection bias before the more general adaptive-filter comparison.
+
+\paragraph{Readout and falsification.}
+Coverage concerns the true mean $w_{c,i}^{\top}\phi$, not a fresh noisy transition. Across independent streams we report both pointwise coverage and the fraction of streams with any failure on the predefined finite query/time grid. This finite-grid check can detect a failure of the simultaneous guarantee but cannot verify its claim over all inputs. Interval width, bias, contamination fraction, and coverage are stratified by contact phase and context overlap. Prediction intervals for noisy outcomes include observation noise and are reported separately. Undercoverage with valid oracle terms challenges the implementation or assumptions; undercoverage confined to plug-in intervals identifies an insufficient empirical radius. The theorem does not require every filtered-weight implementation to fail, and the experiment does not assume such a universal outcome.
+
+\subsubsection{Experiment 12: Decision-aware probing}
+\paragraph{Hypothesis.}
+A probe can inform the context without improving the strike decision. Decision-aware selection avoids paying for such probes and gains when their outcomes change the preferred strike enough to offset probe cost.
+
+\paragraph{Manipulation and methods.}
+The probe protocol is separate from the no-probe first-contact evaluation. It compares no probing, context-information maximization, value-of-information selection, and the linearized $c$-optimal criterion on the same candidate probes and strike set. Every probe satisfies the same safety checks and counts against the same interaction budget. The probe cost $\kappa(p)$ includes time and task penalties; comparisons report both success at matched budgets and the full success--probe-cost tradeoff.
+
+Controlled cases vary posterior entropy, differences between context-optimal strikes, cost gaps, and probe informativeness. One case has distinct probe-outcome distributions but a common optimal strike for every plausible context, isolating Proposition~\ref{prop:voi}. Another has genuinely different optimal strikes and informative outcomes. Within-memory uncertainty is varied separately from context uncertainty to assess the limitation of context-only reweighting. The pure-information diagnostic fixes the post-probe decision state; physical-nudge trials separately account for the state change and compare the approximate selection score with realized total task cost.
+
+\paragraph{Readout and falsification.}
+The probing figure reports gross and net estimated information value, realized cost, success, probe count, and decision latency. In the common-optimum diagnostic, exact value of information is zero even when mutual information is positive; Monte Carlo estimation error is displayed separately. General probing rates are analyzed jointly with posterior masses, cost gaps, and outcome informativeness, rather than assumed to depend only on entropy or action disagreement. Fewer probes at inferior success does not establish a benefit. A failure to improve the success--cost tradeoff, or systematic errors caused by neglected within-memory learning and probe-induced motion, limits the decision-aware approximation.

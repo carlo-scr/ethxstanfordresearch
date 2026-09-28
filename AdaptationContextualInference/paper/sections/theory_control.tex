@@ -1,0 +1,76 @@
+\subsection{From model accuracy to the committed decision}
+Prediction error matters through the action selected before contact. We connect the two for a fixed context over a noise-free horizon of $H$ transitions. A candidate $a=(a_0,\ldots,a_{H-1})$ is a committed action sequence, and its cost is
+\begin{equation}\label{eq:horizoncost}
+J_e(a)=\sum_{t=0}^{H-1}\ell(z_t^a,a_t)+g(z_H^a),
+\end{equation}
+where $g=0$ permits a problem without terminal cost. Assume the true map $F_{c_e}$ is $L$-Lipschitz in state, uniformly over candidate actions, and $\ell(\cdot,a_t)$ and $g$ are $L_\ell$-Lipschitz. These conditions hold on a domain containing both true and predicted trajectories. Set $C_H=\sum_{j=0}^{H-1}L^j$.
+
+\begin{lemma}[Simulation bound]\label{lem:simulation}
+Fix a candidate sequence $a$ and let $z_t$ and $\widehat z_t$ be the noise-free trajectories of $F_{c_e}$ and a model $\widehat F$, respectively, from the same initial state. Under the preceding Lipschitz assumptions,
+\begin{equation}\label{eq:simulationbound}
+|J_e(a)-\widehat J(a)|
+\le L_\ell C_H\sum_{t=0}^{H-1}
+\bigl\|F_{c_e}(\widehat z_t,a_t)-\widehat F(\widehat z_t,a_t)\bigr\|.
+\end{equation}
+\end{lemma}
+The discrepancy is evaluated along the model's trajectory. That trajectory is available during planning; bounding its discrepancy additionally requires a valid error bound. The statement concerns fixed action sequences. Feedback policies require corresponding regularity assumptions on their closed-loop dynamics and costs.
+
+\begin{corollary}[First-contact decision gap]\label{cor:decision}
+Let $\mathcal A_e$ be a finite, common candidate set and write $\pi_e(c)=\pi_{e,\tau_e^-}(c)$ for a belief over a closed library containing the true context $c_e$. Let $\widehat J_{e,c}(a)$ roll out $f+m_c$, and set
+\begin{equation}
+\widehat J_e(a)=\sum_c\pi_e(c)\widehat J_{e,c}(a),
+\qquad
+\widehat J_e(\widehat a_e)\le\min_{a\in\mathcal A_e}\widehat J_e(a)+\eta_{\mathrm{opt},e}.
+\end{equation}
+Suppose $\|m_c(x)-\mu_c(x)\|\le\bar\epsilon_e$ for every supported context and every input along its candidate rollouts. Suppose also that $\|\mu_c(x)-\mu_{c_e}(x)\|\le\Delta_{\max}$ there. Then
+\begin{equation}\label{eq:decisiongap}
+J_e(\widehat a_e)-\min_{a\in\mathcal A_e}J_e(a)
+\le 2L_\ell C_HH\left[\bar\epsilon_e+
+\bigl(1-\pi_e(c_e)\bigr)\Delta_{\max}\right]+\eta_{\mathrm{opt},e}.
+\end{equation}
+With common constants across episodes,
+\begin{align}\label{eq:cumulativedecisiongap}
+\sum_{e=1}^N\left[J_e(\widehat a_e)-\min_{a\in\mathcal A_e}J_e(a)\right]
+&\le 2L_\ell C_HH\left[\sum_{e=1}^N\bar\epsilon_e+
+\Delta_{\max}\sum_{e=1}^N-\log\pi_e(c_e)\right]
++\sum_{e=1}^N\eta_{\mathrm{opt},e}.
+\end{align}
+\end{corollary}
+The comparison is with the best candidate, and the uniform error requirement includes candidates the planner does not select. The bound separates memory accuracy, context selection, and optimization error. It can be loose over long horizons: when $L=1$, $C_H=H$. Quantitative use therefore requires validated dynamics and cost regularity; the statement does not extend automatically to discontinuous contact costs or stochastic rollouts.
+
+\subsection{When probing changes the decision}
+A probe is useful when its observations improve the ensuing decision enough to cover its cost. To isolate this information value, fix the state, a finite action set $\mathcal A$, and integrable costs $J_\theta(a)$, where $\theta=(c,W)$ includes context and memory parameters. For belief $b$ and the Bayesian posterior $b_o$ after outcome $o$ of probe $p$, define
+\begin{equation}\label{eq:theoryvoi}
+V(b)=\min_{a\in\mathcal A}\E_b[J_\theta(a)],
+\qquad
+\operatorname{VOI}(p)=V(b)-\E_o[V(b_o)].
+\end{equation}
+
+\begin{proposition}[Information value and action agreement]\label{prop:voi}
+Under these fixed-state, fixed-action-set conditions, every probe has $\operatorname{VOI}(p)\ge0$. If one action $a^\dagger$ minimizes $J_\theta$ for $b$-almost every $\theta$, then $\operatorname{VOI}(p)=0$ for every probe. Nevertheless, $I(\theta;o\mid p)$ can be positive: for a discrete belief this occurs whenever two states of positive probability have different probe-outcome distributions.
+\end{proposition}
+Action disagreement is necessary, but not sufficient, for positive decision value. With nonnegative probe cost $\kappa(p)$, a rule requiring $\operatorname{VOI}(p)>\kappa(p)$ never selects a probe under common action agreement. Information gain alone can reward observations that leave the optimal decision unchanged.
+
+The context-reweighting score used in planning approximates this criterion by holding memory parameters and the initial state fixed. A physical nudge can also change the state, refine a memory, or change which strikes pass the safety filter. Those effects alter the decision problem and are outside Proposition~\ref{prop:voi}. Likewise, local reduction in the variance of a linearized cost difference measures decision-relevant uncertainty, but is not an exact value-of-information calculation.
+
+\subsection{Reusing calibrated latent safety margins}
+Calibration uses the full latent prediction error, including noise, context mistakes, and residuals outside the correction subspace. Let $\mathcal C_t^\delta$ be the nonempty plausible set and $\bar z'_{c,t}$ the prediction computed before observing $z_{t+1}$. Its score is $s_{c,t}=\|z_{t+1}-\bar z'_{c,t}\|$. With an $L_h$-Lipschitz barrier function $h$ and $0<\alpha\le1$, the filter checks
+\begin{equation}\label{eq:theorysafetyconstraint}
+h(\bar z'_{c,t})-L_hb_{c,t}\ge(1-\alpha)h(z_t),
+\qquad c\in\mathcal C_t^\delta.
+\end{equation}
+Each step is attributed to exactly one memory: a covered memory satisfying $s_{c,t}\le b_{c,t}$ if any exists, and otherwise the most probable plausible memory. Ties are immaterial. Only its margin is updated, without projection, by
+\begin{equation}\label{eq:theoryaci}
+b_{c,t+1}=b_{c,t}+\gamma\bigl(\mathbf1\{s_{c,t}>b_{c,t}\}-\delta_s\bigr).
+\end{equation}
+
+\begin{proposition}[Long-run latent barrier violations]\label{prop:safety}
+Assume Eq.~\eqref{eq:theorysafetyconstraint} is enforced exactly whenever feasible; otherwise a fallback satisfies $h(z_{t+1})\ge(1-\alpha)h(z_t)$. Suppose all calibration scores lie in $[0,\bar S]$, each margin is initialized in $[0,\bar S]$, $\gamma>0$, and $0<\delta_s<1$. Let $K_T$ count all calibration streams initialized during the first $T$ steps, including resets. With the attribution and update above, for every sequence of contexts and cues,
+\begin{equation}\label{eq:safetybound}
+\sum_{t=0}^{T-1}\mathbf1\{h(z_{t+1})<(1-\alpha)h(z_t)\}
+\le\delta_sT+K_T\frac{\bar S+2\gamma}{\gamma}.
+\end{equation}
+\end{proposition}
+This pathwise calibration bound follows the deterministic adaptive conformal argument~\citep{gibbs2021adaptive}; it does not require a correct context posterior or a Gaussian noise model. Its assumptions still require bounded scores and a safe fallback. An asymptotic violation rate of at most $\delta_s$ requires $K_T/T\to0$. Repeatedly resetting margins consumes the same allowance as creating additional streams.
+
+The counted event is failure of the one-step latent barrier inequality. It is not the number of time steps spent outside the safe set, and a per-episode rate requires one calibrated decision per episode or an episode-level score. Physical interpretation depends on how $h$ represents the physical constraint. Finally, a quadratic program obtained by linearizing the filter must verify the nonlinear inequality, or include a valid remainder bound, to meet the exact-enforcement assumption.

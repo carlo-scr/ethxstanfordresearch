@@ -1,0 +1,51 @@
+\section{Theoretical Analysis}\label{sec:analysis}
+
+We bound memory error under uncertain assignments, relate it to the first contact, and characterize composition and safety. All proofs, together with a summary of the results, are given in the supplementary material (\cref{app:summary,app:proofs}).
+
+\begin{assumption}[Realizability and predictable noise]\label{ass:main}
+For every context $c$ there is a fixed $W_c$ with $\mu_c(z,a)=UW_c\phi(z,a)$ on the inputs considered, so that $v_t=W_{c_t}\phi_t+\xi_t$. Conditioned on the history up to $(z_t,a_t)$, the cue and the true context $c_t$, each $\xi_{t,i}$ is zero-mean and $\sigma_i(z_t,a_t)$-sub-Gaussian. Contexts and actions may depend adversarially on past data but not on the current noise. We write $\Delta_{\max}=\sup_{c,c',x}\|\mu_c(x)-\mu_{c'}(x)\|$.
+\end{assumption}
+
+\subsection{Memory Accuracy Under Uncertain Assignments}
+
+\begin{theorem}[Uniform memory error]\label{thm:confidence}
+Under \cref{ass:main}, let memory $c$ be updated by \cref{eq:update} and let $\delta_c\in(0,1)$. With probability at least $1-\delta_c$, simultaneously for all $t$, all $\phi\in\R^p$ and all coordinates $i$,
+\begin{equation}\label{eq:thm-conf}
+  \big|\phi^\top(\widehat w_{c,i,t}-w_{c,i})\big|\le\beta_{c,i,t}\|\phi\|_{V^{-1}_{c,i,t}},\ \ 
+  \beta_{c,i,t}=\textstyle\sqrt{2\log\frac{k}{\delta_c}+\log\frac{\det V_{c,i,t}}{\det P_{c,i}}}
+  +\|\nu_{c,i,t}-w_{c,i}\|_{P_{c,i}}+B_{c,i,t},
+\end{equation}
+where $B^2_{c,i,t}=\sum_{s<t}\omega_{c,i,s}[\phi_s^\top(w_{c_s,i}-w_{c,i})]^2\le\Delta_{\max}^2M_{c,i,t}$ and $M_{c,i,t}=\sum_{s<t:\,c_s\neq c}\omega_{c,i,s}$ is the weight the memory assigned to other contexts. If moreover $\sigma_i\ge\sigma_{\min}$, then
+\begin{equation}\label{eq:contam-logloss}
+  \textstyle\sum_c M_{c,i,T}\ \le\ \sigma_{\min}^{-2}\sum_{t<T}\big(1-q_t(c_t)\big)\ \le\ \sigma_{\min}^{-2}\sum_{t<T}-\log q_t(c_t).
+\end{equation}
+\end{theorem}
+
+The three terms of $\beta$ are noise, prior mismatch and contamination. Noise shrinks with data and prior mismatch captures negative transfer, but contamination does not vanish with more data; by \cref{eq:contam-logloss} it is controlled by the step-level log loss of the context filter, so more accurate context prediction directly yields more accurate memories. The proof applies the self-normalized martingale bound of \citet{abbasi2011improved}, which is valid only because $q_t(c)$ is determined before $\xi_t$ is drawn. With filtered weights this step fails; \cref{rem:bias} in the appendix gives a simple example in which the estimate converges to a biased value while its interval shrinks.
+
+\subsection{From Context Prediction to the First Contact}
+
+Let $x_e=(z_{e,\tau_e},a_{e,\tau_e})$ be the first-contact query and $b_e=\|\sum_c\pi_e(c)m_{c}(x_e)-\mu_{c_e}(x_e)\|$ the bias of the pre-contact mixture prediction.
+
+\begin{proposition}[First-contact separation]\label{prop:first}
+Suppose the library contains every context that occurs and $\|m_c(x)-\mu_c(x)\|\le\epsilon_e$ for all contexts in the support of $\pi_e$. Then
+\begin{equation}\label{eq:first}
+  b_e\le\epsilon_e+\big(1-\pi_e(c_e)\big)\Delta_{\max},\qquad
+  \textstyle\sum_{e=1}^{N}b_e\le\sum_e\epsilon_e+\Delta_{\max}\sum_e-\log\pi_e(c_e).
+\end{equation}
+In contrast, an episode-reset predictor has bias $\|\mu_{c_e}(x_e)\|$ by \cref{obs:first}; if this is at least $\Delta_{\min}$ on $N_{\mathrm{shift}}$ episodes, its cumulative bias is at least $N_{\mathrm{shift}}\Delta_{\min}$.
+\end{proposition}
+
+The episode-level log loss measures how predictable the context sequence is from history and cues; for a Krichevsky--Trofimov predictor with revealed labels it is at most $N\widehat H(C\mid Y)+O(K|\mathcal Y|\log N)$ for every sequence~\citep{krichevsky1981performance} (\cref{cor:entropy}). Memory thus helps to the extent that contexts recur, and a cue to the extent that it is informative; without recurrence the bound predicts no gain. The result extends to the new-context hypothesis (\cref{cor:novel}) and, for Lipschitz dynamics and costs, to the committed action: the belief-weighted plan is within $2L_\ell C_HH[\bar\epsilon_e+(1-\pi_e(c_e))\Delta_{\max}]$ of the best candidate over horizon $H$ (\cref{cor:decision}).
+
+\subsection{Composition and Safety}
+
+\begin{proposition}[Identifiability of an unseen combination]\label{prop:composition}
+Fix one coordinate and one feature vector, and let $g(c)=\phi^\top w_c$ follow the prior \cref{eq:kernel} with $\kappa_0,\kappa_j>0$. Suppose $g$ is known exactly on a set $\Omega$ of observed combinations, and let $q\notin\Omega$ consist of factor values that occur in $\Omega$.
+(i)~If $\kappa_\times=0$, the conditional variance of $g(q)$ vanishes if and only if the factor indicators of $q$ lie in the span of those of $\Omega$. For two factors, this holds if and only if the two values of $q$ belong to the same connected component of the bipartite graph whose edges are the observed combinations.
+(ii)~If $\kappa_\times>0$, the conditional variance is at least $\kappa_\times^2\,\phi^\top\Sigma_0\phi$, regardless of how many combinations are observed.
+\end{proposition}
+
+Observing every factor value is thus not sufficient; the observed combinations must connect them (\cref{fig:theory-composition}).
+
+Finally, if the safety filter is enforced exactly, latent barrier violations after $T$ steps number at most $\delta_sT$ plus a term proportional to the number of memories, for every sequence of contexts and cues, including misleading ones (\cref{app:safety}).

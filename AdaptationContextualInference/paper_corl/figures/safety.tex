@@ -1,0 +1,54 @@
+% PLACEHOLDER DATA: all coordinates are illustrative.
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[
+  group style={group size=3 by 1, horizontal sep=1.25cm},
+  width=0.355\linewidth, height=3.6cm,
+  tick label style={font=\tiny}, label style={font=\scriptsize}, title style={font=\scriptsize, yshift=-3pt},
+  legend style={font=\tiny, draw=none, fill=white, fill opacity=0.85, text opacity=1},
+  every axis plot/.append style={thick, mark size=1.3pt},
+]
+% ---------------------------------------------------------------- (a) coverage
+\nextgroupplot[
+  title={(a) memory calibration},
+  xlabel={context overlap}, ylabel={coverage of true mean},
+  xmin=0, xmax=1, ymin=0.5, ymax=1.02, xtick={0,0.5,1},
+  legend style={at={(0.03,0.03)}, anchor=south west},
+]
+\addplot[cFrozen, dashed, forget plot] coordinates {(0,0.95) (1,0.95)};
+\addplot[cCira, mark=*] coordinates {(0,0.97) (0.25,0.97) (0.5,0.96) (0.75,0.96) (1,0.95)}; \addlegendentry{predictive $q_t$}
+\addplot[cNoCue, mark=square*] coordinates {(0,0.96) (0.25,0.92) (0.5,0.85) (0.75,0.79) (1,0.74)}; \addlegendentry{filtered (soft)}
+\addplot[cReset, mark=triangle*] coordinates {(0,0.95) (0.25,0.86) (0.5,0.73) (0.75,0.64) (1,0.58)}; \addlegendentry{filtered (hard)}
+\node[anchor=north east, font=\tiny, text=red!70!black] at (rel axis cs:0.98,0.2) {placeholder};
+
+% ---------------------------------------------------------------- (b) safety tradeoff
+\nextgroupplot[
+  title={(b) safety filter},
+  xlabel={latent violation rate (\%)}, ylabel={intervention rate (\%)},
+  xmin=0, xmax=8, ymin=0, ymax=60,
+  legend style={at={(0.97,0.97)}, anchor=north east},
+]
+\addplot[cCont, mark=diamond*] coordinates {(0.8,52) (1.5,44) (2.5,37) (4,30) (6,25)}; \addlegendentry{all memories}
+\addplot[cNoCue, mark=square*] coordinates {(0.8,46) (1.5,36) (2.5,28) (4,21) (6,16)}; \addlegendentry{shared margin}
+\addplot[cCira, mark=*] coordinates {(0.8,30) (1.5,21) (2.5,15) (4,11) (6,8)}; \addlegendentry{per-memory (\method)}
+\addplot[cOracle, densely dotted, mark=none] coordinates {(0.8,24) (1.5,16) (2.5,11) (4,8) (6,6)}; \addlegendentry{oracle context}
+\draw[black!40, dashed] (axis cs:2,0) -- (axis cs:2,60);
+\node[anchor=north west, font=\tiny, text=red!70!black] at (rel axis cs:0.28,0.2) {placeholder};
+
+% ---------------------------------------------------------------- (c) probing
+\nextgroupplot[
+  title={(c) probing},
+  xlabel={probe rate (\%)}, ylabel={strike success (\%)},
+  xmin=0, xmax=100, ymin=40, ymax=95,
+  legend style={at={(0.97,0.03)}, anchor=south east},
+]
+\addplot[cFrozen, only marks, mark=o, mark size=2pt] coordinates {(0,58)}; \addlegendentry{no probe}
+\addplot[cNoCue, mark=square*] coordinates {(20,66) (45,75) (70,80) (90,82)}; \addlegendentry{max.\ information}
+\addplot[cCira, mark=*] coordinates {(8,70) (17,78) (26,81) (35,82)}; \addlegendentry{value of information}
+\node[anchor=north west, font=\tiny, text=red!70!black] at (rel axis cs:0.02,0.98) {placeholder};
+\end{groupplot}
+\end{tikzpicture}
+\caption{\textbf{Calibration, safety and probing} (placeholder data). (a)~Coverage of the memory intervals of \cref{thm:confidence} with oracle contamination terms; only predictive weights keep nominal coverage as contexts overlap (\cref{rem:bias}). (b)~Interventions against observed latent barrier violations over operating points; dashed line: the matched rate reported in the text. (c)~Striking success against how often the robot probes first; value-of-information probing reaches the same success with fewer probes (\cref{prop:voi}).}
+\label{fig:safety}
+\end{figure}

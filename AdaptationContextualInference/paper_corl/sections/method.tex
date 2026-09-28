@@ -1,0 +1,46 @@
+\section{Method}\label{sec:method}
+
+\method augments a frozen world model with a library of residual memories, a factored prior that relates memories through their physical factors, and a context filter that decides which memory to use and which to update (overview in \cref{fig:method}, \cref{app:impl}). The encoder and predictor are never modified.
+
+\subsection{Residual Memories}
+Let $U\in\R^{d\times k}$ with $k\ll d$ contain the leading principal directions of the frozen model's residuals $r_t=z_{t+1}-f(z_t,a_t)$ on training data, and let $\phi(z,a)\in\R^p$ be a fixed feature map such as $[a,\,U^\top z,\,1]$. Memory $c$ models each coordinate of the projected residual $v_t=U^\top r_t$ as a Bayesian linear regression,
+\begin{equation}\label{eq:adapter}
+  v_{t,i}\mid c,w_{c,i}\sim\mathcal N\big(w_{c,i}^\top\phi_t,\ \sigma_i^2(z_t,a_t)\big),\qquad i=1,\dots,k,
+\end{equation}
+which admits closed-form updates~\citep{harrison2018alpaca}. Its latent correction is $m_c(z,a)=U\widehat W_c\phi(z,a)$, where $\widehat W_c$ stacks the posterior means. Including the action in $\phi$ lets a memory represent friction or gain changes whose effect scales with the action. The noise scale $\sigma_i(z,a)$ is a small network fitted to training residuals~\citep{kersting2007hetgp}. It is large during impacts and stick--slip, where the frozen model is least accurate, which prevents contact transients from being mistaken for a change of context~\citep{bauza2017probpush}.
+
+\subsection{A Factored Prior for Unseen Combinations}
+We represent a context as a tuple of factor values $c=(c^1,\dots,c^F)$, for instance a surface and a load. The prior correlates memories that share factor values,
+\begin{equation}\label{eq:kernel}
+  \operatorname{Cov}(w_{c,i},w_{c',i})=k_{\mathcal C}(c,c')\,\Sigma_0,\qquad
+  k_{\mathcal C}(c,c')=\kappa_0^2+\textstyle\sum_{j=1}^{F}\kappa_j^2\,\ind\{c^j=c'^j\}+\kappa_\times^2\,\ind\{c=c'\}.
+\end{equation}
+This separable multi-output kernel~\citep{alvarez2012kernels} has a shared term, one term per factor and an interaction term. Conditioning on the stored memories yields a prior mean and variance for every unseen tuple before its first contact, and $\kappa_\times>0$ preserves uncertainty about interactions that no other combination can reveal. Factor roles and image regions (table surface, object crop) are specified; factor values are discovered from dynamics without labels.
+
+\subsection{Context Inference Before and After Contact}
+Let $q_t(c)$ denote the context probability immediately before the residual $v_t$ is observed, and $\pi_t^+(c)$ the probability immediately after. At the start of an episode the belief combines history and cues, and it is then updated with each transition:
+\begin{equation}\label{eq:cue}
+  q_{\tau_e}(c)=\pi_e(c)\ \propto\ p(c\mid D_{<e})\textstyle\prod_{j}p_\eta(y^j_e\mid c^j),\qquad
+  \pi_t^+(c)\ \propto\ q_t(c)\,p(v_t\mid z_t,a_t,c),
+\end{equation}
+with $q_{t+1}=\pi_t^+$ within an episode. The history prior $p(c\mid D_{<e})$ is a sticky Chinese restaurant process~\citep{fox2011sticky} that reserves probability mass for new factor values, and a new memory is instantiated when this hypothesis remains the most probable for several consecutive steps. Each cue model $p_\eta(y^j\mid c^j)$ is a Gaussian over a low-dimensional projection of the encoder features in the corresponding image region. Cue models are trained on beliefs from a parallel filter that ignores the cue, so a cue is never reinforced by its own predictions and a misleading association is gradually unlearned.
+
+\subsection{Learning From Uncertain Assignments}
+Each memory is updated with the \emph{predictive} probability $q_t$ rather than the filtered probability $\pi_t^+$:
+\begin{equation}\label{eq:update}
+  \omega_{c,i,t}=\tfrac{q_t(c)}{\sigma_i^2(z_t,a_t)},\ \
+  V_{c,i,t}=P_{c,i}+\sum_{s<t}\omega_{c,i,s}\phi_s\phi_s^\top,\ \
+  \widehat w_{c,i,t}=V_{c,i,t}^{-1}\Big(P_{c,i}\nu_{c,i,t}+\sum_{s<t}\omega_{c,i,s}\phi_s v_{s,i}\Big),
+\end{equation}
+where $\nu_{c,i,t}$ is the prior mean implied by \cref{eq:kernel} and $P_{c,i}$ is the prior precision fixed at creation. The distinction matters because a weight computed from the current residual favours residuals that the memory already predicts well; the memory then learns from truncated noise and becomes biased (\cref{rem:bias}). Predictive weights keep the noise zero-mean given the weight, which our analysis requires.
+
+\subsection{Planning, Probing, and Safety}
+\paragraph{Planning and probing.}
+The planner rolls out each memory's correction and minimizes the belief-weighted cost $\widehat J_e(a)=\sum_c\pi_e(c)\widehat J_c(a)$ over candidate actions with the cross-entropy method~\citep{rubinstein1999cem,chua2018pets}. When the task permits a diagnostic probe, such as a gentle nudge, \method executes it only if its value of information for the subsequent decision exceeds its cost; this value vanishes when all plausible contexts call for the same strike (\cref{app:voi}).
+
+\paragraph{Per-memory safety margins.}
+Given a latent safety function $h$ with $h\ge0$ on safe states~\citep{nakamura2026latentcbf}, the filter accepts an action only if the discrete-time barrier condition~\citep{agrawal2017discrete}
+\begin{equation}\label{eq:cbf}
+  h(\bar z'_{c,t})-L_h\,b_{c,t}\ \ge\ (1-\alpha)\,h(z_t),\qquad \bar z'_{c,t}=f(z_t,a_t)+m_c(z_t,a_t),
+\end{equation}
+holds for every memory in a plausible set $\Pd$ that carries at least $1-\delta$ of the belief, where $b_{c,t}$ is a margin stored with memory $c$. After each transition, the step is attributed to one plausible memory based on its score $s_{c,t}=\|z_{t+1}-\bar z'_{c,t}\|$, and only that margin is updated, $b_{c,t+1}=b_{c,t}+\gamma(\ind\{s_{c,t}>b_{c,t}\}-\delta_s)$; this is adaptive conformal inference~\citep{gibbs2021adaptive} run separately for each memory (details in \cref{app:safety}). When a known context returns, its calibrated margin returns with it.

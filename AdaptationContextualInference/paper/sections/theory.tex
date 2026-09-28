@@ -1,0 +1,88 @@
+\section{Analysis: from contextual memory to first-contact control}\label{sec:theory}
+The analysis follows the information available to the robot. First, the shared prior determines which unseen combinations can be inferred from previous experience. Second, a uniform memory-error bound quantifies what can be learned when context assignments remain uncertain. These two results supply the memory-accuracy term in the first-contact prediction bound. A simulation lemma then translates prediction accuracy into a decision gap. Recognition, probing, and safety results characterize how the same context belief is used after information becomes available.
+
+\subsection{Assumptions and scope}
+Let $x=(z,a)\in\mathcal Z_A$ denote a state--action input in the domain of analysis. Write $c_t$ for the true context at transition $t$, suppressing episode indices. The memory-confidence result assumes stationary linear realizability,
+\begin{equation}\label{eq:realizability}
+ \mu_c(x)=UW_c\phi(x),\qquad v_t=W_{c_t}\phi_t+\xi_t,
+\end{equation}
+with fixed $U$, $\phi$, and $W_c$. Conditional on the history immediately before $v_t$, each $\xi_{t,i}$ is zero-mean and $\sigma_{i,t}$-sub-Gaussian. This history includes the chosen state and action, available cues, and the true current context for analysis; the robot does not observe that context. Contexts and actions may depend on earlier observations but not on the current noise. The noise bound $\sigma_{i,t}=\sigma_i(z_t,a_t)>0$ and update weights are measurable before that noise is observed.
+
+The Gaussian shared-prior model is an additional assumption for Proposition~\ref{prop:composition}, not a consequence of linear realizability. The frequentist confidence result instead retains explicit prior mismatch. Define the finite separation
+\begin{equation}\label{eq:separation}
+ \Delta_{\max}=\sup_{c,c',x\in\mathcal Z_A}
+ \|\mu_c(x)-\mu_{c'}(x)\|_2.
+\end{equation}
+Realizability, stationary weights, noise domination, and bounded input domains delimit the confidence analysis. Misspecified features, underestimated noise, or unmodeled drift require additional error terms. The cost analysis uses the noise-free conditional mean map $F_c(x)=f(x)+\mu_c(x)$. The cost and safety results state their own regularity and feasibility assumptions.
+
+\input{sections/theory_memories}
+
+\subsection{First-contact error is controlled by memory accuracy and context log loss}
+\label{sec:firstcontact-theory}
+For a common query $x_e=(z_{e,\tau_e},a_{e,\tau_e})$, define the mean prediction bias
+\[
+ b_e^{\mathrm{pred}}=\left\|\sum_c\pi_e(c)m_{c,e}(x_e)-\mu_{c_e}(x_e)\right\|_2,
+ \qquad \pi_e(c)=\pi_{e,\tau_e^-}(c).
+\]
+This quantity compares conditional means; it excludes irreducible observation noise. The error of an observed transition additionally includes that noise.
+
+\begin{proposition}[First-contact separation]\label{prop:firstbound}
+Consider a closed library of $K$ contexts containing each current context, and suppose
+$\|m_{c,e}(x)-\mu_c(x)\|_2\leq\epsilon_e$ for all supported contexts and queries under consideration. Then
+\begin{align}
+ b_e^{\mathrm{pred}}&\leq\epsilon_e+
+          \bigl(1-\pi_e(c_e)\bigr)\Delta_{\max},\label{eq:firstbound}\\
+ \sum_{e=1}^N b_e^{\mathrm{pred}}
+ &\leq\sum_{e=1}^N\epsilon_e+
+       \Delta_{\max}\sum_{e=1}^N-\log\pi_e(c_e).\label{eq:firstlogloss}
+\end{align}
+By contrast, under Observation~\ref{obs:first}, an episode-reset predictor initialized at $f$ has bias $\|\mu_{c_e}(x_e)\|_2$. If this norm is at least $\Delta_{\min}>0$ on $N_{\mathrm{shift}}$ evaluated episodes, its cumulative bias is at least $N_{\mathrm{shift}}\Delta_{\min}$.
+\end{proposition}
+The upper bound for contextual prediction is smaller than the reset lower bound whenever
+\begin{equation}\label{eq:separationcondition}
+ \sum_e\epsilon_e+\Delta_{\max}\sum_e-\log\pi_e(c_e)
+ <N_{\mathrm{shift}}\Delta_{\min}.
+\end{equation}
+This is a sufficient condition for separation on the specified queries, not a guarantee for every deployment. Theorem~\ref{thm:confidence} supplies $\epsilon_e$ on its simultaneous confidence event when the inputs and contexts satisfy its assumptions. The context log loss has two roles: episode-level loss controls anticipatory selection, while transition-level loss controls contamination in Eq.~\eqref{eq:contamination-logloss}.
+
+The full method also retains a novel-context branch. If $p_\star$ is its aggregate mass, $m_\star$ its conditional mean, and the true context is already known, the corresponding one-query bound is
+\begin{equation}\label{eq:novelbranchbound}
+ b_e^{\mathrm{pred}}\leq(1-p_\star)\epsilon_e+
+ (1-p_\star-\pi_e(c_e))\Delta_{\max}
+ +p_\star\|m_\star(x_e)-\mu_{c_e}(x_e)\|_2.
+\end{equation}
+Without a bound for the last term, a closed-library guarantee does not apply to the entire mixture. Truly novel conditions require an acquisition phase or a valid transferred prior; no fixed one-episode acquisition cost is assumed.
+
+\begin{corollary}[Finite-alphabet entropy reference]\label{cor:entropy}
+Suppose the context alphabet of size $K$ and cue alphabet $\mathcal Y$ are fixed, and each episode's context identity is revealed after its prediction. For each cue value, use a categorical predictor with symmetric Dirichlet-$1/2$ counts:
+\[
+ \pi_e^{\mathrm{KT}}(c\mid y)=
+ \frac{n_{<e}(c,y)+1/2}{n_{<e}(y)+K/2}.
+\]
+For any context--cue sequence, its cumulative log loss satisfies
+\begin{equation}\label{eq:entropyreference}
+ \sum_{e=1}^N-\log\pi_e^{\mathrm{KT}}(c_e\mid y_e)
+ \leq N\widehat H(C\mid Y)+O\!\left(K|\mathcal Y|\log(N+1)\right).
+\end{equation}
+Substitution into Eq.~\eqref{eq:firstlogloss} gives the corresponding first-contact bias bound for this reference predictor.
+\end{corollary}
+This is the categorical coding bound of Krichevsky and Trofimov~\citep{krichevsky1981performance}, stated separately because its feedback assumptions differ from unlabeled context discovery. \method{} receives no context labels, and its inferred assignments do not automatically inherit Eq.~\eqref{eq:entropyreference}. Empirical conditional entropy therefore diagnoses available cue information, while measured context log loss tests the inference procedure. Neither quantity alone determines prediction error without memory accuracy and residual separation.
+
+\subsection{Recognition depends on initial evidence and dynamics separation}
+For a known true context $c$ and one fixed alternative $c'$, let
+\[
+ \ell_0=\log\frac{p(c\mid D_{<e})}{p(c'\mid D_{<e})}
+       +\log\frac{p_\eta(y_e\mid c)}{p_\eta(y_e\mid c')}
+\]
+be the pre-contact log odds. A diagnostic observation contributes a log-likelihood ratio in favor of $c$.
+\begin{proposition}[Two-context recognition time]\label{prop:recognition}
+Assume fixed likelihoods and independent, identically distributed diagnostic observations under $c$, with integrable log-likelihood increments of mean $D>0$. Let $T$ be the first time the accumulated log odds reach a threshold $\ell_\star$, and assume $\E[T]<\infty$ and integrable threshold overshoot $O_T$. If $\ell_0\geq\ell_\star$, then $T=0$. Otherwise,
+\begin{equation}\label{eq:recognition}
+ \E[T]=\frac{\ell_\star-\ell_0+\E[O_T]}{D}
+ \geq\frac{\ell_\star-\ell_0}{D}.
+\end{equation}
+For correctly specified likelihoods, $D$ is their Kullback--Leibler divergence under the diagnostic observation distribution.
+\end{proposition}
+The result isolates how a cue can replace post-contact evidence. Larger initial log odds reduce the threshold deficit, while better separated dynamics increase the evidence rate. Repeated exposure can improve both cue associations and memory likelihoods. Occurrence counts alone need not produce savings when competing contexts recur equally often. Adaptive actions, changing memories, multiple alternatives, and persistence-based recognition criteria require additional analysis; the two-context experiment controls these factors to test Eq.~\eqref{eq:recognition}.
+
+\input{sections/theory_control}

@@ -1,0 +1,26 @@
+% PLACEHOLDER DATA: every number marked \ph{} is unmeasured.
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.2pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}l cc cc cc c@{}}
+\toprule
+& \multicolumn{2}{c}{Sim.\ strike ($\rho{=}0.8$)} & \multicolumn{2}{c}{Benchmarks: first-contact err.\,$\downarrow$} & \multicolumn{2}{c}{Hardware strike} & \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Method & FC err.\,$\downarrow$ & success\,$\uparrow$ & PushT & PointMaze & stop err.\ [cm]\,$\downarrow$ & success\,$\uparrow$ & ms/step \\
+\midrule
+Frozen                                        & \ph{1.00} & \ph{41.2} & \ph{1.00} & \ph{1.00} & \ph{14.8} & \ph{38} & \ph{21} \\
+Reset-SGD~\citep{wang2026adajepa}             & \ph{1.00} & \ph{41.6} & \ph{1.00} & \ph{1.00} & \ph{14.9} & \ph{39} & \ph{58} \\
+Reset-Residual~\citep{soni2026sandwich}       & \ph{1.00} & \ph{41.9} & \ph{1.00} & \ph{1.00} & \ph{14.6} & \ph{40} & \ph{34} \\
+Continual-SGD                                 & \ph{0.85} & \ph{47.3} & \ph{0.88} & \ph{0.83} & \ph{12.7} & \ph{45} & \ph{58} \\
+Mixture~\citep{nagabandi2019mole}             & \ph{0.63} & \ph{58.0} & \ph{0.69} & \ph{0.61} & \ph{9.8}  & \ph{55} & \ph{29} \\
+\method-NoCue                                 & \ph{0.62} & \ph{58.4} & \ph{0.67} & \ph{0.60} & \ph{9.5}  & \ph{56} & \ph{24} \\
+\method                                       & \textbf{\ph{0.25}} & \textbf{\ph{76.5}} & \textbf{\ph{0.41}} & \textbf{\ph{0.32}} & \textbf{\ph{5.1}} & \textbf{\ph{74}} & \ph{24} \\
+\midrule
+\textcolor{black!60}{Oracle context}          & \textcolor{black!60}{\ph{0.09}} & \textcolor{black!60}{\ph{83.1}} & \textcolor{black!60}{\ph{0.22}} & \textcolor{black!60}{\ph{0.17}} & \textcolor{black!60}{\ph{3.6}} & \textcolor{black!60}{\ph{81}} & \textcolor{black!60}{\ph{24}} \\
+\bottomrule
+\end{tabular}}
+\caption{\textbf{Main results} (placeholder values). First-contact (FC) error is normalized by the frozen model; success means stopping within \ph{5}\,cm of the target without leaving the table. Hardware results exclude first occurrences of each condition.}
+\label{tab:main}
+\end{table}
